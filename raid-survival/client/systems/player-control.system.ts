@@ -20,9 +20,9 @@ export const playerControlSystem = (registry: Registry, ctx: Context) => {
     let dx = 0;
     let dy = 0;
 
-    if (input.isKeyPressed(InputEnum.KeyZ) || input.isKeyPressed(InputEnum.ArrowUp)) dy -= 1;
+    if (input.isKeyPressed(InputEnum.KeyW) || input.isKeyPressed(InputEnum.ArrowUp)) dy -= 1;
     if (input.isKeyPressed(InputEnum.KeyS) || input.isKeyPressed(InputEnum.ArrowDown)) dy += 1;
-    if (input.isKeyPressed(InputEnum.KeyQ) || input.isKeyPressed(InputEnum.ArrowLeft)) dx -= 1;
+    if (input.isKeyPressed(InputEnum.KeyA) || input.isKeyPressed(InputEnum.ArrowLeft)) dx -= 1;
     if (input.isKeyPressed(InputEnum.KeyD) || input.isKeyPressed(InputEnum.ArrowRight)) dx += 1;
 
     const len = Math.hypot(dx, dy) || 1;
@@ -48,16 +48,22 @@ export const playerAnimationSystem = (registry: Registry) => {
 
   for (const entity of entities) {
     if (!entity.RenderableComponent.sprite) continue;
-    if (entity.VelocityComponent.y != 0 || entity.VelocityComponent.x != 0) {
-      entity.RenderableComponent.sprite.animation("walk");
-    } else {
-      entity.RenderableComponent.sprite.animation("idle");
+    if (
+      entity.VelocityComponent.y != 0 ||
+      (entity.VelocityComponent.x != 0 && entity.RenderableComponent.getAnimation() != "walk")
+    ) {
+      entity.RenderableComponent.setAnimation("walk");
+    } else if (entity.VelocityComponent.x == 0 && entity.RenderableComponent.getAnimation() != "idle") {
+      entity.RenderableComponent.setAnimation("idle");
     }
 
-    if (entity.PlayerComponent.target.x < entity.PositionComponent.x) {
-      entity.RenderableComponent.sprite.scaleX(-3);
-    } else {
-      entity.RenderableComponent.sprite.scaleX(3);
+    if (entity.PlayerComponent.target.x < entity.PositionComponent.x && !entity.RenderableComponent.isFlipped()) {
+      entity.RenderableComponent.flip();
+    } else if (
+      entity.PlayerComponent.target.x > entity.PositionComponent.x &&
+      entity.RenderableComponent.isFlipped()
+    ) {
+      entity.RenderableComponent.unflip();
     }
   }
 }

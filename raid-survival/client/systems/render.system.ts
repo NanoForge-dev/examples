@@ -93,6 +93,7 @@ export const renderSystem = async (registry: Registry, ctx: Context) => {
 
       pendingIds.delete(entity.id);
 
+      const [, , frameWidth, frameHeight] = animations && animations["idle"] ? animations["idle"] : [0, 0, 16, 16];
 
       const newSprite = new Sprite({
         x: entity.PositionComponent.x,
@@ -101,7 +102,9 @@ export const renderSystem = async (registry: Registry, ctx: Context) => {
         animation: "idle",
         animations,
         frameRate: 7,
-        scale: { x: entity.RenderableComponent.scale.x, y: entity.RenderableComponent.scale.y },
+        width: frameWidth || 16,
+        height: frameHeight || 16,
+        scale: { x: entity.RenderableComponent.getScale().x, y: entity.RenderableComponent.getScale().y },
       });
 
       newSprite.offsetX(newSprite.width() / 2);
@@ -113,7 +116,10 @@ export const renderSystem = async (registry: Registry, ctx: Context) => {
       spriteCache.set(entity.id, newSprite);
     }
 
-    sprite?.position({ x: entity.PositionComponent.x, y: entity.PositionComponent.y });
+    sprite?.position({
+      x: entity.PositionComponent.x + sprite.offsetX(),
+      y: entity.PositionComponent.y + sprite.offsetY(),
+    });
   }
 
   for (const [id, sprite] of spriteCache) {
