@@ -112,7 +112,7 @@ export const renderSystem = async (registry: Registry, ctx: Context) => {
       entity.RenderableComponent.sprite = newSprite;
 
       newSprite.start();
-      graphics.baseLayer.add(newSprite);
+      entity.RenderableComponent.layer.add(newSprite);
       spriteCache.set(entity.id, newSprite);
     }
 
@@ -129,7 +129,7 @@ export const renderSystem = async (registry: Registry, ctx: Context) => {
     }
   }
 
-  graphics.baseLayer.batchDraw();
+  graphics.stage.batchDraw();
 };
 
 // * Required to generate code

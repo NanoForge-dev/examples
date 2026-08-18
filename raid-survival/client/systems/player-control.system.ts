@@ -5,8 +5,11 @@ import { VelocityComponent } from "../components/velocity.component";
 import { InputEnum, InputLibrary } from "@nanoforge-dev/input";
 import { RenderableComponent } from "../components/renderable.component";
 import { PositionComponent } from "../components/position.component";
+import { WorldLayer } from "../main";
+import { PointerComponent } from "../components/pointer.component";
 
 const SPEED = 200;
+const CAMERA_SMOOTHING = 0.1;
 
 export const playerControlSystem = (registry: Registry, ctx: Context) => {
   const entities: {
@@ -14,6 +17,7 @@ export const playerControlSystem = (registry: Registry, ctx: Context) => {
     PlayerComponent: PlayerComponent;
     VelocityComponent: VelocityComponent;
   }[] = registry.getZipper([LocalPlayerComponent, PlayerComponent, VelocityComponent]);
+  const pointer: { PointerComponent: PointerComponent } = registry.getZipper([PointerComponent])[0];
   const input = ctx.libs.getInput<InputLibrary>()
 
   for (const entity of entities) {
@@ -29,9 +33,31 @@ export const playerControlSystem = (registry: Registry, ctx: Context) => {
     entity.VelocityComponent.x = (dx / len) * SPEED;
     entity.VelocityComponent.y = (dy / len) * SPEED;
 
-    if (entity.PlayerComponent) entity.PlayerComponent.target = input.getMousePosition();
+    if (!pointer) continue;
+    if (entity.PlayerComponent) entity.PlayerComponent.target = pointer.PointerComponent.position;
+    console.log(pointer.PointerComponent.position);
   }
 };
+
+export const cameraFollowSystem = (registry: Registry) => {
+  const worldLayer = WorldLayer;
+
+  const entities: {LocalPlayerComponent: LocalPlayerComponent, PositionComponent: PositionComponent}[] = registry.getZipper([LocalPlayerComponent, PositionComponent]);
+
+  for (const entity of entities) {
+    const viewWidth = worldLayer.width();
+    const viewHeight = worldLayer.height();
+
+    const targetX = viewWidth / 2 - entity.PositionComponent.x;
+    const targetY = viewHeight / 2 - entity.PositionComponent.y;
+
+    const current = worldLayer.position();
+    worldLayer.position({
+      x: current.x + (targetX - current.x) * CAMERA_SMOOTHING,
+      y: current.y + (targetY - current.y) * CAMERA_SMOOTHING
+    });
+  }
+}
 
 export const playerAnimationSystem = (registry: Registry) => {
   const entities: {

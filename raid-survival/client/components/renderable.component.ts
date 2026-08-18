@@ -1,7 +1,9 @@
-import { Sprite, Vector2d } from "@nanoforge-dev/graphics-2d";
+import { Layer, Sprite, Vector2d } from "@nanoforge-dev/graphics-2d";
+import { WorldLayer } from "../main";
 
 interface RenderableComponentOptions {
   animationsKey?: string;
+  layer?: Layer;
   scale?: Vector2d;
   currentAnimation?: string;
 }
@@ -11,6 +13,7 @@ export class RenderableComponent {
   spriteKey: string;
   sprite: Sprite | undefined;
   animationsKey?: string;
+  layer: Layer = WorldLayer;
 
   private _scale: Vector2d = { x: 1, y: 1 };
   private _currentAnimation: string = "idle";
@@ -19,6 +22,7 @@ export class RenderableComponent {
   constructor(spriteKey: string, options?: RenderableComponentOptions) {
     this.spriteKey = spriteKey;
     if (options?.animationsKey) this.animationsKey = options.animationsKey;
+    if (options?.layer) this.layer = options.layer;
     if (options?.scale) this._scale = options.scale;
     if (options?.currentAnimation) this._currentAnimation = options.currentAnimation;
   }
