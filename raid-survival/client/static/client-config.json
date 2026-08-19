@@ -1,0 +1,13 @@
+{
+  "keybinds": {
+    "up": "KeyZ",
+    "left": "KeyA",
+    "down": "KeyS",
+    "right": "KeyD",
+    "aimingMode": "Mouse",
+    "shootMainWeapon": "MouseLeft",
+    "shootSecondWeapon": "KeyF",
+    "inspectEntity": "MouseRight"
+  },
+  "login": "tchips"
+}

@@ -2,7 +2,7 @@ import { type Context, NfFile } from "@nanoforge-dev/common";
 import { type Registry } from "@nanoforge-dev/ecs-client";
 
 import { Graphics2DLibrary, Sprite } from "@nanoforge-dev/graphics-2d";
-import { PositionComponent } from "../components/position.component";
+import { Position } from "../components/position.component";
 import { RenderableComponent } from "../components/renderable.component";
 import { AssetManagerLibrary } from "@nanoforge-dev/asset-manager";
 
@@ -63,12 +63,11 @@ function loadAnimations(file: NfFile): Promise<Animations | undefined> {
   return promise;
 }
 
-
 const spriteCache = new Map<number, Sprite>();
 const pendingIds = new Set<number>();
 
 export const renderSystem = async (registry: Registry, ctx: Context) => {
-  const entities = registry.getIndexedZipper([PositionComponent, RenderableComponent]);
+  const entities = registry.getIndexedZipper([Position, RenderableComponent]);
   const graphics = ctx.libs.getGraphics<Graphics2DLibrary>();
   const assetManager = ctx.libs.getAssetManager<AssetManagerLibrary>();
   const seenIds = new Set<number>();
@@ -93,18 +92,22 @@ export const renderSystem = async (registry: Registry, ctx: Context) => {
 
       pendingIds.delete(entity.id);
 
-      const [, , frameWidth, frameHeight] = animations && animations["idle"] ? animations["idle"] : [0, 0, 16, 16];
+      const [, , frameWidth, frameHeight] =
+        animations && animations["idle"] ? animations["idle"] : [0, 0, 16, 16];
 
       const newSprite = new Sprite({
-        x: entity.PositionComponent.x,
-        y: entity.PositionComponent.y,
+        x: entity.Position.x,
+        y: entity.Position.y,
         image,
         animation: "idle",
         animations,
         frameRate: 7,
         width: frameWidth || 16,
         height: frameHeight || 16,
-        scale: { x: entity.RenderableComponent.getScale().x, y: entity.RenderableComponent.getScale().y },
+        scale: {
+          x: entity.RenderableComponent.getScale().x,
+          y: entity.RenderableComponent.getScale().y,
+        },
       });
 
       newSprite.offsetX(newSprite.width() / 2);
@@ -117,8 +120,8 @@ export const renderSystem = async (registry: Registry, ctx: Context) => {
     }
 
     sprite?.position({
-      x: entity.PositionComponent.x + sprite.offsetX(),
-      y: entity.PositionComponent.y + sprite.offsetY(),
+      x: entity.Position.x + sprite.offsetX(),
+      y: entity.Position.y + sprite.offsetY(),
     });
   }
 

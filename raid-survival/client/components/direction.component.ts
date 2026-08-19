@@ -1,4 +1,4 @@
-export class Position {
+export class Direction {
   name = this.constructor.name;
 
   constructor(
@@ -8,4 +8,4 @@ export class Position {
 }
 
 // * Required to generate code
-export default Position.name;
+export default Direction.name;

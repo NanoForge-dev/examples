@@ -1,5 +1,4 @@
 import { Layer, Sprite, Vector2d } from "@nanoforge-dev/graphics-2d";
-import { WorldLayer } from "../main";
 
 interface RenderableComponentOptions {
   animationsKey?: string;
@@ -13,18 +12,19 @@ export class RenderableComponent {
   spriteKey: string;
   sprite: Sprite | undefined;
   animationsKey?: string;
-  layer: Layer = WorldLayer;
+  layer: Layer;
 
   private _scale: Vector2d = { x: 1, y: 1 };
   private _currentAnimation: string = "idle";
   private _flipped: boolean = false;
 
-  constructor(spriteKey: string, options?: RenderableComponentOptions) {
+  constructor(spriteKey: string, layer: Layer, options?: RenderableComponentOptions) {
     this.spriteKey = spriteKey;
     if (options?.animationsKey) this.animationsKey = options.animationsKey;
     if (options?.layer) this.layer = options.layer;
     if (options?.scale) this._scale = options.scale;
     if (options?.currentAnimation) this._currentAnimation = options.currentAnimation;
+    this.layer = layer;
   }
 
   getAnimation(): string {
@@ -52,7 +52,7 @@ export class RenderableComponent {
 
   flip() {
     this._flipped = true;
-    this.sprite?.scaleX(this._scale.x * -1)
+    this.sprite?.scaleX(this._scale.x * -1);
   }
 
   unflip() {

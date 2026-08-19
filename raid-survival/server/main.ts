@@ -4,30 +4,43 @@ import { NanoforgeFactory } from "@nanoforge-dev/core";
 import { AssetManagerLibrary } from "@nanoforge-dev/asset-manager";
 import { ECSServerLibrary } from "@nanoforge-dev/ecs-server";
 import { NetworkServerLibrary } from "@nanoforge-dev/network-server";
+import { moveSystem } from "./systems/move.system";
+import { packetHandler } from "./systems/packet-handler.system";
 
-import { ExampleComponent } from "./components/example.component";
+export const PLAYER_SPEED = 200;
 
-import { exampleSystem } from "./systems/example.system";
+export enum GameStatusEnum {
+  Lobby,
+  InGame,
+  EndScreen,
+}
+
+export const gameStatus = { status: GameStatusEnum.Lobby };
+
+export const clients: { clientId: number; entityId: number; clientLogin: string }[] = [
+  { clientId: -1, entityId: -1, clientLogin: "" },
+  { clientId: -1, entityId: -1, clientLogin: "" },
+  { clientId: -1, entityId: -1, clientLogin: "" },
+  { clientId: -1, entityId: -1, clientLogin: "" },
+];
 
 export async function main(options: IRunOptions) {
   const app = NanoforgeFactory.createServer();
-  
+
   const assetManagerLibrary = new AssetManagerLibrary();
   const ecsLibrary = new ECSServerLibrary();
   const networkLibrary = new NetworkServerLibrary();
-  
+
   app.useAssetManager(assetManagerLibrary);
   app.useComponentSystem(ecsLibrary);
   app.useNetwork(networkLibrary);
-  
+
   await app.init(options);
-  
+
   const registry = ecsLibrary.registry;
-  
-  const exampleEntity = registry.spawnEntity();
-  registry.addComponent(exampleEntity, new ExampleComponent("example", 10, undefined));
-  
-  registry.addSystem(exampleSystem);
-  
+
+  registry.addSystem(packetHandler);
+  registry.addSystem(moveSystem);
+
   await app.run();
 }

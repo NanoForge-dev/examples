@@ -12,4 +12,10 @@ export default [
   ...tseslint.configs.strict,
   eslintConfigPrettier,
   { ignores: ["**/*.js", "**/*.d.ts"] },
+  {
+    files: ["**/packet-handlers/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 ];
