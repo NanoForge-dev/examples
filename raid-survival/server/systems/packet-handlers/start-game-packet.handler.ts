@@ -39,7 +39,7 @@ export function startGamePacketHandler(
       registry.addComponent(player, new Position(playerSpawn.x, playerSpawn.y));
       registry.addComponent(player, new Velocity(0, 0));
       playersInformation.push({
-        id: client.clientId,
+        id: client.entityId,
         username: client.username,
         position: playerSpawn,
       })

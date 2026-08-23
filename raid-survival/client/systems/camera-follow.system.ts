@@ -16,8 +16,10 @@ export const cameraFollowSystem = (registry: Registry) => {
     const viewWidth = scene.layer.width();
     const viewHeight = scene.layer.height();
 
-    const targetX = viewWidth / 2 - entity.Position.x;
-    const targetY = viewHeight / 2 - entity.Position.y;
+    const scale = scene.layer.scaleX();
+
+    const targetX = viewWidth / 2 - entity.Position.x * scale;
+    const targetY = viewHeight / 2 - entity.Position.y * scale;
 
     const current = scene.layer.position();
     scene.layer.position({

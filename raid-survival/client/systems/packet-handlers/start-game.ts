@@ -5,9 +5,9 @@ import { GameScene } from "../../scenes/GameScene";
 import { SpriteComponent } from "../../components/renderable/sprite.component";
 import { Position } from "../../components/position.component";
 import { Velocity } from "../../components/velocity.component";
-import { PlayerComponent } from "../../components/player.component";
 import { MoveController } from "../../components/move-controller.component";
 import { Layer } from "@nanoforge-dev/graphics-2d";
+import { NetworkId } from "../../components/network-id.component";
 
 export function startGamePacketHandler(packet: any, registry: Registry): void {
   const entities: { LobbyStatusComponent: LobbyStatusComponent }[] = registry.getZipper([
@@ -22,7 +22,7 @@ export function startGamePacketHandler(packet: any, registry: Registry): void {
   
   for (const player of packet.players) {
     const playerEntity = registry.spawnEntity();
-    registry.addComponent(playerEntity, new PlayerComponent(player.id, player.username));
+    registry.addComponent(playerEntity, new NetworkId(player.id));
     if (playerId === player.id) registry.addComponent(playerEntity, new MoveController());
     registry.addComponent(
       playerEntity,
