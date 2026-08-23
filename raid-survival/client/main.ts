@@ -64,9 +64,6 @@ export async function main(options: IRunOptions) {
 
   await app.init(options);
 
-  const context = graphicsLibrary.baseLayer.getCanvas()._canvas.getContext("2d");
-  if (context) context.imageSmoothingEnabled = false;
-  clientConfig = await assetManagerLibrary.getAsset("client-config.json").json();
   const registry = ecsLibrary.registry;
 
   registry.addSystem(sceneSystem);

@@ -13,15 +13,20 @@ export class GameScene implements Scene {
   load(registry: Registry, stage: Stage): void {
     this.stage = stage;
 
+
     this.layer = new Layer();
+    this.layer?.scale({x: 3, y: 3});
+    const context = this.layer.getCanvas()._canvas.getContext("2d");
+    if (context) context.imageSmoothingEnabled = false;
     this.stage.add(this.layer);
 
     const map = registry.spawnEntity();
     registry.addComponent(map, new Position(0, 0));
-    registry.addComponent(
-      map,
-      new SpriteComponent("map.png", { layer: this.layer, scale: { x: 3, y: 3 } }),
-    );
+    registry.addComponent(map, new SpriteComponent("map.png", { layer: this.layer }));
+  }
+
+  unload() {
+    this.layer?.destroy();
   }
 
   tick(): void {}

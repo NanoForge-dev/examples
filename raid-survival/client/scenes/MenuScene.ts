@@ -77,7 +77,7 @@ export class MenuScene implements Scene {
   }
 
   unload(): void {
-
+    this.layer?.destroy();
   }
 
   tick(registry: Registry) {

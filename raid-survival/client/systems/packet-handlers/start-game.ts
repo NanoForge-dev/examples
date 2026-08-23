@@ -28,8 +28,7 @@ export function startGamePacketHandler(packet: any, registry: Registry): void {
       playerEntity,
       new SpriteComponent("player4.png", {
         layer: newScene.layer || new Layer(),
-        animationsKey: "player-animations.txt",
-        scale: { x: 3, y: 3 },
+        animationsKey: "player-animations.txt"
       }),
     );
     registry.addComponent(playerEntity, new Position(100, 100));
