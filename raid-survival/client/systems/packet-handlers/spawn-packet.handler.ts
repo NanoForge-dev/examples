@@ -2,9 +2,8 @@ import { Registry } from "@nanoforge-dev/ecs-client";
 import { NetworkId } from "../../components/network-id.component";
 import { Position } from "../../components/position.component";
 import { Velocity } from "../../components/velocity.component";
-import { RenderableComponent } from "../../components/renderable.component";
+import { SpriteComponent } from "../../components/renderable/sprite.component";
 import { Context } from "@nanoforge-dev/common";
-import { Graphics2DLibrary } from "@nanoforge-dev/graphics-2d";
 import { Direction } from "../../components/direction.component";
 import { clientConfig } from "../../main";
 import { ShootController } from "../../components/shoot.controller";
@@ -12,7 +11,7 @@ import { MoveController } from "../../components/move-controller.component";
 
 export function spawnPacketHandler(packet: any, registry: Registry, ctx: Context): void {
   const zipper = registry.getZipper([NetworkId]);
-  const graphicsLibrary = ctx.libs.getGraphics<Graphics2DLibrary>();
+  //const graphicsLibrary = ctx.libs.getGraphics<Graphics2DLibrary>();
   const it = zipper.find(({ NetworkId }) => {
     return NetworkId.id === packet.id;
   });
@@ -28,7 +27,7 @@ export function spawnPacketHandler(packet: any, registry: Registry, ctx: Context
       registry.addComponent(newEnt, new Velocity(packet.velocity.x, packet.velocity.y));
       registry.addComponent(
         newEnt,
-        new RenderableComponent("player.png", graphicsLibrary.baseLayer, {
+        new SpriteComponent("player.png", {
           animationsKey: "player-animations.txt",
           scale: { x: 3, y: 3 },
         }),
@@ -43,7 +42,7 @@ export function spawnPacketHandler(packet: any, registry: Registry, ctx: Context
       registry.addComponent(newEnt, new Direction(packet.direction.x, packet.direction.y));
       break;
     case "map":
-      registry.addComponent(newEnt, new RenderableComponent("map.png", graphicsLibrary.baseLayer));
+      registry.addComponent(newEnt, new SpriteComponent("map.png"));
       break;
     case "nexus":
       break;

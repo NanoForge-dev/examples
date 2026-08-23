@@ -7,6 +7,14 @@ import { Position } from "../../components/position.component";
 import { Direction } from "../../components/direction.component";
 import { Velocity } from "../../components/velocity.component";
 import { Login } from "../../components/clientId.component";
+import { Vector2d } from "@nanoforge-dev/graphics-2d";
+
+const playerSpawners: Vector2d[] = [
+  {x: -50, y: -50},
+  {x: 50, y: -50},
+  {x: -50, y: 50},
+  {x: 50, y: 50},
+]
 
 export function startGamePacketHandler(
   _clientId: number,
@@ -18,29 +26,28 @@ export function startGamePacketHandler(
   if (gameStatus.status === GameStatusEnum.InGame) return;
   gameStatus.status = GameStatusEnum.InGame;
 
-  sendToInGamePlayers(network, {
-    type: "spawn",
-    entityType: "map",
-    position: { x: 0, y: 0 },
-  });
+  const playersInformation: {id: number, username: string, position: Vector2d}[] = []
 
   clients.forEach((client, index) => {
-    if (client.clientId === -1) return;
     const player = registry.spawnEntity();
+    const playerSpawn = playerSpawners[index];
 
-    client.entityId = player.getId();
-    registry.addComponent(player, new Direction(1, 0));
-    registry.addComponent(player, new Login(client.clientLogin));
-    registry.addComponent(player, new Position(500 + 100 * index, 100));
-    registry.addComponent(player, new Velocity(0, 0));
-    sendToInGamePlayers(network, {
-      type: "spawn",
-      entityType: "player",
-      position: { x: 500 + 100 * index, y: 100 },
-      velocity: { x: 0, y: 0 },
-      direction: { x: 1, y: 0 },
-      login: client.clientLogin,
-      id: player.getId(),
-    });
+    if (playerSpawn) {
+      client.entityId = player.getId();
+      registry.addComponent(player, new Direction(1, 0));
+      registry.addComponent(player, new Login(client.username));
+      registry.addComponent(player, new Position(playerSpawn.x, playerSpawn.y));
+      registry.addComponent(player, new Velocity(0, 0));
+      playersInformation.push({
+        id: client.clientId,
+        username: client.username,
+        position: playerSpawn,
+      })
+    }
+  });
+
+  sendToInGamePlayers(network, {
+    type: "startGame",
+    players: playersInformation,
   });
 }

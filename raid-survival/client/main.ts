@@ -9,15 +9,19 @@ import { MusicLibrary } from "@nanoforge-dev/music";
 import { NetworkClientLibrary } from "@nanoforge-dev/network-client";
 import { SoundLibrary } from "@nanoforge-dev/sound";
 import { moveSystem } from "./systems/move.system";
-import { spriteAnimator } from "./systems/sprite-animator.system";
-import { renderSystem } from "./systems/render.system";
+import { spriteAnimator } from "./systems/renderable/sprite-animator.system";
+import { spriteSystem } from "./systems/renderable/sprite.system";
 import { cameraFollowSystem } from "./systems/camera-follow.system";
 import { moveControl } from "./systems/move-control.client.system";
-import { shootControl } from "./systems/shoot-control.client.system";
-import { sendMoveControl } from "./systems/send-move-control.client.system";
-import { sendShootControl } from "./systems/send-shoot-control.client.system";
-import { clickableSystem } from "./systems/clickable.system";
+import { shootControl } from "./systems/packet-senders/shoot-control.client.system";
+import { sendMoveControl } from "./systems/packet-senders/send-move-control.client.system";
+import { sendShootControl } from "./systems/packet-senders/send-shoot-control.client.system";
 import { packetHandler } from "./systems/packet-handler.system";
+import {SceneManager} from "./scenes/SceneManager";
+import {MenuScene} from "./scenes/MenuScene";
+import {textareaSystem} from "./systems/renderable/textarea";
+import { sceneSystem } from "./systems/scene";
+import { sendLobbyAction } from "./systems/packet-senders/lobby-action";
 
 export let clientConfig: {
   keybinds: {
@@ -31,6 +35,13 @@ export let clientConfig: {
   };
   login: string;
 };
+
+export let sceneManager: SceneManager;
+export let playerId: number;
+
+export function setPlayerId(id: number) {
+  playerId = id;
+}
 
 export async function main(options: IRunOptions) {
   const app = NanoforgeFactory.createClient();
@@ -58,16 +69,20 @@ export async function main(options: IRunOptions) {
   clientConfig = await assetManagerLibrary.getAsset("client-config.json").json();
   const registry = ecsLibrary.registry;
 
+  registry.addSystem(sceneSystem);
   registry.addSystem(moveControl);
+  registry.addSystem(textareaSystem);
   registry.addSystem(shootControl);
-  registry.addSystem(sendMoveControl);
-  registry.addSystem(sendShootControl);
   registry.addSystem(spriteAnimator);
   registry.addSystem(cameraFollowSystem);
-  registry.addSystem(clickableSystem);
-  registry.addSystem(packetHandler);
   registry.addSystem(moveSystem);
-  registry.addSystem(renderSystem);
+  registry.addSystem(spriteSystem);
+
+  registry.addSystem(packetHandler);
+
+  registry.addSystem(sendMoveControl);
+  registry.addSystem(sendShootControl);
+  registry.addSystem(sendLobbyAction);
 
   async function waitForConnection(): Promise<void> {
     if (networkLibrary.tcp?.isConnected()) return;
@@ -86,8 +101,8 @@ export async function main(options: IRunOptions) {
 
   await waitForConnection();
 
-  networkLibrary.tcp.sendData(
-    new TextEncoder().encode(JSON.stringify({ type: "joinLobby", login: clientConfig.login })),
-  );
+  sceneManager = new SceneManager(registry, graphicsLibrary.stage);
+  sceneManager.switchTo(new MenuScene());
+
   await app.run();
 }

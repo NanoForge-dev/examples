@@ -1,4 +1,4 @@
-import { type InputEnum } from "@nanoforge-dev/input";
+import { InputEnum } from "@nanoforge-dev/input";
 
 export class MoveController {
   name = this.constructor.name;
@@ -14,7 +14,7 @@ export class MoveController {
 
   constructor(clientConfig: {
     keybinds: { up: InputEnum; left: InputEnum; down: InputEnum; right: InputEnum };
-  }) {
+  } = { keybinds: { up: InputEnum.KeyW, left: InputEnum.KeyA, down: InputEnum.KeyS, right: InputEnum.KeyD } }) {
     this.keyUp = clientConfig.keybinds.up;
     this.keyDown = clientConfig.keybinds.down;
     this.keyLeft = clientConfig.keybinds.left;

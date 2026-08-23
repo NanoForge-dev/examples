@@ -16,7 +16,7 @@ export function inputPacketHandler(
 ): void {
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
   const zipper = registry.getIndexedZipper([Login, Velocity, Position, Direction]);
-  const log = clients.find((client) => client.clientId === clientId)?.clientLogin;
+  const log = clients.find((client) => client.clientId === clientId)?.username;
   const it = zipper.find(({ Login }) => {
     return Login.id === log;
   });

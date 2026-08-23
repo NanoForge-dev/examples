@@ -6,6 +6,8 @@ import { spawnPacketHandler } from "./packet-handlers/spawn-packet.handler";
 import { directionPacketHandler } from "./packet-handlers/direction-packet.handler";
 import { killPacketHandler } from "./packet-handlers/kill-packet.handler";
 import { joinLobbyPacketHandler } from "./packet-handlers/join-lobby-packet.handler";
+import { lobbyInfoPacketHandler } from "./packet-handlers/lobby-info-packet.handler";
+import {startGamePacketHandler} from "./packet-handlers/start-game";
 
 export type PacketHandler = (packet: unknown, registry: Registry, ctx: Context) => unknown;
 
@@ -15,6 +17,8 @@ export const packetHandlers: Map<string, PacketHandler> = new Map([
   ["direction", directionPacketHandler],
   ["kill", killPacketHandler],
   ["joinLobby", joinLobbyPacketHandler],
+  ["lobbyInfo", lobbyInfoPacketHandler],
+  ["startGame", startGamePacketHandler],
 ]);
 
 export function packetHandler(registry: Registry, ctx: Context) {

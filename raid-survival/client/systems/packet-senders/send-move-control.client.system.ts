@@ -1,8 +1,8 @@
 import { type Context } from "@nanoforge-dev/common";
 import { type Registry } from "@nanoforge-dev/ecs-client";
 
-import { MoveController } from "../components/move-controller.component";
-import { Velocity } from "../components/velocity.component";
+import { MoveController } from "../../components/move-controller.component";
+import { Velocity } from "../../components/velocity.component";
 import { NetworkClientLibrary } from "@nanoforge-dev/network-client";
 
 function compareStringArrays(array1: string[], array2: string[]) {

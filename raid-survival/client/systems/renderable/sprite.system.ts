@@ -2,8 +2,8 @@ import { type Context, NfFile } from "@nanoforge-dev/common";
 import { type Registry } from "@nanoforge-dev/ecs-client";
 
 import { Graphics2DLibrary, Sprite } from "@nanoforge-dev/graphics-2d";
-import { Position } from "../components/position.component";
-import { RenderableComponent } from "../components/renderable.component";
+import { Position } from "../../components/position.component";
+import { SpriteComponent } from "../../components/renderable/sprite.component";
 import { AssetManagerLibrary } from "@nanoforge-dev/asset-manager";
 
 type Animations = Record<string, number[]>;
@@ -66,8 +66,8 @@ function loadAnimations(file: NfFile): Promise<Animations | undefined> {
 const spriteCache = new Map<number, Sprite>();
 const pendingIds = new Set<number>();
 
-export const renderSystem = async (registry: Registry, ctx: Context) => {
-  const entities = registry.getIndexedZipper([Position, RenderableComponent]);
+export const spriteSystem = async (registry: Registry, ctx: Context) => {
+  const entities = registry.getIndexedZipper([Position, SpriteComponent]);
   const graphics = ctx.libs.getGraphics<Graphics2DLibrary>();
   const assetManager = ctx.libs.getAssetManager<AssetManagerLibrary>();
   const seenIds = new Set<number>();
@@ -79,8 +79,8 @@ export const renderSystem = async (registry: Registry, ctx: Context) => {
     if (!sprite && !pendingIds.has(entity.id)) {
       pendingIds.add(entity.id);
 
-      const imageFile = assetManager.getAsset(entity.RenderableComponent.spriteKey);
-      const animationsFile = assetManager.getAsset(entity.RenderableComponent.animationsKey);
+      const imageFile = assetManager.getAsset(entity.SpriteComponent.spriteKey);
+      const animationsFile = assetManager.getAsset(entity.SpriteComponent.animationsKey);
 
       const image = await loadImage(imageFile.path);
       if (!image) continue;
@@ -105,17 +105,17 @@ export const renderSystem = async (registry: Registry, ctx: Context) => {
         width: frameWidth || 16,
         height: frameHeight || 16,
         scale: {
-          x: entity.RenderableComponent.getScale().x,
-          y: entity.RenderableComponent.getScale().y,
+          x: entity.SpriteComponent.getScale().x,
+          y: entity.SpriteComponent.getScale().y,
         },
       });
 
       newSprite.offsetX(newSprite.width() / 2);
 
-      entity.RenderableComponent.sprite = newSprite;
+      entity.SpriteComponent.sprite = newSprite;
 
       newSprite.start();
-      entity.RenderableComponent.layer.add(newSprite);
+      entity.SpriteComponent.layer.add(newSprite);
       spriteCache.set(entity.id, newSprite);
     }
 
@@ -136,4 +136,4 @@ export const renderSystem = async (registry: Registry, ctx: Context) => {
 };
 
 // * Required to generate code
-export default renderSystem.name;
+export default spriteSystem.name;

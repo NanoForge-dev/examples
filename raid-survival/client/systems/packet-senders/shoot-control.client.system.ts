@@ -2,8 +2,8 @@ import { type Context } from "@nanoforge-dev/common";
 import { type Registry } from "@nanoforge-dev/ecs-client";
 import { type InputLibrary } from "@nanoforge-dev/input";
 
-import { ShootController } from "../components/shoot.controller";
-import { Direction } from "../components/direction.component";
+import { ShootController } from "../../components/shoot.controller";
+import { Direction } from "../../components/direction.component";
 import { Graphics2DLibrary, Vector2d } from "@nanoforge-dev/graphics-2d";
 
 export function shootControl(registry: Registry, ctx: Context) {

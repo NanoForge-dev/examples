@@ -1,30 +1,29 @@
 import { Layer, Sprite, Vector2d } from "@nanoforge-dev/graphics-2d";
 
-interface RenderableComponentOptions {
+interface SpriteComponentOptions {
   animationsKey?: string;
   layer?: Layer;
   scale?: Vector2d;
   currentAnimation?: string;
 }
 
-export class RenderableComponent {
+export class SpriteComponent {
   name = this.constructor.name;
   spriteKey: string;
   sprite: Sprite | undefined;
   animationsKey?: string;
-  layer: Layer;
+  layer: Layer | undefined;
 
   private _scale: Vector2d = { x: 1, y: 1 };
   private _currentAnimation: string = "idle";
   private _flipped: boolean = false;
 
-  constructor(spriteKey: string, layer: Layer, options?: RenderableComponentOptions) {
+  constructor(spriteKey: string, options?: SpriteComponentOptions) {
     this.spriteKey = spriteKey;
     if (options?.animationsKey) this.animationsKey = options.animationsKey;
-    if (options?.layer) this.layer = options.layer;
     if (options?.scale) this._scale = options.scale;
     if (options?.currentAnimation) this._currentAnimation = options.currentAnimation;
-    this.layer = layer;
+    if (options?.layer) this.layer = options.layer;
   }
 
   getAnimation(): string {
@@ -62,4 +61,4 @@ export class RenderableComponent {
 }
 
 // * Required to generate code
-export default RenderableComponent.name;
+export default SpriteComponent.name;

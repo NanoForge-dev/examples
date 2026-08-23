@@ -12,23 +12,36 @@ export function joinLobbyPacketHandler(
 ): void {
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
   let connected = false;
+
   for (const client of clients) {
-    if (client.clientLogin === packet.login) {
+    if (client.username === packet.username) {
       client.clientId = clientId;
       connected = true;
       break;
     }
-    if (client.clientId !== -1) continue;
-    client.clientLogin = packet.login;
-    client.clientId = clientId;
-    connected = true;
-    break;
   }
-  if (!connected) {
+
+  if (!connected && clients.length > 3) {
     network.tcp.sendToClient(
       clientId,
       new TextEncoder().encode(JSON.stringify({ type: "joinLobby", result: "full" })),
     );
+    return;
+  }
+  if (!connected) {
+    clients.push({
+      username: packet.username,
+      clientId: clientId,
+      entityId: -1
+    });
+    connected = true
+  }
+  if (!connected) {
+    network.tcp.sendToClient(
+      clientId,
+      new TextEncoder().encode(JSON.stringify({ type: "joinLobby", result: "Internal Server Error" })),
+    );
+    return;
   }
   network.tcp.sendToClient(
     clientId,
@@ -36,12 +49,22 @@ export function joinLobbyPacketHandler(
       JSON.stringify({
         type: "joinLobby",
         result: "success",
-        playerNumber: clients.filter(({ clientId }) => clientId !== -1).length,
+        players: clients.map((client) => {
+          return {
+            id: client.clientId,
+            username: client.username
+          }
+        }),
       }),
     ),
   );
   sendToInGamePlayers(network, {
     type: "lobbyInfo",
-    playerNumber: clients.filter(({ clientId }) => clientId !== -1).length,
+    players: clients.map((client) => {
+      return {
+        id: client.clientId,
+        username: client.username,
+      };
+    }),
   });
 }

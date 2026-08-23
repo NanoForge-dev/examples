@@ -1,14 +1,14 @@
 import { Registry } from "@nanoforge-dev/ecs-client";
-import { NetworkId } from "../../components/network-id.component";
 import { Position } from "../../components/position.component";
 import { Velocity } from "../../components/velocity.component";
+import { PlayerComponent } from "../../components/player.component";
 
 export function movePacketHandler(packet: any, registry: Registry): void {
-  const zipper = registry.getZipper([NetworkId, Position, Velocity]);
+  const zipper = registry.getZipper([PlayerComponent, Position, Velocity]);
   console.log(packet, zipper);
   const it = zipper.find((entity) => {
-    console.log(entity.NetworkId.id, packet.id);
-    return entity.NetworkId.id === packet.id;
+    console.log(entity.PlayerComponent.id, packet.id);
+    return entity.PlayerComponent.id === packet.id;
   });
   if (!it) return;
   console.log("Hey");

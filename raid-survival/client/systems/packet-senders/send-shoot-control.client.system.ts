@@ -1,9 +1,9 @@
 import { type Context } from "@nanoforge-dev/common";
 import { type Registry } from "@nanoforge-dev/ecs-client";
 
-import { Velocity } from "../components/velocity.component";
+import { Velocity } from "../../components/velocity.component";
 import { NetworkClientLibrary } from "@nanoforge-dev/network-client";
-import { ShootController } from "../components/shoot.controller";
+import { ShootController } from "../../components/shoot.controller";
 
 export function sendShootControl(registry: Registry, ctx: Context) {
   const entities = registry.getZipper([ShootController, Velocity]);
