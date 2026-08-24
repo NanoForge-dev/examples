@@ -7,7 +7,7 @@ import { NetworkServerLibrary } from "@nanoforge-dev/network-server";
 import { moveSystem } from "./systems/move.system";
 import { packetHandler } from "./systems/packet-handler.system";
 
-export const PLAYER_SPEED = 200;
+export const PLAYER_SPEED = 100;
 
 export enum GameStatusEnum {
   Lobby,

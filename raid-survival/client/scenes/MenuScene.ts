@@ -306,6 +306,7 @@ export class MenuScene implements Scene {
     });
     startButtonComponent.rect.on("click", () => {
       if (this.lobbyStatusComponent) this.lobbyStatusComponent.action = LobbyAction.START_GAME;
+      this.stage.container().style.cursor = "default";
     });
 
     const startButtonText = registry.spawnEntity();

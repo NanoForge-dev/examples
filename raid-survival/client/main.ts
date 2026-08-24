@@ -12,16 +12,16 @@ import { moveSystem } from "./systems/move.system";
 import { spriteAnimator } from "./systems/renderable/sprite-animator.system";
 import { spriteSystem } from "./systems/renderable/sprite.system";
 import { cameraFollowSystem } from "./systems/camera-follow.system";
-import { moveControl } from "./systems/move-control.client.system";
-import { shootControl } from "./systems/packet-senders/shoot-control.client.system";
-import { sendMoveControl } from "./systems/packet-senders/send-move-control.client.system";
-import { sendShootControl } from "./systems/packet-senders/send-shoot-control.client.system";
+import { moveControl } from "./systems/move-control.system";
+import { shootControl } from "./systems/shoot-control.system";
+import { sendMoveControl } from "./systems/packet-senders/move-control.senders.system";
+import { sendShootControl } from "./systems/packet-senders/shoot-control.sender.system";
 import { packetHandler } from "./systems/packet-handler.system";
 import {SceneManager} from "./scenes/SceneManager";
 import {MenuScene} from "./scenes/MenuScene";
 import {textareaSystem} from "./systems/renderable/textarea";
 import { sceneSystem } from "./systems/scene";
-import { sendLobbyAction } from "./systems/packet-senders/lobby-action";
+import { lobbyActionSenders } from "./systems/packet-senders/lobby-action.senders";
 
 export let clientConfig: {
   keybinds: {
@@ -79,7 +79,7 @@ export async function main(options: IRunOptions) {
 
   registry.addSystem(sendMoveControl);
   registry.addSystem(sendShootControl);
-  registry.addSystem(sendLobbyAction);
+  registry.addSystem(lobbyActionSenders);
 
   async function waitForConnection(): Promise<void> {
     if (networkLibrary.tcp?.isConnected()) return;

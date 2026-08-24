@@ -8,6 +8,8 @@ import { Velocity } from "../../components/velocity.component";
 import { MoveController } from "../../components/move-controller.component";
 import { Layer } from "@nanoforge-dev/graphics-2d";
 import { NetworkId } from "../../components/network-id.component";
+import { Direction } from "../../components/direction.component";
+import { ShootController } from "../../components/shoot.controller";
 
 export function startGamePacketHandler(packet: any, registry: Registry): void {
   const entities: { LobbyStatusComponent: LobbyStatusComponent }[] = registry.getZipper([
@@ -23,7 +25,9 @@ export function startGamePacketHandler(packet: any, registry: Registry): void {
   for (const player of packet.players) {
     const playerEntity = registry.spawnEntity();
     registry.addComponent(playerEntity, new NetworkId(player.id));
-    if (playerId === player.id) registry.addComponent(playerEntity, new MoveController());
+    registry.addComponent(playerEntity, new Direction(0, 0));
+    registry.addComponent(playerEntity, new Position(player.position.x, player.position.y));
+    registry.addComponent(playerEntity, new Velocity(0, 0));
     registry.addComponent(
       playerEntity,
       new SpriteComponent("player4.png", {
@@ -31,7 +35,9 @@ export function startGamePacketHandler(packet: any, registry: Registry): void {
         animationsKey: "player-animations.txt"
       }),
     );
-    registry.addComponent(playerEntity, new Position(100, 100));
-    registry.addComponent(playerEntity, new Velocity(0, 0));
+    if (playerId === player.id) {
+      registry.addComponent(playerEntity, new MoveController());
+      registry.addComponent(playerEntity, new ShootController());
+    }
   }
 }

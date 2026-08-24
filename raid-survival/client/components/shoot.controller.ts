@@ -11,13 +11,21 @@ export class ShootController {
   public mainWeaponShooting: boolean = false;
   public secondWeaponShooting: boolean = false;
 
-  constructor(clientConfig: {
-    keybinds: {
-      aimingMode: "mouse" | "arrows" | "joystick";
-      shootMainWeapon: InputEnum;
-      shootSecondWeapon: InputEnum;
-    };
-  }) {
+  constructor(
+    clientConfig: {
+      keybinds: {
+        aimingMode: "mouse" | "arrows" | "joystick";
+        shootMainWeapon: InputEnum;
+        shootSecondWeapon: InputEnum;
+      };
+    } = {
+      keybinds: {
+        aimingMode: "mouse",
+        shootMainWeapon: InputEnum.MouseLeft,
+        shootSecondWeapon: InputEnum.MouseRight,
+      },
+    },
+  ) {
     this.aimingMode = clientConfig.keybinds.aimingMode;
     this.keyShootMainWeapon = clientConfig.keybinds.shootMainWeapon;
     this.keyShootSecondWeapon = clientConfig.keybinds.shootSecondWeapon;

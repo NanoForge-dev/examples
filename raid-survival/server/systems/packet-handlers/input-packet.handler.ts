@@ -22,9 +22,9 @@ export function inputPacketHandler(
   });
   if (!it) return;
 
-  if (packet.shootDirection) {
-    it.Direction.x = packet.shootDirection.x - it.Position.x;
-    it.Direction.y = packet.shootDirection.y - it.Position.y;
+  if (packet.direction) {
+    it.Direction.x = packet.direction.x;
+    it.Direction.y = packet.direction.y;
     sendToInGamePlayers(network, {
       type: "direction",
       id: it.id,

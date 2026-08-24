@@ -3,7 +3,7 @@ import type { Context } from "@nanoforge-dev/common";
 import { NetworkClientLibrary } from "@nanoforge-dev/network-client";
 import { LobbyAction, LobbyStatusComponent } from "../../components/lobby/lobby-status";
 
-export function sendLobbyAction(registry: Registry, ctx: Context) {
+export function lobbyActionSenders(registry: Registry, ctx: Context) {
   const entities: {LobbyStatusComponent: LobbyStatusComponent}[] = registry.getZipper([LobbyStatusComponent]);
   const network = ctx.libs.getNetwork<NetworkClientLibrary>();
 

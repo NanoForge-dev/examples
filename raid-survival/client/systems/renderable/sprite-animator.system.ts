@@ -4,20 +4,20 @@ import { SpriteComponent } from "../../components/renderable/sprite.component";
 import { Direction } from "../../components/direction.component";
 
 export const spriteAnimator = (registry: Registry) => {
-  const entities = registry.getZipper([Direction, SpriteComponent, Velocity]);
+  const entities: {Direction: Direction, SpriteComponent: SpriteComponent, Velocity: Velocity}[] = registry.getZipper([Direction, SpriteComponent, Velocity]);
 
-  entities.forEach(({ Direction, RenderableComponent, Velocity }) => {
-    if (!RenderableComponent.sprite) return;
-    if (Velocity.y != 0 || (Velocity.x != 0 && RenderableComponent.getAnimation() != "walk")) {
-      RenderableComponent.setAnimation("walk");
-    } else if (Velocity.x == 0 && RenderableComponent.getAnimation() != "idle") {
-      RenderableComponent.setAnimation("idle");
+  entities.forEach(({ Direction, SpriteComponent, Velocity }) => {
+    if (!SpriteComponent.sprite) return;
+    if ((Velocity.y != 0 || Velocity.x != 0) && SpriteComponent.getAnimation() != "walk") {
+      SpriteComponent.setAnimation("walk");
+    } else if (Velocity.x == 0 && Velocity.y == 0 && SpriteComponent.getAnimation() != "idle") {
+      SpriteComponent.setAnimation("idle");
     }
 
-    if (Direction.x < 0 && !RenderableComponent.isFlipped()) {
-      RenderableComponent.flip();
-    } else if (Direction.x > 0 && RenderableComponent.isFlipped()) {
-      RenderableComponent.unflip();
+    if (Direction.x < 0 && !SpriteComponent.isFlipped()) {
+      SpriteComponent.flip();
+    } else if (Direction.x > 0 && SpriteComponent.isFlipped()) {
+      SpriteComponent.unflip();
     }
   });
 };
