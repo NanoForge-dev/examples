@@ -14,10 +14,16 @@ export function joinLobbyPacketHandler(packet: any, registry: Registry): void {
     firstLobbyStatus.LobbyStatusComponent.state = LobbyState.JOINED;
     firstLobbyStatus.LobbyStatusComponent.players = [];
     for (const player of packet.players) {
-      firstLobbyStatus.LobbyStatusComponent.players.push({id: player.id, username: player.username})
-      if (player.username === firstLobbyStatus.LobbyStatusComponent.username) setPlayerId(player.id);
+      firstLobbyStatus.LobbyStatusComponent.players.push({
+        id: player.id,
+        username: player.username,
+      });
+      if (player.username === firstLobbyStatus.LobbyStatusComponent.username)
+        setPlayerId(player.id);
     }
   } else if (packet.result === "full") {
+    console.error("lobby is full");
+  } else if (packet.result === "in game") {
     console.error("lobby is full");
   } else {
     console.log(packet);

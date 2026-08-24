@@ -11,17 +11,10 @@ import { NetworkId } from "../../components/network-id.component";
 import { Direction } from "../../components/direction.component";
 import { ShootController } from "../../components/shoot.controller";
 
-export function startGamePacketHandler(packet: any, registry: Registry): void {
-  const entities: { LobbyStatusComponent: LobbyStatusComponent }[] = registry.getZipper([
-    LobbyStatusComponent,
-  ]);
-  const firstLobbyStatus = entities[0];
-
-  if (!firstLobbyStatus) return;
-
+function launchGame(packet: any, registry: Registry) {
   const newScene = new GameScene();
   sceneManager.switchTo(newScene);
-  
+
   for (const player of packet.players) {
     const playerEntity = registry.spawnEntity();
     registry.addComponent(playerEntity, new NetworkId(player.id));
@@ -40,4 +33,14 @@ export function startGamePacketHandler(packet: any, registry: Registry): void {
       registry.addComponent(playerEntity, new ShootController());
     }
   }
+}
+
+export function startGamePacketHandler(packet: any, registry: Registry): void {
+  const entities: { LobbyStatusComponent: LobbyStatusComponent }[] = registry.getZipper([
+    LobbyStatusComponent,
+  ]);
+  const firstLobbyStatus = entities[0];
+
+  if (!firstLobbyStatus) return;
+  launchGame(packet, registry);
 }

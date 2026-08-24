@@ -1,5 +1,5 @@
 import { Registry } from "@nanoforge-dev/ecs-client";
-import { clients } from "../../main";
+import { clients, gameStatus, GameStatusEnum } from "../../main";
 import { Context } from "@nanoforge-dev/common";
 import { NetworkServerLibrary } from "@nanoforge-dev/network-server";
 import { sendToInGamePlayers } from "../../network-utils";
@@ -11,8 +11,50 @@ export function joinLobbyPacketHandler(
   ctx: Context,
 ): void {
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
-  let connected = false;
 
+  function sendJoinLobbyInfo() {
+    network.tcp.sendToClient(
+      clientId,
+      new TextEncoder().encode(
+        JSON.stringify({
+          type: "joinLobby",
+          result: "success",
+          players: clients.map((client) => {
+            return {
+              id: client.entityId,
+              username: client.username,
+            };
+          }),
+        }),
+      ),
+    );
+
+    sendToInGamePlayers(network, {
+      type: "lobbyInfo",
+      players: clients.map((client) => ({
+        id: client.entityId,
+        username: client.username,
+      })),
+    });
+  }
+
+  if (gameStatus.status === GameStatusEnum.InGame) {
+    if (
+      clients.find((client) => {
+        return client.username === packet.username;
+      }) === undefined
+    )
+      sendJoinLobbyInfo();
+    else {
+      network.tcp.sendToClient(
+        clientId,
+        new TextEncoder().encode(JSON.stringify({ type: "joinLobby", result: "in game" })),
+      );
+    }
+    return;
+  }
+
+  let connected = false;
   for (const client of clients) {
     if (client.username === packet.username) {
       client.clientId = clientId;
@@ -21,7 +63,7 @@ export function joinLobbyPacketHandler(
     }
   }
 
-  if (!connected && clients.length > 3) {
+  if (!connected && clients.length >= 4) {
     network.tcp.sendToClient(
       clientId,
       new TextEncoder().encode(JSON.stringify({ type: "joinLobby", result: "full" })),
@@ -32,39 +74,9 @@ export function joinLobbyPacketHandler(
     clients.push({
       username: packet.username,
       clientId: clientId,
-      entityId: -1
+      entityId: -1,
+      connected: true,
     });
-    connected = true
+    sendJoinLobbyInfo();
   }
-  if (!connected) {
-    network.tcp.sendToClient(
-      clientId,
-      new TextEncoder().encode(JSON.stringify({ type: "joinLobby", result: "Internal Server Error" })),
-    );
-    return;
-  }
-  network.tcp.sendToClient(
-    clientId,
-    new TextEncoder().encode(
-      JSON.stringify({
-        type: "joinLobby",
-        result: "success",
-        players: clients.map((client) => {
-          return {
-            id: client.clientId,
-            username: client.username
-          }
-        }),
-      }),
-    ),
-  );
-  sendToInGamePlayers(network, {
-    type: "lobbyInfo",
-    players: clients.map((client) => {
-      return {
-        id: client.clientId,
-        username: client.username,
-      };
-    }),
-  });
 }

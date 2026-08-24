@@ -23,9 +23,8 @@ export function packetHandler(registry: Registry, ctx: Context) {
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
   const connectedClients = network.tcp.getConnectedClients();
   clients.forEach((client) => {
-    if (client.clientId === -1) return;
     if (connectedClients.findIndex((id) => id === client.clientId) === -1) {
-      client.clientId = -1;
+      client.connected = false;
     }
   });
   network.tcp.getReceivedPackets().forEach((packets, client) => {

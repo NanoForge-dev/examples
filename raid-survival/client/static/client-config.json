@@ -8,6 +8,5 @@
     "shootMainWeapon": "MouseLeft",
     "shootSecondWeapon": "KeyF",
     "inspectEntity": "MouseRight"
-  },
-  "login": "tchips"
+  }
 }

@@ -7,7 +7,7 @@ import { directionPacketHandler } from "./packet-handlers/direction-packet.handl
 import { killPacketHandler } from "./packet-handlers/kill-packet.handler";
 import { joinLobbyPacketHandler } from "./packet-handlers/join-lobby-packet.handler";
 import { lobbyInfoPacketHandler } from "./packet-handlers/lobby-info-packet.handler";
-import {startGamePacketHandler} from "./packet-handlers/start-game";
+import {startGamePacketHandler} from "./packet-handlers/start-game-packet.handler";
 
 export type PacketHandler = (packet: unknown, registry: Registry, ctx: Context) => unknown;
 

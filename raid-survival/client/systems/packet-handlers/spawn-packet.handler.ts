@@ -3,15 +3,13 @@ import { NetworkId } from "../../components/network-id.component";
 import { Position } from "../../components/position.component";
 import { Velocity } from "../../components/velocity.component";
 import { SpriteComponent } from "../../components/renderable/sprite.component";
-import { Context } from "@nanoforge-dev/common";
 import { Direction } from "../../components/direction.component";
 import { clientConfig } from "../../main";
 import { ShootController } from "../../components/shoot.controller";
 import { MoveController } from "../../components/move-controller.component";
 
-export function spawnPacketHandler(packet: any, registry: Registry, ctx: Context): void {
+export function spawnPacketHandler(packet: any, registry: Registry): void {
   const zipper = registry.getZipper([NetworkId]);
-  //const graphicsLibrary = ctx.libs.getGraphics<Graphics2DLibrary>();
   const it = zipper.find(({ NetworkId }) => {
     return NetworkId.id === packet.id;
   });
