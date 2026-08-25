@@ -29,7 +29,7 @@ export function startGamePacketHandler(
   const playersInformation: {id: number, username: string, position: Vector2d}[] = []
 
   clients.forEach((client, index) => {
-    const player = registry.spawnEntity();
+    const player = registry.entityFromIndex(client.entityId);
     const playerSpawn = playerSpawners[index];
 
     if (playerSpawn) {

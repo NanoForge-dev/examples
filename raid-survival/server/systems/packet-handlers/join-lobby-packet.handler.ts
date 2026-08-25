@@ -71,10 +71,11 @@ export function joinLobbyPacketHandler(
     return;
   }
   if (!connected) {
+    const entityId = _registry.spawnEntity().getId();
     clients.push({
       username: packet.username,
       clientId: clientId,
-      entityId: -1,
+      entityId: entityId,
       connected: true,
     });
     sendJoinLobbyInfo();
