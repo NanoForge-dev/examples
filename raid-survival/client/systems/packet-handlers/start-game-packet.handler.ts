@@ -10,28 +10,52 @@ import { Layer } from "@nanoforge-dev/graphics-2d";
 import { NetworkId } from "../../components/network-id.component";
 import { Direction } from "../../components/direction.component";
 import { ShootController } from "../../components/shoot.controller";
+import { ChildrenComponent } from "../../components/children.component";
+import { Scene } from "../../scenes/Scene";
+import { RotationComponent } from "../../components/rotation.component";
+import { DirectionRotatorComponent } from "../../components/renderable/direction-rotator.component";
+
+function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
+  const playerEntity = registry.spawnEntity();
+  registry.addComponent(playerEntity, new NetworkId(playerPacket.id));
+  registry.addComponent(playerEntity, new Direction(0, 0));
+  registry.addComponent(
+    playerEntity,
+    new Position(playerPacket.position.x, playerPacket.position.y),
+  );
+  registry.addComponent(playerEntity, new Velocity(0, 0));
+  registry.addComponent(
+    playerEntity,
+    new SpriteComponent("player1.png", {
+      layer: scene.layer || new Layer(),
+      animationsKey: "player-animations.txt",
+    }),
+  );
+  if (playerId === playerPacket.id) {
+    registry.addComponent(playerEntity, new MoveController());
+    registry.addComponent(playerEntity, new ShootController());
+  }
+
+  const hand = registry.spawnEntity();
+  registry.addComponent(hand, new Position(playerPacket.position.x, playerPacket.position.y));
+  registry.addComponent(
+    hand,
+    new SpriteComponent("hand.png", {
+      layer: scene.layer || new Layer(),
+    }),
+  );
+  registry.addComponent(hand, new ChildrenComponent(playerEntity.getId(), { LocalPosition: {x: 6, y: 12} }));
+  registry.addComponent(hand, new RotationComponent(0));
+  registry.addComponent(hand, new Direction(0, 0));
+  registry.addComponent(hand, new DirectionRotatorComponent(-90));
+}
 
 function launchGame(packet: any, registry: Registry) {
   const newScene = new GameScene();
   sceneManager.switchTo(newScene);
 
   for (const player of packet.players) {
-    const playerEntity = registry.spawnEntity();
-    registry.addComponent(playerEntity, new NetworkId(player.id));
-    registry.addComponent(playerEntity, new Direction(0, 0));
-    registry.addComponent(playerEntity, new Position(player.position.x, player.position.y));
-    registry.addComponent(playerEntity, new Velocity(0, 0));
-    registry.addComponent(
-      playerEntity,
-      new SpriteComponent("player4.png", {
-        layer: newScene.layer || new Layer(),
-        animationsKey: "player-animations.txt"
-      }),
-    );
-    if (playerId === player.id) {
-      registry.addComponent(playerEntity, new MoveController());
-      registry.addComponent(playerEntity, new ShootController());
-    }
+    buildPlayer(newScene, player, registry);
   }
 }
 

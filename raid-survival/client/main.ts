@@ -22,6 +22,8 @@ import {MenuScene} from "./scenes/MenuScene";
 import {textareaSystem} from "./systems/renderable/textarea";
 import { sceneSystem } from "./systems/scene";
 import { lobbyActionSenders } from "./systems/packet-senders/lobby-action.senders";
+import { transformChildrenToParentSystem } from "./systems/transform-children-to-parent.system";
+import { rotateToDirectionSystem } from "./systems/rotate-to-direction.system";
 
 export let clientConfig: {
   keybinds: {
@@ -74,6 +76,8 @@ export async function main(options: IRunOptions) {
   registry.addSystem(cameraFollowSystem);
   registry.addSystem(moveSystem);
   registry.addSystem(spriteSystem);
+  registry.addSystem(transformChildrenToParentSystem);
+  registry.addSystem(rotateToDirectionSystem);
 
   registry.addSystem(packetHandler);
 

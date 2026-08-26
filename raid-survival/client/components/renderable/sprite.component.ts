@@ -13,6 +13,7 @@ export class SpriteComponent {
   sprite: Sprite | undefined;
   animationsKey?: string;
   layer: Layer | undefined;
+  loading: boolean = false;
 
   private _scale: Vector2d = { x: 1, y: 1 };
   private _currentAnimation: string = "idle";

@@ -5,6 +5,7 @@ import { Graphics2DLibrary, Sprite } from "@nanoforge-dev/graphics-2d";
 import { Position } from "../../components/position.component";
 import { SpriteComponent } from "../../components/renderable/sprite.component";
 import { AssetManagerLibrary } from "@nanoforge-dev/asset-manager";
+import { RotationComponent } from "../../components/rotation.component";
 
 type Animations = Record<string, number[]>;
 
@@ -63,24 +64,16 @@ function loadAnimations(file: NfFile): Promise<Animations | undefined> {
   return promise;
 }
 
-const spriteCache = new Map<number, Sprite>();
-const pendingIds = new Set<number>();
-
 export const spriteSystem = async (registry: Registry, ctx: Context) => {
-  const entities = registry.getIndexedZipper([Position, SpriteComponent]);
+  const entities: {id: number, Position: Position, SpriteComponent: SpriteComponent}[] = registry.getIndexedZipper([Position, SpriteComponent]);
   const graphics = ctx.libs.getGraphics<Graphics2DLibrary>();
   const assetManager = ctx.libs.getAssetManager<AssetManagerLibrary>();
-  const seenIds = new Set<number>();
 
   for (const entity of entities) {
-    seenIds.add(entity.id);
-    const sprite = spriteCache.get(entity.id);
-
-    if (!sprite && !pendingIds.has(entity.id)) {
-      pendingIds.add(entity.id);
-
+    if (!entity.SpriteComponent.sprite && !entity.SpriteComponent.loading) {
+      entity.SpriteComponent.loading = true;
       const imageFile = assetManager.getAsset(entity.SpriteComponent.spriteKey);
-      const animationsFile = assetManager.getAsset(entity.SpriteComponent.animationsKey);
+      const animationsFile = assetManager.getAsset(entity.SpriteComponent.animationsKey || "");
 
       const image = await loadImage(imageFile.path);
       if (!image) continue;
@@ -90,10 +83,8 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
             idle: [0, 0, image.width, image.height],
           };
 
-      pendingIds.delete(entity.id);
-
       const [, , frameWidth, frameHeight] =
-        animations && animations["idle"] ? animations["idle"] : [0, 0, 16, 16];
+        animations && animations["idle"] ? animations["idle"] : [0, 0, image.width, image.height];
 
       const newSprite = new Sprite({
         x: entity.Position.x,
@@ -102,8 +93,8 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
         animation: "idle",
         animations,
         frameRate: 7,
-        width: frameWidth || 16,
-        height: frameHeight || 16,
+        width: frameWidth || 24,
+        height: frameHeight || 24,
         scale: {
           x: entity.SpriteComponent.getScale().x,
           y: entity.SpriteComponent.getScale().y,
@@ -115,21 +106,18 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
       entity.SpriteComponent.sprite = newSprite;
 
       newSprite.start();
-      entity.SpriteComponent.layer.add(newSprite);
-      spriteCache.set(entity.id, newSprite);
+      entity.SpriteComponent.layer?.add(newSprite);
+      entity.SpriteComponent.loading = false;
     }
 
-    sprite?.position({
-      x: entity.Position.x + sprite.offsetX(),
-      y: entity.Position.y + sprite.offsetY(),
+    entity.SpriteComponent.sprite?.position({
+      x: entity.Position.x + entity.SpriteComponent.sprite.offsetX(),
+      y: entity.Position.y + entity.SpriteComponent.sprite.offsetY(),
     });
-  }
 
-  for (const [id, sprite] of spriteCache) {
-    if (!seenIds.has(id)) {
-      sprite.destroy();
-      spriteCache.delete(id);
-    }
+    const rotation = registry.getEntityComponent(registry.entityFromIndex(entity.id), RotationComponent);
+    if (!rotation) continue;
+    entity.SpriteComponent.sprite?.rotation(rotation.angle);
   }
 
   graphics.stage.batchDraw();
