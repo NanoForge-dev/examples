@@ -5,7 +5,6 @@ import { NetworkId } from "../../components/network-id.component";
 
 export function movePacketHandler(packet: any, registry: Registry): void {
   const zipper = registry.getZipper([NetworkId, Position, Velocity]);
-  console.log(packet, zipper);
   const it = zipper.find((entity) => {
     return entity.NetworkId.id === packet.id;
   });

@@ -14,6 +14,7 @@ import { ChildrenComponent } from "../../components/children.component";
 import { Scene } from "../../scenes/Scene";
 import { RotationComponent } from "../../components/rotation.component";
 import { DirectionRotatorComponent } from "../../components/renderable/direction-rotator.component";
+import { Lobby } from "../../components/lobby.component";
 
 function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
   const playerEntity = registry.spawnEntity();
@@ -50,9 +51,28 @@ function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
   registry.addComponent(hand, new DirectionRotatorComponent(-90));
 }
 
+function buildLobby(scene: Scene, lobbyPacket: any, registry: Registry) {
+  const lobbyEntity = registry.spawnEntity();
+  registry.addComponent(lobbyEntity, new NetworkId(lobbyPacket.id));
+  registry.addComponent(
+    lobbyEntity,
+    new Position(lobbyPacket.position.x, lobbyPacket.position.y),
+  );
+  registry.addComponent(
+    lobbyEntity,
+    new SpriteComponent("objects.png", {
+      layer: scene.layer || new Layer(),
+      animationsKey: "objects-animations.txt",
+    }),
+  );
+  registry.addComponent(lobbyEntity, new Lobby());
+}
+
 function launchGame(packet: any, registry: Registry) {
   const newScene = new GameScene();
   sceneManager.switchTo(newScene);
+
+  buildLobby(newScene, packet.lobby, registry);
 
   for (const player of packet.players) {
     buildPlayer(newScene, player, registry);

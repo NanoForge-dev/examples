@@ -6,15 +6,51 @@ import { sendToInGamePlayers } from "../../network-utils";
 import { Position } from "../../components/position.component";
 import { Direction } from "../../components/direction.component";
 import { Velocity } from "../../components/velocity.component";
-import { Login } from "../../components/clientId.component";
+import { Login } from "../../components/login.component";
+import { MapCollisions, TreeLocation } from "../../components/map-collisions.component";
+import { CollisionBox } from "../../components/collision-box.component";
+import { Lobby } from "../../components/lobby.component";
 import { Vector2d } from "@nanoforge-dev/graphics-2d";
+import mapCollisionData from "../../static/map-collision.json";
 
-const playerSpawners: Vector2d[] = [
-  {x: -50, y: -50},
-  {x: 50, y: -50},
-  {x: -50, y: 50},
-  {x: 50, y: 50},
-]
+const MAX_PLAYERS = 4;
+
+const MAP_CENTER: Vector2d = {
+  x: (mapCollisionData.cols * mapCollisionData.tileSize) / 2,
+  y: (mapCollisionData.rows * mapCollisionData.tileSize) / 2,
+};
+
+const PLAYER_COLLISION_BOX: Vector2d = { x: 24, y: 24 };
+
+const LOBBY_SPRITE_SIZE: Vector2d = { x: 187, y: 143 };
+
+const tilesFor = (size: number) => Math.ceil(size / mapCollisionData.tileSize) * mapCollisionData.tileSize;
+const LOBBY_COLLISION_BOX: Vector2d = {
+  x: tilesFor(LOBBY_SPRITE_SIZE.x),
+  y: tilesFor(LOBBY_SPRITE_SIZE.y),
+};
+
+const LOBBY_POSITION: Vector2d = {
+  x: MAP_CENTER.x - LOBBY_COLLISION_BOX.x / 2,
+  y: MAP_CENTER.y - LOBBY_COLLISION_BOX.y / 2,
+};
+
+const PLAYER_SPAWN_CENTER_OFFSET =
+  LOBBY_COLLISION_BOX.x / 2 + PLAYER_COLLISION_BOX.x / 2 + mapCollisionData.tileSize;
+const PLAYER_SPAWN_CENTERS: Vector2d[] = [
+  { x: MAP_CENTER.x - PLAYER_SPAWN_CENTER_OFFSET, y: MAP_CENTER.y - PLAYER_SPAWN_CENTER_OFFSET },
+  { x: MAP_CENTER.x + PLAYER_SPAWN_CENTER_OFFSET, y: MAP_CENTER.y - PLAYER_SPAWN_CENTER_OFFSET },
+  { x: MAP_CENTER.x - PLAYER_SPAWN_CENTER_OFFSET, y: MAP_CENTER.y + PLAYER_SPAWN_CENTER_OFFSET },
+  { x: MAP_CENTER.x + PLAYER_SPAWN_CENTER_OFFSET, y: MAP_CENTER.y + PLAYER_SPAWN_CENTER_OFFSET },
+];
+const PLAYERS_SPAWNERS: Vector2d[] = PLAYER_SPAWN_CENTERS.map((center) => ({
+  x: center.x - PLAYER_COLLISION_BOX.x / 2,
+  y: center.y - PLAYER_COLLISION_BOX.y / 2,
+}));
+
+const mapTreeLocations: TreeLocation[] = mapCollisionData.collision.flatMap((row, y) =>
+  row.flatMap((blocked, x) => (blocked ? [{ x, y }] : [])),
+);
 
 export function startGamePacketHandler(
   _clientId: number,
@@ -26,28 +62,41 @@ export function startGamePacketHandler(
   if (gameStatus.status === GameStatusEnum.InGame) return;
   gameStatus.status = GameStatusEnum.InGame;
 
+  const map = registry.spawnEntity();
+  registry.addComponent(
+    map,
+    new MapCollisions(mapCollisionData.tileSize, mapCollisionData.cols, mapCollisionData.rows, mapTreeLocations),
+  );
+
+  const lobby = registry.spawnEntity();
+  registry.addComponent(lobby, new Position(LOBBY_POSITION.x, LOBBY_POSITION.y));
+  registry.addComponent(lobby, new CollisionBox(LOBBY_COLLISION_BOX.x, LOBBY_COLLISION_BOX.y));
+  registry.addComponent(lobby, new Lobby());
+
   const playersInformation: {id: number, username: string, position: Vector2d}[] = []
 
   clients.forEach((client, index) => {
-    const player = registry.entityFromIndex(client.entityId);
-    const playerSpawn = playerSpawners[index];
+    if (index >= MAX_PLAYERS) return;
+    if (!PLAYERS_SPAWNERS[index]) return;
 
-    if (playerSpawn) {
-      client.entityId = player.getId();
-      registry.addComponent(player, new Direction(1, 0));
-      registry.addComponent(player, new Login(client.username));
-      registry.addComponent(player, new Position(playerSpawn.x, playerSpawn.y));
-      registry.addComponent(player, new Velocity(0, 0));
-      playersInformation.push({
-        id: client.entityId,
-        username: client.username,
-        position: playerSpawn,
-      })
-    }
+    const player = registry.entityFromIndex(client.entityId);
+
+    client.entityId = player.getId();
+    registry.addComponent(player, new Direction(1, 0));
+    registry.addComponent(player, new Login(client.username));
+    registry.addComponent(player, new Position(PLAYERS_SPAWNERS[index].x, PLAYERS_SPAWNERS[index].y));
+    registry.addComponent(player, new Velocity(0, 0));
+    registry.addComponent(player, new CollisionBox(PLAYER_COLLISION_BOX.x, PLAYER_COLLISION_BOX.y));
+    playersInformation.push({
+      id: client.entityId,
+      username: client.username,
+      position: PLAYERS_SPAWNERS[index],
+    });
   });
 
   sendToInGamePlayers(network, {
     type: "startGame",
     players: playersInformation,
+    lobby: { id: lobby.getId(), position: LOBBY_POSITION },
   });
 }

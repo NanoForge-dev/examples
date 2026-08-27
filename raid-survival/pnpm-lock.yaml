@@ -350,16 +350,8 @@ packages:
     resolution: {integrity: sha512-U38Eo1anJe9Fehzq4iQ/xIpDWnoWxXVLkAZ5CPf/k4iKLNm0scUg5LHZ8TswGEoaBtJmwFeiIGWU6OHfYYHcJw==}
     engines: {node: '25'}
 
-  '@nanoforge-dev/loader-client@1.4.0':
-    resolution: {integrity: sha512-YYE41uqp/7+IXRXLi71UuWFBUXf8ZguMf32A/8qzCmbQN+gUtBdTKLwm+2VVcvih6mueCQCGnulH9t5SmC8+Qg==}
-    engines: {node: '25'}
-
   '@nanoforge-dev/loader-server@1.4.0':
     resolution: {integrity: sha512-jvNoHxx54BAfjUTMZHb/T/8ApbdPV/NNGwiQITUBprH4Uv8jQmbR7zNB5Z6/vIEjSVVxrU0b4fFa+BkdnKX/iQ==}
-    engines: {node: '25'}
-
-  '@nanoforge-dev/loader-website@1.4.0':
-    resolution: {integrity: sha512-+5el/zkSJQL9qCd+4a6fGpIDMQi26QRTWXJ24mJFMaDC74P1lvqnes0u0l0+/s9dunJxfgea0Epse0/Jj/3M3Q==}
     engines: {node: '25'}
 
   '@nanoforge-dev/music@1.4.2':
@@ -797,6 +789,7 @@ packages:
   eslint@9.39.5:
     resolution: {integrity: sha512-DgZS62aPLXKlnxILS/AYCoRvHaZeXceIzlXPkkGGzJWSow1aEk0lbTlxUSlyjC8jcaKxAdOnTDz+o1JFSBsyjw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -1589,7 +1582,7 @@ snapshots:
       '@angular-devkit/schematics': 22.1.4(chokidar@5.0.0)
       '@angular-devkit/schematics-cli': 22.1.4(chokidar@5.0.0)
       '@inquirer/prompts': 8.5.2
-      '@nanoforge-dev/loader-client': 1.4.0
+      '@nanoforge-dev/loader-client': link:../../loader/apps/client
       '@nanoforge-dev/loader-server': 1.4.0
       '@nanoforge-dev/schematics': 2.2.1(chokidar@5.0.0)
       ansis: 4.3.1
@@ -1661,17 +1654,9 @@ snapshots:
     dependencies:
       '@nanoforge-dev/common': 1.4.2
 
-  '@nanoforge-dev/loader-client@1.4.0':
-    dependencies:
-      '@nanoforge-dev/loader-website': 1.4.0
-      bun: 1.3.14
-      commander: 15.0.0
-
   '@nanoforge-dev/loader-server@1.4.0':
     dependencies:
       commander: 15.0.0
-
-  '@nanoforge-dev/loader-website@1.4.0': {}
 
   '@nanoforge-dev/music@1.4.2':
     dependencies:

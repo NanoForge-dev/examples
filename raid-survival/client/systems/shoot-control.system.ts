@@ -8,6 +8,8 @@ import { Vector2d } from "@nanoforge-dev/graphics-2d";
 import { Position } from "../components/position.component";
 import { sceneManager } from "../main";
 
+const PLAYER_SPRITE_SIZE: Vector2d = { x: 24, y: 24 };
+
 export function shootControl(registry: Registry, ctx: Context) {
   const entities: { ShootController: ShootController; Direction: Direction; Position: Position }[] =
     registry.getZipper([ShootController, Direction, Position]);
@@ -23,8 +25,8 @@ export function shootControl(registry: Registry, ctx: Context) {
     ShootController.position.x = pointerPosition?.x || 0;
     ShootController.position.y = pointerPosition?.y || 0;
 
-    const dx = pointerPosition.x - Position.x;
-    const dy = pointerPosition.y - Position.y;
+    const dx = pointerPosition.x - (Position.x + PLAYER_SPRITE_SIZE.x / 2);
+    const dy = pointerPosition.y - (Position.y + PLAYER_SPRITE_SIZE.y / 2);
     const length = Math.hypot(dx, dy);
 
     if (length > 0) {

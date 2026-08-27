@@ -11,6 +11,37 @@ type Animations = Record<string, number[]>;
 
 const imageCache = new Map<string, HTMLImageElement>();
 const imageLoading = new Map<string, Promise<HTMLImageElement>>();
+const failedSpriteKeys = new Set<string>();
+
+const ASSET_RELOAD_COOLDOWN_MS = 15000;
+const ASSET_RELOAD_STORAGE_KEY = "nf_sprite_asset_reload_at";
+
+function recoverFromStaleAsset(spriteKey: string, path: string, err: unknown) {
+  if (!path.startsWith("blob:")) return false;
+
+  try {
+    const last = Number(sessionStorage.getItem(ASSET_RELOAD_STORAGE_KEY) ?? 0);
+    if (Date.now() - last < ASSET_RELOAD_COOLDOWN_MS) {
+      console.error(
+        `spriteSystem: sprite "${spriteKey}" failed with a stale asset URL, and we already reloaded ` +
+          `recently - not reloading again to avoid a loop.`,
+        err,
+      );
+      return false;
+    }
+    sessionStorage.setItem(ASSET_RELOAD_STORAGE_KEY, String(Date.now()));
+  } catch {
+    // sessionStorage unavailable - fall through and still attempt the reload once.
+  }
+
+  console.error(
+    `spriteSystem: sprite "${spriteKey}" failed with a stale blob: asset URL (nf's hot-reload/OPFS asset ` +
+      `cache went stale for this tab) - reloading the page to recover.`,
+    err,
+  );
+  setTimeout(() => window.location.reload(), 300);
+  return true;
+}
 
 function loadImage(path: string): Promise<HTMLImageElement | undefined> {
   if (imageCache.has(path)) return Promise.resolve(imageCache.get(path));
@@ -20,9 +51,13 @@ function loadImage(path: string): Promise<HTMLImageElement | undefined> {
     const image = new Image();
     image.onload = () => {
       imageCache.set(path, image);
+      imageLoading.delete(path);
       resolve(image);
     };
-    image.onerror = reject;
+    image.onerror = () => {
+      imageLoading.delete(path);
+      reject(new Error(`Failed to load image: ${path}`));
+    };
     image.src = path;
   });
 
@@ -70,44 +105,63 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
   const assetManager = ctx.libs.getAssetManager<AssetManagerLibrary>();
 
   for (const entity of entities) {
-    if (!entity.SpriteComponent.sprite && !entity.SpriteComponent.loading) {
+    if (
+      !entity.SpriteComponent.sprite &&
+      !entity.SpriteComponent.loading &&
+      !failedSpriteKeys.has(entity.SpriteComponent.spriteKey)
+    ) {
       entity.SpriteComponent.loading = true;
-      const imageFile = assetManager.getAsset(entity.SpriteComponent.spriteKey);
-      const animationsFile = assetManager.getAsset(entity.SpriteComponent.animationsKey || "");
+      let imageFile: NfFile | undefined;
+      try {
+        imageFile = assetManager.getAsset(entity.SpriteComponent.spriteKey);
+        const animationsFile = assetManager.getAsset(entity.SpriteComponent.animationsKey || "");
 
-      const image = await loadImage(imageFile.path);
-      if (!image) continue;
-      const animations = animationsFile
-        ? await loadAnimations(animationsFile)
-        : {
-            idle: [0, 0, image.width, image.height],
-          };
+        const image = await loadImage(imageFile.path);
+        if (!image) continue;
+        const animations = animationsFile
+          ? await loadAnimations(animationsFile)
+          : {
+              idle: [0, 0, image.width, image.height],
+            };
 
-      const [, , frameWidth, frameHeight] =
-        animations && animations["idle"] ? animations["idle"] : [0, 0, image.width, image.height];
+        const [, , frameWidth, frameHeight] =
+          animations && animations["idle"] ? animations["idle"] : [0, 0, image.width, image.height];
 
-      const newSprite = new Sprite({
-        x: entity.Position.x,
-        y: entity.Position.y,
-        image,
-        animation: "idle",
-        animations,
-        frameRate: 7,
-        width: frameWidth || 24,
-        height: frameHeight || 24,
-        scale: {
-          x: entity.SpriteComponent.getScale().x,
-          y: entity.SpriteComponent.getScale().y,
-        },
-      });
+        const newSprite = new Sprite({
+          x: entity.Position.x,
+          y: entity.Position.y,
+          image,
+          animation: "idle",
+          animations,
+          frameRate: 7,
+          width: frameWidth || 24,
+          height: frameHeight || 24,
+          scale: {
+            x: entity.SpriteComponent.getScale().x,
+            y: entity.SpriteComponent.getScale().y,
+          },
+        });
 
-      newSprite.offsetX(newSprite.width() / 2);
+        newSprite.offsetX(newSprite.width() / 2);
 
-      entity.SpriteComponent.sprite = newSprite;
+        entity.SpriteComponent.sprite = newSprite;
 
-      newSprite.start();
-      entity.SpriteComponent.layer?.add(newSprite);
-      entity.SpriteComponent.loading = false;
+        newSprite.start();
+        entity.SpriteComponent.layer?.add(newSprite);
+      } catch (err) {
+        failedSpriteKeys.add(entity.SpriteComponent.spriteKey);
+
+        const recovering = imageFile ? recoverFromStaleAsset(entity.SpriteComponent.spriteKey, imageFile.path, err) : false;
+        if (!recovering) {
+          console.error(
+            `spriteSystem: giving up on sprite "${entity.SpriteComponent.spriteKey}" after a load failure ` +
+              `(this entity will stay invisible; it will not be retried).`,
+            err,
+          );
+        }
+      } finally {
+        entity.SpriteComponent.loading = false;
+      }
     }
 
     entity.SpriteComponent.sprite?.position({

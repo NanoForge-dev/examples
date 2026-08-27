@@ -6,7 +6,7 @@ import { Context } from "@nanoforge-dev/common";
 import { NetworkServerLibrary } from "@nanoforge-dev/network-server";
 import { sendToInGamePlayers } from "../../network-utils";
 import { Direction } from "../../components/direction.component";
-import { Login } from "../../components/clientId.component";
+import { Login } from "../../components/login.component";
 
 export function inputPacketHandler(
   clientId: number,
@@ -45,7 +45,6 @@ export function inputPacketHandler(
     it.Velocity.x = (dx / len) * PLAYER_SPEED;
     it.Velocity.y = (dy / len) * PLAYER_SPEED;
 
-    console.log(it, zipper)
     sendToInGamePlayers(network, {
       type: "move",
       id: it.id,
