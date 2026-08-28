@@ -1,12 +1,13 @@
 import { type Registry } from "@nanoforge-dev/ecs-client";
-import { Position } from "../components/position.component";
+import { TransformComponent } from "../components/essentials/transform.component";
 import { MoveController } from "../components/move-controller.component";
 import { sceneManager } from "../main";
 
 const CAMERA_SMOOTHING = 0.1;
 
 export const cameraFollowSystem = (registry: Registry) => {
-  const entities = registry.getZipper([MoveController, Position]);
+  const entities: { MoveController: MoveController; TransformComponent: TransformComponent }[] =
+    registry.getZipper([MoveController, TransformComponent]);
 
   const scene = sceneManager.getScene()
 
@@ -18,8 +19,8 @@ export const cameraFollowSystem = (registry: Registry) => {
 
     const scale = scene.layer.scaleX();
 
-    const targetX = viewWidth / 2 - entity.Position.x * scale;
-    const targetY = viewHeight / 2 - entity.Position.y * scale;
+    const targetX = viewWidth / 2 - entity.TransformComponent.x * scale;
+    const targetY = viewHeight / 2 - entity.TransformComponent.y * scale;
 
     const current = scene.layer.position();
     scene.layer.position({

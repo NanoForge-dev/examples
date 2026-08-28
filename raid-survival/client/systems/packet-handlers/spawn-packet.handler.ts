@@ -1,7 +1,7 @@
 import { Registry } from "@nanoforge-dev/ecs-client";
 import { NetworkId } from "../../components/network-id.component";
-import { Position } from "../../components/position.component";
-import { Velocity } from "../../components/velocity.component";
+import { TransformComponent } from "../../components/essentials/transform.component";
+import { Velocity } from "../../components/essentials/velocity.component";
 import { SpriteComponent } from "../../components/renderable/sprite.component";
 import { Direction } from "../../components/direction.component";
 import { clientConfig } from "../../main";
@@ -27,7 +27,7 @@ function buildPlayer(newEnt: Entity, packet: any, registry: Registry) {
   );
 
   const hand = registry.spawnEntity();
-  registry.addComponent(hand, new Position(packet.position.x, packet.position.y));
+  registry.addComponent(hand, new TransformComponent(packet.position.x, packet.position.y));
   registry.addComponent(
     hand,
     new SpriteComponent("hands.png", {
@@ -36,7 +36,7 @@ function buildPlayer(newEnt: Entity, packet: any, registry: Registry) {
   );
   registry.addComponent(
     hand,
-    new ChildrenComponent(newEnt.getId())
+    new ChildrenComponent(newEnt.getId(), {})
   )
 }
 
@@ -47,7 +47,7 @@ export function spawnPacketHandler(packet: any, registry: Registry): void {
   });
   if (it) console.error("entity with networkId already exist: ", packet.networkId);
   const newEnt = registry.spawnEntity();
-  registry.addComponent(newEnt, new Position(packet.position.x, packet.position.y));
+  registry.addComponent(newEnt, new TransformComponent(packet.position.x, packet.position.y));
   if (packet.id !== undefined) {
     registry.addComponent(newEnt, new NetworkId(packet.id));
   }

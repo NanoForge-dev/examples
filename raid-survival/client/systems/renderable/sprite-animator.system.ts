@@ -1,5 +1,5 @@
 import { type Registry } from "@nanoforge-dev/ecs-client";
-import { Velocity } from "../../components/velocity.component";
+import { Velocity } from "../../components/essentials/velocity.component";
 import { SpriteComponent } from "../../components/renderable/sprite.component";
 import { Direction } from "../../components/direction.component";
 

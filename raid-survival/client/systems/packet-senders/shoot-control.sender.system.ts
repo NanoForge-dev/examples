@@ -1,7 +1,7 @@
 import { type Context } from "@nanoforge-dev/common";
 import { type Registry } from "@nanoforge-dev/ecs-client";
 
-import { Velocity } from "../../components/velocity.component";
+import { Velocity } from "../../components/essentials/velocity.component";
 import { NetworkClientLibrary } from "@nanoforge-dev/network-client";
 import { ShootController } from "../../components/shoot.controller";
 import { Direction } from "../../components/direction.component";

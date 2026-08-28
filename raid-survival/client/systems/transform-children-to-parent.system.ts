@@ -1,25 +1,26 @@
 import type { Registry } from "@nanoforge-dev/ecs-client";
-import { Position } from "../components/position.component";
+import { TransformComponent } from "../components/essentials/transform.component";
 import { ChildrenComponent } from "../components/children.component";
 import { Direction } from "../components/direction.component";
 
 export function transformChildrenToParentSystem(registry: Registry) {
   const entities: {
     ChildrenComponent: ChildrenComponent;
-    Position: Position;
+    TransformComponent: TransformComponent;
     Direction: Direction;
-  }[] = registry.getZipper([ChildrenComponent, Position, Direction]);
+  }[] = registry.getZipper([ChildrenComponent, TransformComponent, Direction]);
 
   for (const entity of entities) {
     const parent = registry.entityFromIndex(entity.ChildrenComponent.parentId);
-    const parentPosition: Position | undefined = registry.getEntityComponent(
+    const parentTransform: TransformComponent | undefined = registry.getEntityComponent(
       parent,
-      Position,
+      TransformComponent,
     );
-    if (parentPosition) {
-      entity.Position.x = parentPosition.x + (entity.ChildrenComponent.options.LocalPosition?.x || 0);
-      entity.Position.y =
-        parentPosition.y + (entity.ChildrenComponent.options.LocalPosition?.y || 0);
+    if (parentTransform) {
+      entity.TransformComponent.x =
+        parentTransform.x + (entity.ChildrenComponent.options.LocalTransform?.x || 0);
+      entity.TransformComponent.y =
+        parentTransform.y + (entity.ChildrenComponent.options.LocalTransform?.y || 0);
     }
     const parentDirection: Direction | undefined = registry.getEntityComponent(
       parent, Direction

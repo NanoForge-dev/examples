@@ -1,7 +1,7 @@
 import {Vector2d} from "@nanoforge-dev/graphics-2d";
 
 export interface ChildrenOptions {
-  LocalPosition?: Vector2d;
+  LocalTransform?: Vector2d;
 }
 
 export class ChildrenComponent {

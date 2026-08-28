@@ -1,18 +1,19 @@
 import type { Registry } from "@nanoforge-dev/ecs-client";
 import { Direction } from "../components/direction.component";
-import { RotationComponent } from "../components/rotation.component";
-import { DirectionRotatorComponent } from "../components/renderable/direction-rotator.component";
+import { DirectionRotatorComponent } from "../components/direction-rotator.component";
+import { TransformComponent } from "../components/essentials/transform.component";
 
 export function rotateToDirectionSystem(registry: Registry) {
   const entities: {
-    RotationComponent: RotationComponent;
+    TransformComponent: TransformComponent;
     Direction: Direction;
     DirectionRotatorComponent: DirectionRotatorComponent;
-  }[] = registry.getZipper([RotationComponent, Direction, DirectionRotatorComponent]);
+  }[] = registry.getZipper([TransformComponent, Direction, DirectionRotatorComponent]);
 
   for (const entity of entities) {
     if (!entity.DirectionRotatorComponent.enable) return;
-    entity.RotationComponent.angle =
-      (Math.atan2(entity.Direction.y, entity.Direction.x) * 180) / Math.PI + entity.DirectionRotatorComponent.offset;
+    entity.TransformComponent.rotation =
+      (Math.atan2(entity.Direction.y, entity.Direction.x) * 180) / Math.PI +
+      entity.DirectionRotatorComponent.offset;
   }
 }

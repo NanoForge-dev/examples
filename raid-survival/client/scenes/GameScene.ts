@@ -1,7 +1,7 @@
 import { Scene } from "./Scene";
 import { Registry } from "@nanoforge-dev/ecs-client";
 import { Layer, Stage } from "@nanoforge-dev/graphics-2d";
-import { Position } from "../components/position.component";
+import { TransformComponent } from "../components/essentials/transform.component";
 import { SpriteComponent } from "../components/renderable/sprite.component";
 
 export class GameScene implements Scene {
@@ -21,7 +21,7 @@ export class GameScene implements Scene {
     this.stage.add(this.layer);
 
     const map = registry.spawnEntity();
-    registry.addComponent(map, new Position(0, 0));
+    registry.addComponent(map, new TransformComponent(0, 0));
     registry.addComponent(map, new SpriteComponent("map.png", { layer: this.layer }));
   }
 

@@ -3,8 +3,8 @@ import { LobbyStatusComponent } from "../../components/lobby/lobby-status";
 import { playerId, sceneManager } from "../../main";
 import { GameScene } from "../../scenes/GameScene";
 import { SpriteComponent } from "../../components/renderable/sprite.component";
-import { Position } from "../../components/position.component";
-import { Velocity } from "../../components/velocity.component";
+import { TransformComponent } from "../../components/essentials/transform.component";
+import { Velocity } from "../../components/essentials/velocity.component";
 import { MoveController } from "../../components/move-controller.component";
 import { Layer } from "@nanoforge-dev/graphics-2d";
 import { NetworkId } from "../../components/network-id.component";
@@ -12,10 +12,10 @@ import { Direction } from "../../components/direction.component";
 import { ShootController } from "../../components/shoot.controller";
 import { ChildrenComponent } from "../../components/children.component";
 import { Scene } from "../../scenes/Scene";
-import { RotationComponent } from "../../components/rotation.component";
-import { DirectionRotatorComponent } from "../../components/renderable/direction-rotator.component";
-import { Lobby } from "../../components/lobby.component";
+import { DirectionRotatorComponent } from "../../components/direction-rotator.component";
+import { Lobby } from "../../components/lobby/lobby.component";
 import { Health } from "../../components/health.component";
+import { ZIndexComponent } from "../../components/essentials/z-index.component";
 import { HealthBarFill } from "../../components/health-bar-fill.component";
 
 // Native player sprite size (player-animations.txt, unscaled).
@@ -47,14 +47,14 @@ function buildHealthBar(
   const frameLocalY = -HEALTH_BAR_GAP_ABOVE;
 
   const frame = registry.spawnEntity();
-  registry.addComponent(frame, new Position(0, 0));
+  registry.addComponent(frame, new TransformComponent(0, 0));
   registry.addComponent(
     frame,
     new SpriteComponent("ui.png", { layer, animationsKey: "health-bar-frame-animations.txt" }),
   );
   registry.addComponent(
     frame,
-    new ChildrenComponent(parentEntity.getId(), { LocalPosition: { x: frameLocalX, y: frameLocalY } }),
+    new ChildrenComponent(parentEntity.getId(), { LocalTransform: { x: frameLocalX, y: frameLocalY } }),
   );
   registry.addComponent(frame, new Direction(0, 0));
 
@@ -68,7 +68,7 @@ function buildHealthBar(
   const fillLocalY = frameLocalY + HEALTH_BAR_FILL_CAVITY.y;
 
   const fill = registry.spawnEntity();
-  registry.addComponent(fill, new Position(0, 0));
+  registry.addComponent(fill, new TransformComponent(0, 0));
   registry.addComponent(
     fill,
     new SpriteComponent("ui.png", {
@@ -79,25 +79,28 @@ function buildHealthBar(
   );
   registry.addComponent(
     fill,
-    new ChildrenComponent(parentEntity.getId(), { LocalPosition: { x: fillLocalX, y: fillLocalY } }),
+    new ChildrenComponent(parentEntity.getId(), { LocalTransform: { x: fillLocalX, y: fillLocalY } }),
   );
   registry.addComponent(fill, new Direction(0, 0));
   registry.addComponent(fill, new HealthBarFill(cavityLocalX));
 }
 
 function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
+  if (!scene.layer) return;
+
   const playerEntity = registry.spawnEntity();
   registry.addComponent(playerEntity, new NetworkId(playerPacket.id));
   registry.addComponent(playerEntity, new Direction(0, 0));
+  registry.addComponent(playerEntity, new ZIndexComponent(10));
   registry.addComponent(
     playerEntity,
-    new Position(playerPacket.position.x, playerPacket.position.y),
+    new TransformComponent(playerPacket.position.x, playerPacket.position.y),
   );
   registry.addComponent(playerEntity, new Velocity(0, 0));
   registry.addComponent(
     playerEntity,
     new SpriteComponent("player1.png", {
-      layer: scene.layer || new Layer(),
+      layer: scene.layer,
       animationsKey: "player-animations.txt",
     }),
   );
@@ -109,17 +112,17 @@ function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
   buildHealthBar(scene, registry, playerEntity, PLAYER_SPRITE_SIZE.width, playerPacket.health);
 
   const hand = registry.spawnEntity();
-  registry.addComponent(hand, new Position(playerPacket.position.x, playerPacket.position.y));
+  registry.addComponent(hand, new TransformComponent(playerPacket.position.x, playerPacket.position.y));
   registry.addComponent(
     hand,
     new SpriteComponent("hand.png", {
       layer: scene.layer || new Layer(),
     }),
   );
-  registry.addComponent(hand, new ChildrenComponent(playerEntity.getId(), { LocalPosition: {x: 6, y: 12} }));
-  registry.addComponent(hand, new RotationComponent(0));
+  registry.addComponent(hand, new ChildrenComponent(playerEntity.getId(), { LocalTransform: {x: 6, y: 12} }));
   registry.addComponent(hand, new Direction(0, 0));
   registry.addComponent(hand, new DirectionRotatorComponent(-90));
+  registry.addComponent(hand, new ZIndexComponent(20));
 }
 
 function buildLobby(scene: Scene, lobbyPacket: any, registry: Registry) {
@@ -127,7 +130,7 @@ function buildLobby(scene: Scene, lobbyPacket: any, registry: Registry) {
   registry.addComponent(lobbyEntity, new NetworkId(lobbyPacket.id));
   registry.addComponent(
     lobbyEntity,
-    new Position(lobbyPacket.position.x, lobbyPacket.position.y),
+    new TransformComponent(lobbyPacket.position.x, lobbyPacket.position.y),
   );
   registry.addComponent(
     lobbyEntity,

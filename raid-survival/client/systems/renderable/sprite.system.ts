@@ -2,10 +2,9 @@ import { type Context, NfFile } from "@nanoforge-dev/common";
 import { type Registry } from "@nanoforge-dev/ecs-client";
 
 import { Graphics2DLibrary, Sprite } from "@nanoforge-dev/graphics-2d";
-import { Position } from "../../components/position.component";
+import { TransformComponent } from "../../components/essentials/transform.component";
 import { SpriteComponent } from "../../components/renderable/sprite.component";
 import { AssetManagerLibrary } from "@nanoforge-dev/asset-manager";
-import { RotationComponent } from "../../components/rotation.component";
 
 type Animations = Record<string, number[]>;
 
@@ -100,7 +99,11 @@ function loadAnimations(file: NfFile): Promise<Animations | undefined> {
 }
 
 export const spriteSystem = async (registry: Registry, ctx: Context) => {
-  const entities: {id: number, Position: Position, SpriteComponent: SpriteComponent}[] = registry.getIndexedZipper([Position, SpriteComponent]);
+  const entities: {
+    id: number;
+    TransformComponent: TransformComponent;
+    SpriteComponent: SpriteComponent;
+  }[] = registry.getIndexedZipper([TransformComponent, SpriteComponent]);
   const graphics = ctx.libs.getGraphics<Graphics2DLibrary>();
   const assetManager = ctx.libs.getAssetManager<AssetManagerLibrary>();
 
@@ -128,8 +131,8 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
           animations && animations["idle"] ? animations["idle"] : [0, 0, image.width, image.height];
 
         const newSprite = new Sprite({
-          x: entity.Position.x,
-          y: entity.Position.y,
+          x: entity.TransformComponent.x,
+          y: entity.TransformComponent.y,
           image,
           animation: "idle",
           animations,
@@ -165,13 +168,11 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
     }
 
     entity.SpriteComponent.sprite?.position({
-      x: entity.Position.x + entity.SpriteComponent.sprite.offsetX(),
-      y: entity.Position.y + entity.SpriteComponent.sprite.offsetY(),
+      x: entity.TransformComponent.x + entity.SpriteComponent.sprite.offsetX(),
+      y: entity.TransformComponent.y + entity.SpriteComponent.sprite.offsetY(),
     });
 
-    const rotation = registry.getEntityComponent(registry.entityFromIndex(entity.id), RotationComponent);
-    if (!rotation) continue;
-    entity.SpriteComponent.sprite?.rotation(rotation.angle);
+    entity.SpriteComponent.sprite?.rotation(entity.TransformComponent.rotation);
   }
 
   graphics.stage.batchDraw();

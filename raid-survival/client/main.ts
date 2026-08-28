@@ -24,6 +24,7 @@ import { sceneSystem } from "./systems/scene";
 import { lobbyActionSenders } from "./systems/packet-senders/lobby-action.senders";
 import { transformChildrenToParentSystem } from "./systems/transform-children-to-parent.system";
 import { rotateToDirectionSystem } from "./systems/rotate-to-direction.system";
+import { zOrderSystem } from "./systems/essentials/z-order.system";
 
 export let clientConfig: {
   keybinds: {
@@ -78,6 +79,7 @@ export async function main(options: IRunOptions) {
   registry.addSystem(spriteSystem);
   registry.addSystem(transformChildrenToParentSystem);
   registry.addSystem(rotateToDirectionSystem);
+  registry.addSystem(zOrderSystem);
 
   registry.addSystem(packetHandler);
 
