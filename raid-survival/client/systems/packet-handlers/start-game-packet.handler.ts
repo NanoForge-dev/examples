@@ -16,6 +16,7 @@ import { RotationComponent } from "../../components/rotation.component";
 import { DirectionRotatorComponent } from "../../components/renderable/direction-rotator.component";
 import { Lobby } from "../../components/lobby.component";
 import { Health } from "../../components/health.component";
+import { HealthBarFill } from "../../components/health-bar-fill.component";
 
 // Native player sprite size (player-animations.txt, unscaled).
 const PLAYER_SPRITE_SIZE = { width: 24, height: 24 };
@@ -81,6 +82,7 @@ function buildHealthBar(
     new ChildrenComponent(parentEntity.getId(), { LocalPosition: { x: fillLocalX, y: fillLocalY } }),
   );
   registry.addComponent(fill, new Direction(0, 0));
+  registry.addComponent(fill, new HealthBarFill(cavityLocalX));
 }
 
 function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
