@@ -10,10 +10,14 @@ import { Login } from "../../components/login.component";
 import { MapCollisions, TreeLocation } from "../../components/map-collisions.component";
 import { CollisionBox } from "../../components/collision-box.component";
 import { Lobby } from "../../components/lobby.component";
+import { Health } from "../../components/health.component";
 import { Vector2d } from "@nanoforge-dev/graphics-2d";
 import mapCollisionData from "../../static/map-collision.json";
 
 const MAX_PLAYERS = 4;
+
+const LOBBY_MAX_HEALTH = 500;
+const PLAYER_MAX_HEALTH = 100;
 
 const MAP_CENTER: Vector2d = {
   x: (mapCollisionData.cols * mapCollisionData.tileSize) / 2,
@@ -71,9 +75,15 @@ export function startGamePacketHandler(
   const lobby = registry.spawnEntity();
   registry.addComponent(lobby, new Position(LOBBY_POSITION.x, LOBBY_POSITION.y));
   registry.addComponent(lobby, new CollisionBox(LOBBY_COLLISION_BOX.x, LOBBY_COLLISION_BOX.y));
+  registry.addComponent(lobby, new Health(LOBBY_MAX_HEALTH, LOBBY_MAX_HEALTH));
   registry.addComponent(lobby, new Lobby());
 
-  const playersInformation: {id: number, username: string, position: Vector2d}[] = []
+  const playersInformation: {
+    id: number;
+    username: string;
+    position: Vector2d;
+    health: { current: number; max: number };
+  }[] = [];
 
   clients.forEach((client, index) => {
     if (index >= MAX_PLAYERS) return;
@@ -87,16 +97,22 @@ export function startGamePacketHandler(
     registry.addComponent(player, new Position(PLAYERS_SPAWNERS[index].x, PLAYERS_SPAWNERS[index].y));
     registry.addComponent(player, new Velocity(0, 0));
     registry.addComponent(player, new CollisionBox(PLAYER_COLLISION_BOX.x, PLAYER_COLLISION_BOX.y));
+    registry.addComponent(player, new Health(PLAYER_MAX_HEALTH, PLAYER_MAX_HEALTH));
     playersInformation.push({
       id: client.entityId,
       username: client.username,
       position: PLAYERS_SPAWNERS[index],
+      health: { current: PLAYER_MAX_HEALTH, max: PLAYER_MAX_HEALTH },
     });
   });
 
   sendToInGamePlayers(network, {
     type: "startGame",
     players: playersInformation,
-    lobby: { id: lobby.getId(), position: LOBBY_POSITION },
+    lobby: {
+      id: lobby.getId(),
+      position: LOBBY_POSITION,
+      health: { current: LOBBY_MAX_HEALTH, max: LOBBY_MAX_HEALTH },
+    },
   });
 }
