@@ -26,6 +26,10 @@ const BUILDING_SPRITE_SCALE = { x: 0.85, y: 0.85 };
 // Native crop size (zombie-animations.txt, unscaled).
 const ZOMBIE_SPRITE_SIZE = { width: 30, height: 30 };
 
+// Above players/zombies (10) so a bullet is never visually hidden behind whatever it's about to
+// hit; below the held weapon (21).
+const BULLET_Z_INDEX = 15;
+
 function buildPlayer(newEnt: Entity, packet: any, registry: Registry) {
   registry.addComponent(newEnt, new Player());
 
@@ -117,6 +121,22 @@ export function spawnPacketHandler(packet: any, registry: Registry): void {
       buildHealthBar(sceneManager.getScene()?.layer || new Layer(), registry, newEnt, TILE_SIZE, packet.health);
       break;
     }
+    case "bullet":
+      // Position+Velocity is all move.system.ts needs to dead-reckon it in a straight line,
+      // exactly matching the server's own physics (a bullet never changes velocity after firing,
+      // so there's no drift to correct with follow-up packets, unlike a steering zombie). No
+      // Direction/rotation - the tracer dot doesn't need to visually point the way it's flying
+      // at this scale.
+      registry.addComponent(newEnt, new Velocity(packet.velocity.x, packet.velocity.y));
+      registry.addComponent(newEnt, new ZIndexComponent(BULLET_Z_INDEX));
+      registry.addComponent(
+        newEnt,
+        new SpriteComponent("weapons.png", {
+          layer: sceneManager.getScene()?.layer || new Layer(),
+          animationsKey: "bullet-animations.txt",
+        }),
+      );
+      break;
     case "map":
       registry.addComponent(newEnt, new SpriteComponent("map.png"));
       break;

@@ -17,6 +17,9 @@ import { IAComponent } from "../../components/ia.component";
 import { WaveState } from "../../components/wave-state.component";
 import { Money } from "../../components/money.component";
 import { MoveInput } from "../../components/move-input.component";
+import { Weapon } from "../../components/weapon.component";
+import { ShootInput } from "../../components/shoot-input.component";
+import { WEAPON_CATALOG } from "../../weapon-catalog";
 import { createZombieBehavior, ZOMBIE_MAX_HEALTH } from "../zombie-ai";
 import { Vector2d } from "@nanoforge-dev/graphics-2d";
 import mapCollisionData from "../../static/map-collision.json";
@@ -26,6 +29,7 @@ const MAX_PLAYERS = 4;
 const LOBBY_MAX_HEALTH = 500;
 const PLAYER_MAX_HEALTH = 100;
 const STARTING_MONEY = 150;
+const STARTING_WEAPON_TYPE = "smallGun";
 
 const MAP_CENTER: Vector2d = {
   x: (mapCollisionData.cols * mapCollisionData.tileSize) / 2,
@@ -139,7 +143,10 @@ export function startGamePacketHandler(
     username: string;
     position: Vector2d;
     health: { current: number; max: number };
+    weapon: { weaponType: string; magazineAmmo: number; reserveAmmo: number };
   }[] = [];
+
+  const startingWeaponCatalog = WEAPON_CATALOG[STARTING_WEAPON_TYPE];
 
   clients.forEach((client, index) => {
     if (index >= MAX_PLAYERS) return;
@@ -159,11 +166,21 @@ export function startGamePacketHandler(
       new Hitbox(PLAYER_HITBOX_SIZE.x, PLAYER_HITBOX_SIZE.y, PLAYER_HITBOX_OFFSET.x, PLAYER_HITBOX_OFFSET.y),
     );
     registry.addComponent(player, new Health(PLAYER_MAX_HEALTH, PLAYER_MAX_HEALTH));
+    const startingAmmo = {
+      magazineAmmo: startingWeaponCatalog.magazineSize,
+      reserveAmmo: startingWeaponCatalog.infiniteReserve ? -1 : 0,
+    };
+    registry.addComponent(
+      player,
+      new Weapon(STARTING_WEAPON_TYPE, startingAmmo.magazineAmmo, startingAmmo.reserveAmmo),
+    );
+    registry.addComponent(player, new ShootInput());
     playersInformation.push({
       id: client.entityId,
       username: client.username,
       position: PLAYERS_SPAWNERS[index],
       health: { current: PLAYER_MAX_HEALTH, max: PLAYER_MAX_HEALTH },
+      weapon: { weaponType: STARTING_WEAPON_TYPE, ...startingAmmo },
     });
   });
 

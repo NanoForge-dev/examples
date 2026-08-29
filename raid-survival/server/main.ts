@@ -9,6 +9,8 @@ import { moveSystem } from "./systems/move.system";
 import { mapCollisionSystem } from "./systems/map-collision.system";
 import { obstacleCollisionSystem } from "./systems/obstacle-collision.system";
 import { moveSyncSystem } from "./systems/move-sync.system";
+import { weaponSystem } from "./systems/weapon.system";
+import { bulletSystem } from "./systems/bullet.system";
 import { aiSystem } from "./systems/ai.system";
 import { zombieWaveSystem } from "./systems/zombie-wave.system";
 import { zombieDeathSystem } from "./systems/zombie-death.system";
@@ -45,10 +47,12 @@ export async function main(options: IRunOptions) {
 
   registry.addSystem(packetHandler);
   registry.addSystem(moveInputSystem);
+  registry.addSystem(weaponSystem);
   registry.addSystem(moveSystem);
   registry.addSystem(mapCollisionSystem);
   registry.addSystem(obstacleCollisionSystem);
   registry.addSystem(moveSyncSystem);
+  registry.addSystem(bulletSystem);
   registry.addSystem(aiSystem);
   registry.addSystem(zombieWaveSystem);
   registry.addSystem(zombieDeathSystem);

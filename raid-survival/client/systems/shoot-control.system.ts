@@ -1,6 +1,6 @@
 import { type Context } from "@nanoforge-dev/common";
 import { type Registry } from "@nanoforge-dev/ecs-client";
-import { type InputLibrary } from "@nanoforge-dev/input";
+import { InputEnum, type InputLibrary } from "@nanoforge-dev/input";
 
 import { ShootController } from "../components/shoot.controller";
 import { Direction } from "../components/direction.component";
@@ -29,6 +29,16 @@ export function shootControl(registry: Registry, ctx: Context) {
     ShootController.secondWeaponShooting = <boolean>(
       input.isKeyPressed(ShootController.keyShootSecondWeapon)
     );
+
+    // Edge-detected: isKeyPressed reports "held", but a reload request is a one-shot action, not
+    // a continuous state - without this, holding R would queue a fresh reload request every
+    // frame.
+    const reloadKeyPressed = !!input.isKeyPressed(InputEnum.KeyR);
+    if (reloadKeyPressed && !ShootController.wasReloadKeyPressed) {
+      ShootController.reloadRequested = true;
+    }
+    ShootController.wasReloadKeyPressed = reloadKeyPressed;
+
     ShootController.position.x = pointerPosition?.x || 0;
     ShootController.position.y = pointerPosition?.y || 0;
 

@@ -25,6 +25,8 @@ import { Player } from "../../components/player.component";
 import { BuildModeComponent, type BuildBarButton } from "../../components/build-mode.component";
 import { BUILDING_CATALOG, type BuildingType } from "../../building-catalog";
 import { TILE_SIZE } from "../../map-data";
+import { Weapon } from "../../components/weapon.component";
+import { AmmoHudComponent } from "../../components/ammo-hud.component";
 
 // zOrderSystem only reorders entities that carry a ZIndexComponent - anything without one stays
 // wherever Konva's insertion order left it, permanently below every z-indexed sprite. Health bars
@@ -67,6 +69,18 @@ const BUILD_BUTTON_SIZE = { width: 90, height: 70 };
 const BUILD_BAR_GAP = 10;
 const BUILD_BAR_BOTTOM_MARGIN = 20;
 const GRID_STROKE = "rgba(245, 242, 233, 0.25)";
+
+// Held weapon sprite - same LocalTransform as the hand (it's held BY the hand), rotated the same
+// way, just above it in z-order.
+const WEAPON_ROTATOR_OFFSET = -90;
+const WEAPON_Z_INDEX = 21;
+
+// Ammo HUD, bottom-left of the screen.
+const AMMO_HUD_LEFT_MARGIN = 14;
+const AMMO_HUD_BOTTOM_MARGIN = 14;
+const AMMO_ICON_SIZE = { width: 32, height: 32 };
+const AMMO_TEXT_SIZE = { width: 100, height: 32 };
+const AMMO_HUD_GAP = 10;
 
 export function buildHealthBar(
   layer: Layer,
@@ -158,6 +172,61 @@ function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
   registry.addComponent(hand, new Direction(0, 0));
   registry.addComponent(hand, new DirectionRotatorComponent(-90));
   registry.addComponent(hand, new ZIndexComponent(20));
+
+  // Every player visibly holds their weapon (not just the local one) - same parenting as the
+  // hand it's held by.
+  const weapon = registry.spawnEntity();
+  registry.addComponent(weapon, new TransformComponent(playerPacket.position.x, playerPacket.position.y));
+  registry.addComponent(
+    weapon,
+    new SpriteComponent("weapons.png", {
+      layer: scene.layer || new Layer(),
+      animationsKey: "weapons-animations.txt",
+    }),
+  );
+  registry.addComponent(weapon, new ChildrenComponent(playerEntity.getId(), { LocalTransform: { x: 6, y: 12 } }));
+  registry.addComponent(weapon, new Direction(0, 0));
+  registry.addComponent(weapon, new DirectionRotatorComponent(WEAPON_ROTATOR_OFFSET));
+  registry.addComponent(weapon, new ZIndexComponent(WEAPON_Z_INDEX));
+  registry.addComponent(weapon, new Weapon(WEAPON_ROTATOR_OFFSET));
+}
+
+function buildAmmoHud(
+  hudLayer: Layer,
+  registry: Registry,
+  weapon: { magazineAmmo: number; reserveAmmo: number },
+) {
+  const iconX = AMMO_HUD_LEFT_MARGIN;
+  const iconY = window.innerHeight - AMMO_ICON_SIZE.height - AMMO_HUD_BOTTOM_MARGIN;
+
+  const iconEntity = registry.spawnEntity();
+  registry.addComponent(
+    iconEntity,
+    new SpriteComponent("weapons.png", {
+      layer: hudLayer,
+      animationsKey: "weapons-animations.txt",
+      scale: { x: AMMO_ICON_SIZE.width / 16, y: AMMO_ICON_SIZE.height / 16 },
+    }),
+  );
+  registry.addComponent(iconEntity, new TransformComponent(iconX, iconY));
+
+  const reserve = weapon.reserveAmmo === -1 ? "∞" : weapon.reserveAmmo;
+  const textEntity = registry.spawnEntity();
+  const textComponent = new TextComponent(hudLayer, {
+    text: `${weapon.magazineAmmo} / ${reserve}`,
+    x: iconX + AMMO_ICON_SIZE.width + AMMO_HUD_GAP,
+    y: iconY,
+    width: AMMO_TEXT_SIZE.width,
+    height: AMMO_TEXT_SIZE.height,
+    fontSize: 20,
+    fontStyle: "bold",
+    verticalAlign: "middle",
+    fill: "#F5F2E9",
+  });
+  registry.addComponent(textEntity, textComponent);
+
+  const hudEntity = registry.spawnEntity();
+  registry.addComponent(hudEntity, new AmmoHudComponent(textComponent.text));
 }
 
 function buildLobby(scene: Scene, lobbyPacket: any, registry: Registry) {
@@ -400,6 +469,9 @@ function launchGame(packet: any, registry: Registry) {
     buildWaveHud(newScene.hudLayer, registry);
     buildMoneyHud(newScene.hudLayer, registry, packet.money);
     if (newScene.layer) buildBuildMode(newScene.layer, newScene.hudLayer, registry);
+
+    const localPlayer = packet.players.find((player: any) => player.id === playerId);
+    if (localPlayer) buildAmmoHud(newScene.hudLayer, registry, localPlayer.weapon);
   }
 }
 

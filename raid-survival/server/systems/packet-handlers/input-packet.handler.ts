@@ -2,6 +2,7 @@ import { Registry } from "@nanoforge-dev/ecs-client";
 import { Velocity } from "../../components/velocity.component";
 import { Position } from "../../components/position.component";
 import { MoveInput } from "../../components/move-input.component";
+import { ShootInput } from "../../components/shoot-input.component";
 import { clients } from "../../main";
 import { Context } from "@nanoforge-dev/common";
 import { NetworkServerLibrary } from "@nanoforge-dev/network-server";
@@ -16,7 +17,7 @@ export function inputPacketHandler(
   ctx: Context,
 ): void {
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
-  const zipper = registry.getIndexedZipper([Login, Velocity, Position, Direction, MoveInput]);
+  const zipper = registry.getIndexedZipper([Login, Velocity, Position, Direction, MoveInput, ShootInput]);
   const log = clients.find((client) => client.clientId === clientId)?.username;
   const it = zipper.find(({ Login }) => {
     return Login.id === log;
@@ -42,5 +43,16 @@ export function inputPacketHandler(
     it.MoveInput.down = packet.moveKeys.includes("down");
     it.MoveInput.left = packet.moveKeys.includes("left");
     it.MoveInput.right = packet.moveKeys.includes("right");
+  }
+
+  // Same idea as MoveInput - weapon.system.ts recomputes firing every tick from this, not from
+  // packet frequency.
+  if (typeof packet.shooting === "boolean") {
+    it.ShootInput.shooting = packet.shooting;
+  }
+  // reload is one-shot (a fresh "R" press, not a held state) - weapon.system.ts consumes and
+  // clears this the next time it runs.
+  if (packet.reload) {
+    it.ShootInput.reloadRequested = true;
   }
 }
