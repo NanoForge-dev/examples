@@ -6,5 +6,6 @@ export function moneyPacketHandler(packet: any, registry: Registry): void {
   const hud = entities[0]?.MoneyHudComponent;
   if (!hud) return;
 
+  hud.amount = packet.amount;
   hud.text.text(`Coins: ${packet.amount}`);
 }

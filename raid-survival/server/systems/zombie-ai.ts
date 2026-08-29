@@ -8,6 +8,7 @@ import { Health } from "../components/health.component";
 import { Hitbox } from "../components/hitbox.component";
 import { Login } from "../components/login.component";
 import { Zombie } from "../components/zombie.component";
+import { Building } from "../components/building.component";
 import { type AIBehavior } from "../components/ia.component";
 import { sendToInGamePlayers } from "../network-utils";
 
@@ -22,7 +23,11 @@ export const ZOMBIE_ATTACK_DAMAGE_FRAME = 4; // 0-indexed - the "fifth" frame
 
 interface Attackable {
   entityId: number;
-  isLobby: boolean;
+  // True only for the lobby - a valid move-toward target regardless of distance (priority 2
+  // below). Players and buildings only count as a move target within ZOMBIE_AGGRO_RANGE; they're
+  // still attackable at any distance once actually in range (priority 1), same as the lobby -
+  // this only gates whether a zombie will *travel* toward one from far away.
+  alwaysReachable: boolean;
   position: Position;
   hitbox: Hitbox;
   health: Health;
@@ -89,8 +94,8 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
     }
 
     // Priority 2: nothing attackable right now - move to the closest thing worth attacking. The
-    // lobby is always a candidate; a player only counts within the aggro range.
-    const reachable = attackable.filter((e) => e.isLobby || e.distance <= ZOMBIE_AGGRO_RANGE);
+    // lobby is always a candidate; a player or building only counts within the aggro range.
+    const reachable = attackable.filter((e) => e.alwaysReachable || e.distance <= ZOMBIE_AGGRO_RANGE);
     const target = reachable.length > 0 ? nearest(reachable) : null;
 
     if (!target) {
@@ -113,7 +118,7 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
     // keeps changing even with the same target). The lobby is stationary, so once a straight-line
     // chase toward it starts, no further correction is needed until something changes.
     const targetChanged = target.entityId !== zombie.lastMoveTargetId;
-    const needsBroadcast = zombie.animationState !== "idle" || targetChanged || !target.isLobby;
+    const needsBroadcast = zombie.animationState !== "idle" || targetChanged || !target.alwaysReachable;
     zombie.lastMoveTargetId = target.entityId;
     zombie.animationState = "idle";
     if (needsBroadcast) {
@@ -122,8 +127,13 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
   };
 }
 
-// Every living entity a zombie could target: the lobby plus every logged-in player, each with
-// its edge-distance to the zombie's own hitbox precomputed.
+// Every living/standing entity a zombie could target: the lobby, every logged-in player, and
+// every building (walls today), each with its edge-distance to the zombie's own hitbox
+// precomputed. A building blocking a zombie's path gets engaged the same way the lobby does -
+// entirely through this attack-range check, well before the zombie's own box could ever
+// physically reach it (see zombie-ai.ts's ZOMBIE_ATTACK_RANGE), which is what actually satisfies
+// "a zombie can't cross a building": it's stopped and fighting it long before overlap, not
+// blocked by a separate physics system.
 function gatherAttackable(
   registry: Registry,
   lobbyEntityId: number,
@@ -139,7 +149,7 @@ function gatherAttackable(
   if (lobbyPosition && lobbyHitbox && lobbyHealth && lobbyHealth.current > 0) {
     result.push({
       entityId: lobbyEntityId,
-      isLobby: true,
+      alwaysReachable: true,
       position: lobbyPosition,
       hitbox: lobbyHitbox,
       health: lobbyHealth,
@@ -158,11 +168,30 @@ function gatherAttackable(
     if (player.Health.current <= 0) continue;
     result.push({
       entityId: player.id,
-      isLobby: false,
+      alwaysReachable: false,
       position: player.Position,
       hitbox: player.Hitbox,
       health: player.Health,
       distance: distanceBetweenHitboxes(zombiePosition, zombieHitbox, player.Position, player.Hitbox),
+    });
+  }
+
+  const buildings: { id: number; Position: Position; Hitbox: Hitbox; Health: Health }[] = registry.getIndexedZipper([
+    Position,
+    Hitbox,
+    Health,
+    Building,
+  ]);
+
+  for (const building of buildings) {
+    if (building.Health.current <= 0) continue;
+    result.push({
+      entityId: building.id,
+      alwaysReachable: false,
+      position: building.Position,
+      hitbox: building.Hitbox,
+      health: building.Health,
+      distance: distanceBetweenHitboxes(zombiePosition, zombieHitbox, building.Position, building.Hitbox),
     });
   }
 

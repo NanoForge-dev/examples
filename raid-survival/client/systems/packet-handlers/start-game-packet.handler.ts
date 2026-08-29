@@ -6,7 +6,7 @@ import { SpriteComponent } from "../../components/renderable/sprite.component";
 import { TransformComponent } from "../../components/essentials/transform.component";
 import { Velocity } from "../../components/essentials/velocity.component";
 import { MoveController } from "../../components/move-controller.component";
-import { Layer } from "@nanoforge-dev/graphics-2d";
+import { Layer, Rect, Shape } from "@nanoforge-dev/graphics-2d";
 import { NetworkId } from "../../components/network-id.component";
 import { Direction } from "../../components/direction.component";
 import { ShootController } from "../../components/shoot.controller";
@@ -22,6 +22,9 @@ import { TextComponent } from "../../components/renderable/text.component";
 import { WaveHudComponent } from "../../components/wave-hud.component";
 import { MoneyHudComponent } from "../../components/money-hud.component";
 import { Player } from "../../components/player.component";
+import { BuildModeComponent, type BuildBarButton } from "../../components/build-mode.component";
+import { BUILDING_CATALOG, type BuildingType } from "../../building-catalog";
+import { TILE_SIZE } from "../../map-data";
 
 // zOrderSystem only reorders entities that carry a ZIndexComponent - anything without one stays
 // wherever Konva's insertion order left it, permanently below every z-indexed sprite. Health bars
@@ -58,6 +61,12 @@ const WAVE_HUD_TOP_MARGIN = 14;
 const MONEY_TEXT_SIZE = { width: 140, height: 24 };
 const MONEY_HUD_LEFT_MARGIN = 14;
 const MONEY_HUD_TOP_MARGIN = 14;
+
+// Build bar, bottom-center of the screen - one button per catalog entry.
+const BUILD_BUTTON_SIZE = { width: 90, height: 70 };
+const BUILD_BAR_GAP = 10;
+const BUILD_BAR_BOTTOM_MARGIN = 20;
+const GRID_STROKE = "rgba(245, 242, 233, 0.25)";
 
 export function buildHealthBar(
   layer: Layer,
@@ -256,7 +265,125 @@ function buildMoneyHud(layer: Layer, registry: Registry, amount: number) {
   registry.addComponent(moneyTextEntity, moneyTextComponent);
 
   const hudEntity = registry.spawnEntity();
-  registry.addComponent(hudEntity, new MoneyHudComponent(moneyTextComponent.text));
+  registry.addComponent(hudEntity, new MoneyHudComponent(moneyTextComponent.text, amount));
+}
+
+function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) {
+  // World-space, so it pans/scales with the camera and aligns to real tiles for free - only
+  // drawn (and only hit by build-mode.system.ts's placement math, which uses the same layer) once
+  // build mode is toggled on.
+  const gridShape = new Shape({
+    stroke: GRID_STROKE,
+    strokeWidth: 1,
+    listening: false,
+    visible: false,
+    sceneFunc: (context, shape) => {
+      const layer = shape.getLayer();
+      if (!layer) return;
+      const scale = layer.scaleX() || 1;
+      const pos = layer.position();
+
+      // Same camera-relative math cameraFollowSystem uses to place the layer in the first place,
+      // inverted to find which world-space tile range is currently on screen - drawing the whole
+      // map's grid (100x100 tiles) regardless of zoom/pan would be thousands of unnecessary lines.
+      const minX = -pos.x / scale;
+      const minY = -pos.y / scale;
+      const maxX = (layer.width() - pos.x) / scale;
+      const maxY = (layer.height() - pos.y) / scale;
+
+      const startCol = Math.floor(minX / TILE_SIZE);
+      const endCol = Math.ceil(maxX / TILE_SIZE);
+      const startRow = Math.floor(minY / TILE_SIZE);
+      const endRow = Math.ceil(maxY / TILE_SIZE);
+
+      context.beginPath();
+      for (let col = startCol; col <= endCol; col++) {
+        const x = col * TILE_SIZE;
+        context.moveTo(x, minY);
+        context.lineTo(x, maxY);
+      }
+      for (let row = startRow; row <= endRow; row++) {
+        const y = row * TILE_SIZE;
+        context.moveTo(minX, y);
+        context.lineTo(maxX, y);
+      }
+      context.strokeShape(shape);
+    },
+  });
+  worldLayer.add(gridShape);
+
+  const previewRect = new Rect({
+    x: 0,
+    y: 0,
+    width: TILE_SIZE,
+    height: TILE_SIZE,
+    fill: "rgba(76, 175, 80, 0.55)",
+    visible: false,
+    listening: false,
+  });
+  worldLayer.add(previewRect);
+
+  const catalogEntries = Object.entries(BUILDING_CATALOG) as [BuildingType, (typeof BUILDING_CATALOG)[BuildingType]][];
+  const totalWidth =
+    catalogEntries.length * BUILD_BUTTON_SIZE.width + (catalogEntries.length - 1) * BUILD_BAR_GAP;
+  const barX = window.innerWidth / 2 - totalWidth / 2;
+  const barY = window.innerHeight - BUILD_BUTTON_SIZE.height - BUILD_BAR_BOTTOM_MARGIN;
+
+  const buildMode = new BuildModeComponent(gridShape, previewRect, [], {
+    x: barX,
+    y: barY,
+    width: totalWidth,
+    height: BUILD_BUTTON_SIZE.height,
+  });
+  registry.addComponent(registry.spawnEntity(), buildMode);
+
+  catalogEntries.forEach(([buildingType, entry], index) => {
+    const x = barX + index * (BUILD_BUTTON_SIZE.width + BUILD_BAR_GAP);
+
+    const rectComponent = new RectComponent(hudLayer, {
+      x,
+      y: barY,
+      width: BUILD_BUTTON_SIZE.width,
+      height: BUILD_BUTTON_SIZE.height,
+      fill: "#104522",
+      stroke: "#5E8C61",
+      strokeWidth: 2,
+      cornerRadius: 6,
+      visible: false,
+    });
+    registry.addComponent(registry.spawnEntity(), rectComponent);
+
+    rectComponent.rect.on("click", () => {
+      // Click again to deselect.
+      buildMode.selectedBuildingType = buildMode.selectedBuildingType === buildingType ? null : buildingType;
+    });
+    rectComponent.rect.on("mouseover", () => {
+      const stage = hudLayer.getStage();
+      if (stage) stage.container().style.cursor = "pointer";
+    });
+    rectComponent.rect.on("mouseout", () => {
+      const stage = hudLayer.getStage();
+      if (stage) stage.container().style.cursor = "default";
+    });
+
+    const textComponent = new TextComponent(hudLayer, {
+      text: `${entry.label}\n${entry.cost}g`,
+      x,
+      y: barY,
+      width: BUILD_BUTTON_SIZE.width,
+      height: BUILD_BUTTON_SIZE.height,
+      align: "center",
+      verticalAlign: "middle",
+      fontSize: 14,
+      fill: "#F5F2E9",
+      visible: false,
+      listening: false,
+    });
+    registry.addComponent(registry.spawnEntity(), textComponent);
+
+    const button: BuildBarButton = { buildingType, rect: rectComponent.rect, text: textComponent.text };
+    buildMode.barButtons.push(button);
+  });
 }
 
 function launchGame(packet: any, registry: Registry) {
@@ -272,6 +399,7 @@ function launchGame(packet: any, registry: Registry) {
   if (newScene.hudLayer) {
     buildWaveHud(newScene.hudLayer, registry);
     buildMoneyHud(newScene.hudLayer, registry, packet.money);
+    if (newScene.layer) buildBuildMode(newScene.layer, newScene.hudLayer, registry);
   }
 }
 

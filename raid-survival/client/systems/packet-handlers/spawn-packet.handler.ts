@@ -14,6 +14,14 @@ import { Health } from "../../components/health.component";
 import { ZIndexComponent } from "../../components/essentials/z-index.component";
 import { buildHealthBar } from "./start-game-packet.handler";
 import { Player } from "../../components/player.component";
+import { Building } from "../../components/building.component";
+import { TILE_SIZE } from "../../map-data";
+
+// Wall's native crop (wall-animations.txt) is an 18x27 barrel - close to square already, just
+// scaled down slightly to land near the tile's own 16px width. The barrel standing a bit taller
+// than the tile it sits on reads fine (same visual-vs-footprint gap already accepted for the
+// lobby and zombies), unlike the old wide barricade sprite which spilled sideways into neighbors.
+const BUILDING_SPRITE_SCALE = { x: 0.85, y: 0.85 };
 
 // Native crop size (zombie-animations.txt, unscaled).
 const ZOMBIE_SPRITE_SIZE = { width: 30, height: 30 };
@@ -89,6 +97,26 @@ export function spawnPacketHandler(packet: any, registry: Registry): void {
         packet.health,
       );
       break;
+    case "building": {
+      // Only one building type exists today ("wall"), so this is hardcoded rather than a
+      // type->sprite lookup - add one if a second type shows up. ZIndexComponent is required,
+      // not optional polish: zOrderSystem only reorders entities with both ZIndexComponent and
+      // SpriteComponent, so without it a building would fall into the same "never reordered,
+      // stuck below whatever's z-indexed" trap the grid/preview hit (see build-mode.system.ts).
+      registry.addComponent(newEnt, new ZIndexComponent(10));
+      registry.addComponent(
+        newEnt,
+        new SpriteComponent("objects.png", {
+          layer: sceneManager.getScene()?.layer || new Layer(),
+          animationsKey: "wall-animations.txt",
+          scale: BUILDING_SPRITE_SCALE,
+        }),
+      );
+      registry.addComponent(newEnt, new Building(packet.buildingType));
+      registry.addComponent(newEnt, new Health(packet.health.current, packet.health.max));
+      buildHealthBar(sceneManager.getScene()?.layer || new Layer(), registry, newEnt, TILE_SIZE, packet.health);
+      break;
+    }
     case "map":
       registry.addComponent(newEnt, new SpriteComponent("map.png"));
       break;

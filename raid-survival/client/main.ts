@@ -15,6 +15,7 @@ import { spriteSystem } from "./systems/renderable/sprite.system";
 import { cameraFollowSystem } from "./systems/camera-follow.system";
 import { moveControl } from "./systems/move-control.system";
 import { shootControl } from "./systems/shoot-control.system";
+import { buildModeSystem } from "./systems/build-mode.system";
 import { sendMoveControl } from "./systems/packet-senders/move-control.senders.system";
 import { sendShootControl } from "./systems/packet-senders/shoot-control.sender.system";
 import { packetHandler } from "./systems/packet-handler.system";
@@ -74,6 +75,7 @@ export async function main(options: IRunOptions) {
   registry.addSystem(moveControl);
   registry.addSystem(textareaSystem);
   registry.addSystem(shootControl);
+  registry.addSystem(buildModeSystem);
   registry.addSystem(playerDeathSystem);
   registry.addSystem(spriteAnimator);
   registry.addSystem(cameraFollowSystem);

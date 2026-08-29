@@ -12,6 +12,7 @@ import { moveSyncSystem } from "./systems/move-sync.system";
 import { aiSystem } from "./systems/ai.system";
 import { zombieWaveSystem } from "./systems/zombie-wave.system";
 import { zombieDeathSystem } from "./systems/zombie-death.system";
+import { buildingDeathSystem } from "./systems/building-death.system";
 import { gameOverSystem } from "./systems/game-over.system";
 import { packetHandler } from "./systems/packet-handler.system";
 
@@ -51,6 +52,7 @@ export async function main(options: IRunOptions) {
   registry.addSystem(aiSystem);
   registry.addSystem(zombieWaveSystem);
   registry.addSystem(zombieDeathSystem);
+  registry.addSystem(buildingDeathSystem);
   registry.addSystem(gameOverSystem);
 
   await app.run();

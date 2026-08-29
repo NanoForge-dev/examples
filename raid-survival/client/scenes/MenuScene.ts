@@ -21,6 +21,12 @@ export class MenuScene implements Scene {
   private menu: "User" | "Lobby" = "User";
   private playerCases: TextComponent[] = [];
   private joinErrorText: TextComponent | undefined;
+  // TextAreaComponent isn't a Konva node - it backs the input with a real DOM <textarea>
+  // appended to document.body (Konva can't natively handle text entry), so neither
+  // registry.clearEntities() nor stage.clear() (both run by SceneManager.switchTo) ever remove
+  // it. Has to be destroyed explicitly here, or it lingers on screen - still showing whatever was
+  // typed - straight through into the game.
+  private usernameInput: TextAreaComponent | undefined;
 
   load(registry: Registry, stage: Stage): void {
     const lobbyStatus = registry.spawnEntity();
@@ -79,6 +85,7 @@ export class MenuScene implements Scene {
 
   unload(): void {
     this.layer?.destroy();
+    this.usernameInput?.destroy();
   }
 
   tick(registry: Registry) {
@@ -157,6 +164,7 @@ export class MenuScene implements Scene {
       padding: 2,
     });
     registry.addComponent(pseudoText, pseudoTextComponent);
+    this.usernameInput = pseudoTextComponent;
 
     const joinLobbyButtonSize = { width: 300, height: 50 };
     const joinLobbyButton = registry.spawnEntity();
