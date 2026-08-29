@@ -3,6 +3,11 @@ export type ZombieAnimationState = "idle" | "attack";
 export class Zombie {
   name = this.constructor.name;
 
+  // Coins awarded to the shared money pool when this zombie dies (zombie-death.system.ts) -
+  // varies by zombie type; the only type today is the punching zombie, worth
+  // ZOMBIE_COIN_VALUE (see start-game-packet.handler.ts).
+  constructor(public coinValue: number) {}
+
   // null until the AI resolves an initial state on its first tick - guarantees that first
   // resolution is always treated as a transition, so clients get told about it.
   animationState: ZombieAnimationState | null = null;

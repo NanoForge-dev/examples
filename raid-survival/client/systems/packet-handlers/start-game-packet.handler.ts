@@ -20,6 +20,8 @@ import { HealthBarFill } from "../../components/health-bar-fill.component";
 import { RectComponent } from "../../components/renderable/rect.component";
 import { TextComponent } from "../../components/renderable/text.component";
 import { WaveHudComponent } from "../../components/wave-hud.component";
+import { MoneyHudComponent } from "../../components/money-hud.component";
+import { Player } from "../../components/player.component";
 
 // zOrderSystem only reorders entities that carry a ZIndexComponent - anything without one stays
 // wherever Konva's insertion order left it, permanently below every z-indexed sprite. Health bars
@@ -51,6 +53,11 @@ const WAVE_PROGRESS_BAR_SIZE = { width: 180, height: 14 };
 const ALIVE_TEXT_SIZE = { width: 100, height: 24 };
 const WAVE_HUD_GAP = 12;
 const WAVE_HUD_TOP_MARGIN = 14;
+
+// Money HUD, top-left of the screen.
+const MONEY_TEXT_SIZE = { width: 140, height: 24 };
+const MONEY_HUD_LEFT_MARGIN = 14;
+const MONEY_HUD_TOP_MARGIN = 14;
 
 export function buildHealthBar(
   layer: Layer,
@@ -108,6 +115,7 @@ function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
 
   const playerEntity = registry.spawnEntity();
   registry.addComponent(playerEntity, new NetworkId(playerPacket.id));
+  registry.addComponent(playerEntity, new Player());
   registry.addComponent(playerEntity, new Direction(0, 0));
   registry.addComponent(playerEntity, new ZIndexComponent(10));
   registry.addComponent(
@@ -232,6 +240,25 @@ function buildWaveHud(layer: Layer, registry: Registry) {
   );
 }
 
+function buildMoneyHud(layer: Layer, registry: Registry, amount: number) {
+  const moneyTextEntity = registry.spawnEntity();
+  const moneyTextComponent = new TextComponent(layer, {
+    text: `Coins: ${amount}`,
+    x: MONEY_HUD_LEFT_MARGIN,
+    y: MONEY_HUD_TOP_MARGIN,
+    width: MONEY_TEXT_SIZE.width,
+    height: MONEY_TEXT_SIZE.height,
+    fontSize: 18,
+    fontStyle: "bold",
+    verticalAlign: "middle",
+    fill: "#F5F2E9",
+  });
+  registry.addComponent(moneyTextEntity, moneyTextComponent);
+
+  const hudEntity = registry.spawnEntity();
+  registry.addComponent(hudEntity, new MoneyHudComponent(moneyTextComponent.text));
+}
+
 function launchGame(packet: any, registry: Registry) {
   const newScene = new GameScene();
   sceneManager.switchTo(newScene);
@@ -242,7 +269,10 @@ function launchGame(packet: any, registry: Registry) {
     buildPlayer(newScene, player, registry);
   }
 
-  if (newScene.hudLayer) buildWaveHud(newScene.hudLayer, registry);
+  if (newScene.hudLayer) {
+    buildWaveHud(newScene.hudLayer, registry);
+    buildMoneyHud(newScene.hudLayer, registry, packet.money);
+  }
 }
 
 export function startGamePacketHandler(packet: any, registry: Registry): void {

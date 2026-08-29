@@ -1,7 +1,8 @@
 import { Registry } from "@nanoforge-dev/ecs-client";
 import { Velocity } from "../../components/velocity.component";
 import { Position } from "../../components/position.component";
-import { clients, PLAYER_SPEED } from "../../main";
+import { MoveInput } from "../../components/move-input.component";
+import { clients } from "../../main";
 import { Context } from "@nanoforge-dev/common";
 import { NetworkServerLibrary } from "@nanoforge-dev/network-server";
 import { sendToInGamePlayers } from "../../network-utils";
@@ -15,7 +16,7 @@ export function inputPacketHandler(
   ctx: Context,
 ): void {
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
-  const zipper = registry.getIndexedZipper([Login, Velocity, Position, Direction]);
+  const zipper = registry.getIndexedZipper([Login, Velocity, Position, Direction, MoveInput]);
   const log = clients.find((client) => client.clientId === clientId)?.username;
   const it = zipper.find(({ Login }) => {
     return Login.id === log;
@@ -32,24 +33,14 @@ export function inputPacketHandler(
     });
   }
 
+  // Just records held-key intent - move-input.system.ts recomputes actual Velocity from this
+  // every tick (not only when a packet like this one arrives), so a wall collision zeroing an
+  // axis (collision-resolve.ts) is never left stuck once the player is no longer blocked, even
+  // though the client only sends a fresh packet when the *set* of held keys changes.
   if (packet.moveKeys) {
-    let dx = 0;
-    let dy = 0;
-
-    if (packet.moveKeys.findIndex((key: string) => key === "up") !== -1) dy -= 1;
-    if (packet.moveKeys.findIndex((key: string) => key === "down") !== -1) dy += 1;
-    if (packet.moveKeys.findIndex((key: string) => key === "left") !== -1) dx -= 1;
-    if (packet.moveKeys.findIndex((key: string) => key === "right") !== -1) dx += 1;
-
-    const len = Math.hypot(dx, dy) || 1;
-    it.Velocity.x = (dx / len) * PLAYER_SPEED;
-    it.Velocity.y = (dy / len) * PLAYER_SPEED;
-
-    sendToInGamePlayers(network, {
-      type: "move",
-      id: it.id,
-      velocity: { x: it.Velocity.x, y: it.Velocity.y },
-      position: { x: it.Position.x, y: it.Position.y },
-    });
+    it.MoveInput.up = packet.moveKeys.includes("up");
+    it.MoveInput.down = packet.moveKeys.includes("down");
+    it.MoveInput.left = packet.moveKeys.includes("left");
+    it.MoveInput.right = packet.moveKeys.includes("right");
   }
 }

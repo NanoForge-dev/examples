@@ -13,11 +13,14 @@ import { ChildrenComponent } from "../../components/children.component";
 import { Health } from "../../components/health.component";
 import { ZIndexComponent } from "../../components/essentials/z-index.component";
 import { buildHealthBar } from "./start-game-packet.handler";
+import { Player } from "../../components/player.component";
 
 // Native crop size (zombie-animations.txt, unscaled).
 const ZOMBIE_SPRITE_SIZE = { width: 30, height: 30 };
 
 function buildPlayer(newEnt: Entity, packet: any, registry: Registry) {
+  registry.addComponent(newEnt, new Player());
+
   if (packet.login === clientConfig.login) {
     registry.addComponent(newEnt, new MoveController(clientConfig));
     registry.addComponent(newEnt, new ShootController(clientConfig));

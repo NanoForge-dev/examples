@@ -10,6 +10,7 @@ import { NetworkClientLibrary } from "@nanoforge-dev/network-client";
 import { SoundLibrary } from "@nanoforge-dev/sound";
 import { moveSystem } from "./systems/move.system";
 import { spriteAnimator } from "./systems/renderable/sprite-animator.system";
+import { playerDeathSystem } from "./systems/player-death.system";
 import { spriteSystem } from "./systems/renderable/sprite.system";
 import { cameraFollowSystem } from "./systems/camera-follow.system";
 import { moveControl } from "./systems/move-control.system";
@@ -73,6 +74,7 @@ export async function main(options: IRunOptions) {
   registry.addSystem(moveControl);
   registry.addSystem(textareaSystem);
   registry.addSystem(shootControl);
+  registry.addSystem(playerDeathSystem);
   registry.addSystem(spriteAnimator);
   registry.addSystem(cameraFollowSystem);
   registry.addSystem(moveSystem);

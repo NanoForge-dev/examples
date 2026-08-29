@@ -8,6 +8,8 @@ export const spriteAnimator = (registry: Registry) => {
 
   entities.forEach(({ Direction, SpriteComponent, Velocity }) => {
     if (!SpriteComponent.sprite) return;
+    // player-death.system.ts owns this animation once set - permanent, never resumes walk/idle.
+    if (SpriteComponent.getAnimation() === "death") return;
     if ((Velocity.y != 0 || Velocity.x != 0) && SpriteComponent.getAnimation() != "walk") {
       SpriteComponent.setAnimation("walk");
     } else if (Velocity.x == 0 && Velocity.y == 0 && SpriteComponent.getAnimation() != "idle") {

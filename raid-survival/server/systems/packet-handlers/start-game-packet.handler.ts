@@ -15,6 +15,8 @@ import { Health } from "../../components/health.component";
 import { Zombie } from "../../components/zombie.component";
 import { IAComponent } from "../../components/ia.component";
 import { WaveState } from "../../components/wave-state.component";
+import { Money } from "../../components/money.component";
+import { MoveInput } from "../../components/move-input.component";
 import { createZombieBehavior, ZOMBIE_MAX_HEALTH } from "../zombie-ai";
 import { Vector2d } from "@nanoforge-dev/graphics-2d";
 import mapCollisionData from "../../static/map-collision.json";
@@ -23,6 +25,7 @@ const MAX_PLAYERS = 4;
 
 const LOBBY_MAX_HEALTH = 500;
 const PLAYER_MAX_HEALTH = 100;
+const STARTING_MONEY = 150;
 
 const MAP_CENTER: Vector2d = {
   x: (mapCollisionData.cols * mapCollisionData.tileSize) / 2,
@@ -73,6 +76,9 @@ const mapTreeLocations: TreeLocation[] = mapCollisionData.collision.flatMap((row
 // top-left, same convention as everything else.
 const ZOMBIE_HITBOX: Vector2d = { x: 24, y: 24 };
 
+// The only zombie type today - "punching zombies drop 10 coins" per design.
+const ZOMBIE_COIN_VALUE = 10;
+
 // Spawns a single zombie from a random tree cell, hunting via its own IAComponent. How many to
 // spawn and when is entirely zombie-wave.system.ts's concern - this just knows how to spawn one.
 export function spawnZombie(registry: Registry, network: NetworkServerLibrary, lobbyEntityId: number): void {
@@ -90,7 +96,7 @@ export function spawnZombie(registry: Registry, network: NetworkServerLibrary, l
   registry.addComponent(zombie, new Direction(1, 0));
   registry.addComponent(zombie, new Health(ZOMBIE_MAX_HEALTH, ZOMBIE_MAX_HEALTH));
   registry.addComponent(zombie, new Hitbox(ZOMBIE_HITBOX.x, ZOMBIE_HITBOX.y));
-  registry.addComponent(zombie, new Zombie());
+  registry.addComponent(zombie, new Zombie(ZOMBIE_COIN_VALUE));
   registry.addComponent(zombie, new IAComponent(createZombieBehavior(lobbyEntityId)));
 
   sendToInGamePlayers(network, {
@@ -146,6 +152,7 @@ export function startGamePacketHandler(
     registry.addComponent(player, new Login(client.username));
     registry.addComponent(player, new Position(PLAYERS_SPAWNERS[index].x, PLAYERS_SPAWNERS[index].y));
     registry.addComponent(player, new Velocity(0, 0));
+    registry.addComponent(player, new MoveInput());
     registry.addComponent(player, new CollisionBox(PLAYER_COLLISION_BOX.x, PLAYER_COLLISION_BOX.y));
     registry.addComponent(
       player,
@@ -160,6 +167,9 @@ export function startGamePacketHandler(
     });
   });
 
+  const money = registry.spawnEntity();
+  registry.addComponent(money, new Money(STARTING_MONEY));
+
   sendToInGamePlayers(network, {
     type: "startGame",
     players: playersInformation,
@@ -168,6 +178,7 @@ export function startGamePacketHandler(
       position: LOBBY_POSITION,
       health: { current: LOBBY_MAX_HEALTH, max: LOBBY_MAX_HEALTH },
     },
+    money: STARTING_MONEY,
   });
 
   // Zombie spawning from here on is entirely driven by zombie-wave.system.ts, ticking off this
