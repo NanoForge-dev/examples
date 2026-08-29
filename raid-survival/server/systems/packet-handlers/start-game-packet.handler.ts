@@ -9,8 +9,12 @@ import { Velocity } from "../../components/velocity.component";
 import { Login } from "../../components/login.component";
 import { MapCollisions, TreeLocation } from "../../components/map-collisions.component";
 import { CollisionBox } from "../../components/collision-box.component";
+import { Hitbox } from "../../components/hitbox.component";
 import { Lobby } from "../../components/lobby.component";
 import { Health } from "../../components/health.component";
+import { Zombie } from "../../components/zombie.component";
+import { IAComponent } from "../../components/ia.component";
+import { createZombieBehavior, ZOMBIE_MAX_HEALTH } from "../zombie-ai";
 import { Vector2d } from "@nanoforge-dev/graphics-2d";
 import mapCollisionData from "../../static/map-collision.json";
 
@@ -18,6 +22,7 @@ const MAX_PLAYERS = 4;
 
 const LOBBY_MAX_HEALTH = 500;
 const PLAYER_MAX_HEALTH = 100;
+const ZOMBIE_COUNT = 6;
 
 const MAP_CENTER: Vector2d = {
   x: (mapCollisionData.cols * mapCollisionData.tileSize) / 2,
@@ -25,6 +30,14 @@ const MAP_CENTER: Vector2d = {
 };
 
 const PLAYER_COLLISION_BOX: Vector2d = { x: 24, y: 24 };
+// Slightly smaller than the collision box and centered inside it, per design: the hitbox
+// (combat range - what zombies attack) is a different concept from the collision box
+// (physical blocking).
+const PLAYER_HITBOX_SIZE: Vector2d = { x: 20, y: 20 };
+const PLAYER_HITBOX_OFFSET: Vector2d = {
+  x: (PLAYER_COLLISION_BOX.x - PLAYER_HITBOX_SIZE.x) / 2,
+  y: (PLAYER_COLLISION_BOX.y - PLAYER_HITBOX_SIZE.y) / 2,
+};
 
 const LOBBY_SPRITE_SIZE: Vector2d = { x: 187, y: 143 };
 
@@ -56,6 +69,42 @@ const mapTreeLocations: TreeLocation[] = mapCollisionData.collision.flatMap((row
   row.flatMap((blocked, x) => (blocked ? [{ x, y }] : [])),
 );
 
+// Combat footprint used for zombie-vs-target range checks (zombie-ai.ts) - Position is its
+// top-left, same convention as everything else.
+const ZOMBIE_HITBOX: Vector2d = { x: 24, y: 24 };
+
+// Zombies spawn from a random tree cell each, hunting the lobby via their own IAComponent.
+function spawnZombies(registry: Registry, network: NetworkServerLibrary, lobbyEntityId: number): void {
+  for (let i = 0; i < ZOMBIE_COUNT; i++) {
+    const cell = mapTreeLocations[Math.floor(Math.random() * mapTreeLocations.length)];
+    if (!cell) continue;
+
+    const position: Vector2d = {
+      x: cell.x * mapCollisionData.tileSize + mapCollisionData.tileSize / 2,
+      y: cell.y * mapCollisionData.tileSize + mapCollisionData.tileSize / 2,
+    };
+
+    const zombie = registry.spawnEntity();
+    registry.addComponent(zombie, new Position(position.x, position.y));
+    registry.addComponent(zombie, new Velocity(0, 0));
+    registry.addComponent(zombie, new Direction(1, 0));
+    registry.addComponent(zombie, new Health(ZOMBIE_MAX_HEALTH, ZOMBIE_MAX_HEALTH));
+    registry.addComponent(zombie, new Hitbox(ZOMBIE_HITBOX.x, ZOMBIE_HITBOX.y));
+    registry.addComponent(zombie, new Zombie());
+    registry.addComponent(zombie, new IAComponent(createZombieBehavior(lobbyEntityId)));
+
+    sendToInGamePlayers(network, {
+      type: "spawn",
+      entityType: "zombie",
+      id: zombie.getId(),
+      position,
+      velocity: { x: 0, y: 0 },
+      direction: { x: 1, y: 0 },
+      health: { current: ZOMBIE_MAX_HEALTH, max: ZOMBIE_MAX_HEALTH },
+    });
+  }
+}
+
 export function startGamePacketHandler(
   _clientId: number,
   _packet: any,
@@ -75,6 +124,8 @@ export function startGamePacketHandler(
   const lobby = registry.spawnEntity();
   registry.addComponent(lobby, new Position(LOBBY_POSITION.x, LOBBY_POSITION.y));
   registry.addComponent(lobby, new CollisionBox(LOBBY_COLLISION_BOX.x, LOBBY_COLLISION_BOX.y));
+  // Same size as the collision box - zombies attack this, not the collision box.
+  registry.addComponent(lobby, new Hitbox(LOBBY_COLLISION_BOX.x, LOBBY_COLLISION_BOX.y));
   registry.addComponent(lobby, new Health(LOBBY_MAX_HEALTH, LOBBY_MAX_HEALTH));
   registry.addComponent(lobby, new Lobby());
 
@@ -97,6 +148,10 @@ export function startGamePacketHandler(
     registry.addComponent(player, new Position(PLAYERS_SPAWNERS[index].x, PLAYERS_SPAWNERS[index].y));
     registry.addComponent(player, new Velocity(0, 0));
     registry.addComponent(player, new CollisionBox(PLAYER_COLLISION_BOX.x, PLAYER_COLLISION_BOX.y));
+    registry.addComponent(
+      player,
+      new Hitbox(PLAYER_HITBOX_SIZE.x, PLAYER_HITBOX_SIZE.y, PLAYER_HITBOX_OFFSET.x, PLAYER_HITBOX_OFFSET.y),
+    );
     registry.addComponent(player, new Health(PLAYER_MAX_HEALTH, PLAYER_MAX_HEALTH));
     playersInformation.push({
       id: client.entityId,
@@ -115,4 +170,6 @@ export function startGamePacketHandler(
       health: { current: LOBBY_MAX_HEALTH, max: LOBBY_MAX_HEALTH },
     },
   });
+
+  spawnZombies(registry, network, lobby.getId());
 }

@@ -18,6 +18,12 @@ import { Health } from "../../components/health.component";
 import { ZIndexComponent } from "../../components/essentials/z-index.component";
 import { HealthBarFill } from "../../components/health-bar-fill.component";
 
+// zOrderSystem only reorders entities that carry a ZIndexComponent - anything without one stays
+// wherever Konva's insertion order left it, permanently below every z-indexed sprite. Health bars
+// need to render above whatever's standing near their owner (zombies/players cluster right
+// around the lobby), so they get the highest tier - above hands (20).
+const HEALTH_BAR_Z_INDEX = 30;
+
 // Native player sprite size (player-animations.txt, unscaled).
 const PLAYER_SPRITE_SIZE = { width: 24, height: 24 };
 
@@ -57,6 +63,7 @@ function buildHealthBar(
     new ChildrenComponent(parentEntity.getId(), { LocalTransform: { x: frameLocalX, y: frameLocalY } }),
   );
   registry.addComponent(frame, new Direction(0, 0));
+  registry.addComponent(frame, new ZIndexComponent(HEALTH_BAR_Z_INDEX));
 
   const fraction = health.max > 0 ? health.current / health.max : 0;
   const fillScaleX = HEALTH_BAR_FILL_MAX_SCALE_X * fraction;
@@ -82,6 +89,7 @@ function buildHealthBar(
     new ChildrenComponent(parentEntity.getId(), { LocalTransform: { x: fillLocalX, y: fillLocalY } }),
   );
   registry.addComponent(fill, new Direction(0, 0));
+  registry.addComponent(fill, new ZIndexComponent(HEALTH_BAR_Z_INDEX));
   registry.addComponent(fill, new HealthBarFill(cavityLocalX));
 }
 
@@ -140,6 +148,7 @@ function buildLobby(scene: Scene, lobbyPacket: any, registry: Registry) {
     }),
   );
   registry.addComponent(lobbyEntity, new Lobby());
+  registry.addComponent(lobbyEntity, new ZIndexComponent(10));
   registry.addComponent(lobbyEntity, new Health(lobbyPacket.health.current, lobbyPacket.health.max));
   buildHealthBar(scene, registry, lobbyEntity, LOBBY_SPRITE_SIZE.width, lobbyPacket.health);
 }

@@ -7,6 +7,7 @@ import { NetworkServerLibrary } from "@nanoforge-dev/network-server";
 import { moveSystem } from "./systems/move.system";
 import { mapCollisionSystem } from "./systems/map-collision.system";
 import { obstacleCollisionSystem } from "./systems/obstacle-collision.system";
+import { aiSystem } from "./systems/ai.system";
 import { packetHandler } from "./systems/packet-handler.system";
 
 export const PLAYER_SPEED = 100;
@@ -40,6 +41,7 @@ export async function main(options: IRunOptions) {
   registry.addSystem(moveSystem);
   registry.addSystem(mapCollisionSystem);
   registry.addSystem(obstacleCollisionSystem);
+  registry.addSystem(aiSystem);
 
   await app.run();
 }

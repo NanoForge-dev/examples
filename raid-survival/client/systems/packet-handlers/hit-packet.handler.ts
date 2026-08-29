@@ -32,11 +32,11 @@ export function hitPacketHandler(packet: any, registry: Registry): void {
 
   const fillScaleX = HEALTH_BAR_FILL_MAX_SCALE_X * fraction;
   // Same anchor compensation used when the bar was first built: SpriteComponent scales around
-  // its own center, so the LocalPosition has to shift back the other way to keep the fill's
+  // its own center, so the LocalTransform has to shift back the other way to keep the fill's
   // left edge pinned to the cavity's left edge instead of shrinking symmetrically.
-  fill.ChildrenComponent.options.LocalPosition = {
+  fill.ChildrenComponent.options.LocalTransform = {
     x: fill.HealthBarFill.cavityLocalX - (HEALTH_BAR_FILL_WIDTH / 2) * (1 - fillScaleX),
-    y: fill.ChildrenComponent.options.LocalPosition?.y ?? 0,
+    y: fill.ChildrenComponent.options.LocalTransform?.y ?? 0,
   };
   fill.SpriteComponent.setScale({ x: fillScaleX, y: 1 });
 }
