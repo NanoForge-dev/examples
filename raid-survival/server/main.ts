@@ -8,6 +8,8 @@ import { moveSystem } from "./systems/move.system";
 import { mapCollisionSystem } from "./systems/map-collision.system";
 import { obstacleCollisionSystem } from "./systems/obstacle-collision.system";
 import { aiSystem } from "./systems/ai.system";
+import { zombieWaveSystem } from "./systems/zombie-wave.system";
+import { gameOverSystem } from "./systems/game-over.system";
 import { packetHandler } from "./systems/packet-handler.system";
 
 export const PLAYER_SPEED = 100;
@@ -42,6 +44,8 @@ export async function main(options: IRunOptions) {
   registry.addSystem(mapCollisionSystem);
   registry.addSystem(obstacleCollisionSystem);
   registry.addSystem(aiSystem);
+  registry.addSystem(zombieWaveSystem);
+  registry.addSystem(gameOverSystem);
 
   await app.run();
 }

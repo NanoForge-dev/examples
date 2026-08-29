@@ -20,6 +20,7 @@ export class MenuScene implements Scene {
 
   private menu: "User" | "Lobby" = "User";
   private playerCases: TextComponent[] = [];
+  private joinErrorText: TextComponent | undefined;
 
   load(registry: Registry, stage: Stage): void {
     const lobbyStatus = registry.spawnEntity();
@@ -87,6 +88,10 @@ export class MenuScene implements Scene {
     const firstLobbyStatus = entities[0];
 
     if (!firstLobbyStatus) return;
+
+    if (this.joinErrorText) {
+      this.joinErrorText.text.text(firstLobbyStatus.LobbyStatusComponent.error ?? "");
+    }
 
     if (
       firstLobbyStatus.LobbyStatusComponent.state === LobbyState.JOINED &&
@@ -208,6 +213,26 @@ export class MenuScene implements Scene {
       listening: false,
     });
     registry.addComponent(textJoinLobbyButton, textJoinLobbyButtonComponent);
+
+    const joinErrorTextEntity = registry.spawnEntity();
+    this.joinErrorText = new TextComponent(joinLobbyGroupComponent.group, {
+      text: "",
+      x: joinLobbyGroupComponent.group.width() / 2 - joinLobbyButtonSize.width / 2,
+      y:
+        joinLobbyGroupComponent.group.height() / 2 -
+        joinLobbyButtonSize.height / 2 +
+        pseudoTextSize.height +
+        20 +
+        joinLobbyButtonSize.height +
+        12,
+      width: joinLobbyButtonSize.width,
+      height: 20,
+      fontSize: 14,
+      align: "center",
+      fill: "#E88686",
+      listening: false,
+    });
+    registry.addComponent(joinErrorTextEntity, this.joinErrorText);
 
     return joinLobbyGroupComponent;
   }

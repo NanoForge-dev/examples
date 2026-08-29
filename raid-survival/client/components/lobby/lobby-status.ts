@@ -21,4 +21,7 @@ export class LobbyStatusComponent {
   state: LobbyState = LobbyState.UNJOINED;
   action: LobbyAction = LobbyAction.EMPTY;
   players: LobbyPlayer[] = [];
+  // Set by join-lobby-packet.handler.ts on a rejected join ("full" / "in game"), rendered by
+  // MenuScene's join widget, cleared on the next successful join.
+  error: string | null = null;
 }

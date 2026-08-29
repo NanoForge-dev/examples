@@ -12,6 +12,7 @@ export function joinLobbyPacketHandler(packet: any, registry: Registry): void {
 
   if (packet.result === "success") {
     firstLobbyStatus.LobbyStatusComponent.state = LobbyState.JOINED;
+    firstLobbyStatus.LobbyStatusComponent.error = null;
     firstLobbyStatus.LobbyStatusComponent.players = [];
     for (const player of packet.players) {
       firstLobbyStatus.LobbyStatusComponent.players.push({
@@ -22,9 +23,9 @@ export function joinLobbyPacketHandler(packet: any, registry: Registry): void {
         setPlayerId(player.id);
     }
   } else if (packet.result === "full") {
-    console.error("lobby is full");
+    firstLobbyStatus.LobbyStatusComponent.error = "Lobby is full.";
   } else if (packet.result === "in game") {
-    console.error("lobby is full");
+    firstLobbyStatus.LobbyStatusComponent.error = "A game is already in progress - please wait for it to end.";
   } else {
     console.log(packet);
   }

@@ -14,6 +14,7 @@ import { Lobby } from "../../components/lobby.component";
 import { Health } from "../../components/health.component";
 import { Zombie } from "../../components/zombie.component";
 import { IAComponent } from "../../components/ia.component";
+import { WaveState } from "../../components/wave-state.component";
 import { createZombieBehavior, ZOMBIE_MAX_HEALTH } from "../zombie-ai";
 import { Vector2d } from "@nanoforge-dev/graphics-2d";
 import mapCollisionData from "../../static/map-collision.json";
@@ -22,7 +23,6 @@ const MAX_PLAYERS = 4;
 
 const LOBBY_MAX_HEALTH = 500;
 const PLAYER_MAX_HEALTH = 100;
-const ZOMBIE_COUNT = 6;
 
 const MAP_CENTER: Vector2d = {
   x: (mapCollisionData.cols * mapCollisionData.tileSize) / 2,
@@ -73,36 +73,35 @@ const mapTreeLocations: TreeLocation[] = mapCollisionData.collision.flatMap((row
 // top-left, same convention as everything else.
 const ZOMBIE_HITBOX: Vector2d = { x: 24, y: 24 };
 
-// Zombies spawn from a random tree cell each, hunting the lobby via their own IAComponent.
-function spawnZombies(registry: Registry, network: NetworkServerLibrary, lobbyEntityId: number): void {
-  for (let i = 0; i < ZOMBIE_COUNT; i++) {
-    const cell = mapTreeLocations[Math.floor(Math.random() * mapTreeLocations.length)];
-    if (!cell) continue;
+// Spawns a single zombie from a random tree cell, hunting via its own IAComponent. How many to
+// spawn and when is entirely zombie-wave.system.ts's concern - this just knows how to spawn one.
+export function spawnZombie(registry: Registry, network: NetworkServerLibrary, lobbyEntityId: number): void {
+  const cell = mapTreeLocations[Math.floor(Math.random() * mapTreeLocations.length)];
+  if (!cell) return;
 
-    const position: Vector2d = {
-      x: cell.x * mapCollisionData.tileSize + mapCollisionData.tileSize / 2,
-      y: cell.y * mapCollisionData.tileSize + mapCollisionData.tileSize / 2,
-    };
+  const position: Vector2d = {
+    x: cell.x * mapCollisionData.tileSize + mapCollisionData.tileSize / 2,
+    y: cell.y * mapCollisionData.tileSize + mapCollisionData.tileSize / 2,
+  };
 
-    const zombie = registry.spawnEntity();
-    registry.addComponent(zombie, new Position(position.x, position.y));
-    registry.addComponent(zombie, new Velocity(0, 0));
-    registry.addComponent(zombie, new Direction(1, 0));
-    registry.addComponent(zombie, new Health(ZOMBIE_MAX_HEALTH, ZOMBIE_MAX_HEALTH));
-    registry.addComponent(zombie, new Hitbox(ZOMBIE_HITBOX.x, ZOMBIE_HITBOX.y));
-    registry.addComponent(zombie, new Zombie());
-    registry.addComponent(zombie, new IAComponent(createZombieBehavior(lobbyEntityId)));
+  const zombie = registry.spawnEntity();
+  registry.addComponent(zombie, new Position(position.x, position.y));
+  registry.addComponent(zombie, new Velocity(0, 0));
+  registry.addComponent(zombie, new Direction(1, 0));
+  registry.addComponent(zombie, new Health(ZOMBIE_MAX_HEALTH, ZOMBIE_MAX_HEALTH));
+  registry.addComponent(zombie, new Hitbox(ZOMBIE_HITBOX.x, ZOMBIE_HITBOX.y));
+  registry.addComponent(zombie, new Zombie());
+  registry.addComponent(zombie, new IAComponent(createZombieBehavior(lobbyEntityId)));
 
-    sendToInGamePlayers(network, {
-      type: "spawn",
-      entityType: "zombie",
-      id: zombie.getId(),
-      position,
-      velocity: { x: 0, y: 0 },
-      direction: { x: 1, y: 0 },
-      health: { current: ZOMBIE_MAX_HEALTH, max: ZOMBIE_MAX_HEALTH },
-    });
-  }
+  sendToInGamePlayers(network, {
+    type: "spawn",
+    entityType: "zombie",
+    id: zombie.getId(),
+    position,
+    velocity: { x: 0, y: 0 },
+    direction: { x: 1, y: 0 },
+    health: { current: ZOMBIE_MAX_HEALTH, max: ZOMBIE_MAX_HEALTH },
+  });
 }
 
 export function startGamePacketHandler(
@@ -171,5 +170,8 @@ export function startGamePacketHandler(
     },
   });
 
-  spawnZombies(registry, network, lobby.getId());
+  // Zombie spawning from here on is entirely driven by zombie-wave.system.ts, ticking off this
+  // singleton state entity - see server/static/zombie-waves.txt for the wave config.
+  const waveState = registry.spawnEntity();
+  registry.addComponent(waveState, new WaveState(lobby.getId()));
 }

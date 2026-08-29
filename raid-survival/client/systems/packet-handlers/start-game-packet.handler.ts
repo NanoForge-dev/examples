@@ -17,6 +17,9 @@ import { Lobby } from "../../components/lobby/lobby.component";
 import { Health } from "../../components/health.component";
 import { ZIndexComponent } from "../../components/essentials/z-index.component";
 import { HealthBarFill } from "../../components/health-bar-fill.component";
+import { RectComponent } from "../../components/renderable/rect.component";
+import { TextComponent } from "../../components/renderable/text.component";
+import { WaveHudComponent } from "../../components/wave-hud.component";
 
 // zOrderSystem only reorders entities that carry a ZIndexComponent - anything without one stays
 // wherever Konva's insertion order left it, permanently below every z-indexed sprite. Health bars
@@ -41,14 +44,21 @@ const HEALTH_BAR_FILL_MAX_SCALE_X = HEALTH_BAR_FILL_CAVITY.width / HEALTH_BAR_FI
 // Vertical gap between the health bar and the top of whatever it's attached to.
 const HEALTH_BAR_GAP_ABOVE = 10;
 
-function buildHealthBar(
-  scene: Scene,
+// Wave HUD, laid out left-to-right and centered at the top of the screen: "Wave x/y", a
+// progress bar over the current wave's sub-waves, then the live zombie count.
+const WAVE_TEXT_SIZE = { width: 110, height: 24 };
+const WAVE_PROGRESS_BAR_SIZE = { width: 180, height: 14 };
+const ALIVE_TEXT_SIZE = { width: 100, height: 24 };
+const WAVE_HUD_GAP = 12;
+const WAVE_HUD_TOP_MARGIN = 14;
+
+export function buildHealthBar(
+  layer: Layer,
   registry: Registry,
   parentEntity: ReturnType<Registry["spawnEntity"]>,
   parentWidth: number,
   health: { current: number; max: number },
 ) {
-  const layer = scene.layer || new Layer();
   const frameLocalX = (parentWidth - HEALTH_BAR_FRAME_SIZE.width) / 2;
   const frameLocalY = -HEALTH_BAR_GAP_ABOVE;
 
@@ -117,7 +127,7 @@ function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
     registry.addComponent(playerEntity, new ShootController());
   }
   registry.addComponent(playerEntity, new Health(playerPacket.health.current, playerPacket.health.max));
-  buildHealthBar(scene, registry, playerEntity, PLAYER_SPRITE_SIZE.width, playerPacket.health);
+  buildHealthBar(scene.layer || new Layer(), registry, playerEntity, PLAYER_SPRITE_SIZE.width, playerPacket.health);
 
   const hand = registry.spawnEntity();
   registry.addComponent(hand, new TransformComponent(playerPacket.position.x, playerPacket.position.y));
@@ -150,7 +160,76 @@ function buildLobby(scene: Scene, lobbyPacket: any, registry: Registry) {
   registry.addComponent(lobbyEntity, new Lobby());
   registry.addComponent(lobbyEntity, new ZIndexComponent(10));
   registry.addComponent(lobbyEntity, new Health(lobbyPacket.health.current, lobbyPacket.health.max));
-  buildHealthBar(scene, registry, lobbyEntity, LOBBY_SPRITE_SIZE.width, lobbyPacket.health);
+  buildHealthBar(scene.layer || new Layer(), registry, lobbyEntity, LOBBY_SPRITE_SIZE.width, lobbyPacket.health);
+}
+
+function buildWaveHud(layer: Layer, registry: Registry) {
+  const totalWidth =
+    WAVE_TEXT_SIZE.width + WAVE_HUD_GAP + WAVE_PROGRESS_BAR_SIZE.width + WAVE_HUD_GAP + ALIVE_TEXT_SIZE.width;
+  const startX = window.innerWidth / 2 - totalWidth / 2;
+
+  const waveTextEntity = registry.spawnEntity();
+  const waveTextComponent = new TextComponent(layer, {
+    text: "Wave -/-",
+    x: startX,
+    y: WAVE_HUD_TOP_MARGIN,
+    width: WAVE_TEXT_SIZE.width,
+    height: WAVE_TEXT_SIZE.height,
+    fontSize: 18,
+    fontStyle: "bold",
+    verticalAlign: "middle",
+    fill: "#F5F2E9",
+  });
+  registry.addComponent(waveTextEntity, waveTextComponent);
+
+  const barX = startX + WAVE_TEXT_SIZE.width + WAVE_HUD_GAP;
+  const barY = WAVE_HUD_TOP_MARGIN + (WAVE_TEXT_SIZE.height - WAVE_PROGRESS_BAR_SIZE.height) / 2;
+
+  const trackEntity = registry.spawnEntity();
+  const trackComponent = new RectComponent(layer, {
+    x: barX,
+    y: barY,
+    width: WAVE_PROGRESS_BAR_SIZE.width,
+    height: WAVE_PROGRESS_BAR_SIZE.height,
+    fill: "#2B2B2B",
+    stroke: "#F5F2E9",
+    strokeWidth: 1,
+    cornerRadius: 3,
+  });
+  registry.addComponent(trackEntity, trackComponent);
+
+  // Drawn on top of the track, grown from 0 width by wave-info-packet.handler.ts as sub-waves
+  // complete.
+  const fillEntity = registry.spawnEntity();
+  const fillComponent = new RectComponent(layer, {
+    x: barX,
+    y: barY,
+    width: 0,
+    height: WAVE_PROGRESS_BAR_SIZE.height,
+    fill: "#4CAF50",
+    cornerRadius: 3,
+  });
+  registry.addComponent(fillEntity, fillComponent);
+
+  const aliveTextEntity = registry.spawnEntity();
+  const aliveTextComponent = new TextComponent(layer, {
+    text: "0 zombies",
+    x: barX + WAVE_PROGRESS_BAR_SIZE.width + WAVE_HUD_GAP,
+    y: WAVE_HUD_TOP_MARGIN,
+    width: ALIVE_TEXT_SIZE.width,
+    height: ALIVE_TEXT_SIZE.height,
+    fontSize: 18,
+    fontStyle: "bold",
+    verticalAlign: "middle",
+    fill: "#F5F2E9",
+  });
+  registry.addComponent(aliveTextEntity, aliveTextComponent);
+
+  const hudEntity = registry.spawnEntity();
+  registry.addComponent(
+    hudEntity,
+    new WaveHudComponent(waveTextComponent.text, trackComponent.rect, fillComponent.rect, aliveTextComponent.text),
+  );
 }
 
 function launchGame(packet: any, registry: Registry) {
@@ -162,6 +241,8 @@ function launchGame(packet: any, registry: Registry) {
   for (const player of packet.players) {
     buildPlayer(newScene, player, registry);
   }
+
+  if (newScene.hudLayer) buildWaveHud(newScene.hudLayer, registry);
 }
 
 export function startGamePacketHandler(packet: any, registry: Registry): void {

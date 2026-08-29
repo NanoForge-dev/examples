@@ -12,7 +12,7 @@ import { type AIBehavior } from "../components/ia.component";
 import { sendToInGamePlayers } from "../network-utils";
 
 export const ZOMBIE_SPEED = 40;
-export const ZOMBIE_MAX_HEALTH = 30;
+export const ZOMBIE_MAX_HEALTH = 20;
 export const ZOMBIE_ATTACK_RANGE = 8; // distance to a target's hitbox that lets it be attacked
 export const ZOMBIE_AGGRO_RANGE = 40; // distance to a player's hitbox that starts a chase
 export const ZOMBIE_ATTACK_DAMAGE = 5;

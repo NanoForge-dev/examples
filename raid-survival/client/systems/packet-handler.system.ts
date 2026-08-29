@@ -7,6 +7,8 @@ import { directionPacketHandler } from "./packet-handlers/direction-packet.handl
 import { killPacketHandler } from "./packet-handlers/kill-packet.handler";
 import { hitPacketHandler } from "./packet-handlers/hit-packet.handler";
 import { zombieStatePacketHandler } from "./packet-handlers/zombie-state-packet.handler";
+import { waveInfoPacketHandler } from "./packet-handlers/wave-info-packet.handler";
+import { gameOverPacketHandler } from "./packet-handlers/game-over-packet.handler";
 import { joinLobbyPacketHandler } from "./packet-handlers/join-lobby-packet.handler";
 import { lobbyInfoPacketHandler } from "./packet-handlers/lobby-info-packet.handler";
 import {startGamePacketHandler} from "./packet-handlers/start-game-packet.handler";
@@ -20,6 +22,8 @@ export const packetHandlers: Map<string, PacketHandler> = new Map([
   ["kill", killPacketHandler],
   ["hit", hitPacketHandler],
   ["zombieState", zombieStatePacketHandler],
+  ["waveInfo", waveInfoPacketHandler],
+  ["gameOver", gameOverPacketHandler],
   ["joinLobby", joinLobbyPacketHandler],
   ["lobbyInfo", lobbyInfoPacketHandler],
   ["startGame", startGamePacketHandler],

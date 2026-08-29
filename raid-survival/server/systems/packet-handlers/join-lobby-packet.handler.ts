@@ -38,46 +38,46 @@ export function joinLobbyPacketHandler(
     });
   }
 
+  // A game in progress never accepts joins - there's no way to hand a joiner a character until
+  // the next startGame call, known username or not (a "known" one only means they were in a
+  // *previous* game; game-over.system.ts empties `clients` the moment a game ends, so nobody
+  // is ever "known" while one is actually running). Rejecting unconditionally also covers the
+  // player who retries just after someone else already restarted without them - same result,
+  // clearly reported rather than left to hang.
   if (gameStatus.status === GameStatusEnum.InGame) {
-    if (
-      clients.find((client) => {
-        return client.username === packet.username;
-      }) === undefined
-    )
-      sendJoinLobbyInfo();
-    else {
-      network.tcp.sendToClient(
-        clientId,
-        new TextEncoder().encode(JSON.stringify({ type: "joinLobby", result: "in game" })),
-      );
-    }
+    network.tcp.sendToClient(
+      clientId,
+      new TextEncoder().encode(JSON.stringify({ type: "joinLobby", result: "in game" })),
+    );
     return;
   }
 
-  let connected = false;
-  for (const client of clients) {
-    if (client.username === packet.username) {
-      client.clientId = clientId;
-      connected = true;
-      break;
-    }
-  }
+  let client = clients.find((c) => c.username === packet.username);
 
-  if (!connected && clients.length >= 4) {
+  if (!client && clients.length >= 4) {
     network.tcp.sendToClient(
       clientId,
       new TextEncoder().encode(JSON.stringify({ type: "joinLobby", result: "full" })),
     );
     return;
   }
-  if (!connected) {
-    const entityId = _registry.spawnEntity().getId();
-    clients.push({
+
+  if (client) {
+    client.clientId = clientId;
+    client.connected = true;
+    // A returning client (e.g. after a finished game reset everything via
+    // registry.clearEntities() in game-over.system.ts) needs a fresh entity - whatever it held
+    // before may no longer exist, and reusing a dead entity id is unsafe.
+    client.entityId = _registry.spawnEntity().getId();
+  } else {
+    client = {
       username: packet.username,
-      clientId: clientId,
-      entityId: entityId,
+      clientId,
+      entityId: _registry.spawnEntity().getId(),
       connected: true,
-    });
-    sendJoinLobbyInfo();
+    };
+    clients.push(client);
   }
+
+  sendJoinLobbyInfo();
 }
