@@ -11,7 +11,11 @@ import { Lobby } from "../components/lobby/lobby.component";
 import { TransformComponent } from "../components/essentials/transform.component";
 import { BUILDING_CATALOG, canPlaceBuilding, type OccupiedBox } from "../building-catalog";
 import { TILE_SIZE, MAP_COLS, MAP_ROWS, isTreeCell } from "../map-data";
-import { sceneManager } from "../main";
+import { sceneManager, playerId } from "../main";
+import { NetworkId } from "../components/network-id.component";
+import { ChildrenComponent } from "../components/children.component";
+import { Weapon } from "../components/weapon.component";
+import { SpriteComponent } from "../components/renderable/sprite.component";
 
 // Native size of the truck+house crop (objects-animations.txt's "idle" frame), rounded up to
 // whole tiles - must match server/systems/packet-handlers/start-game-packet.handler.ts's
@@ -34,8 +38,37 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
   if (togglePressed && !buildMode.wasTogglePressed) {
     buildMode.active = !buildMode.active;
     if (!buildMode.active) buildMode.selectedBuildingType = null;
+    // Set once, right on the transition - a normal, precise OS cursor for selecting/placing
+    // while building, the custom crosshair (cursor.system.ts) otherwise. cursor.system.ts leaves
+    // style.cursor alone entirely while build mode is active, so this doesn't get fought every
+    // tick, and the build bar's own hover/mouseout handlers
+    // (start-game-packet.handler.ts) own it from here until the mode toggles off again.
+    stage.container().style.cursor = buildMode.active ? "default" : "none";
   }
   buildMode.wasTogglePressed = togglePressed;
+
+  // The weapon shouldn't be drawn/aimed while placing buildings - a click meant to select a
+  // build-bar button or place a wall must not read as "holding up a gun" either (see
+  // shoot-control.system.ts, which stops it from actually firing for the same reason). Asserted
+  // every tick, not just on the toggle edge - spriteSystem creates the underlying Konva node
+  // lazily, so a one-shot visible() call made before it exists would silently no-op forever.
+  const localPlayers: { id: number; NetworkId: NetworkId }[] = registry.getIndexedZipper([NetworkId]);
+  const localPlayer = localPlayers.find((p) => p.NetworkId.id === playerId);
+  if (localPlayer) {
+    // Same zip shape as reload-indicator.system.ts's identical lookup (weapon resolved via
+    // ChildrenComponent.parentId, SpriteComponent fetched separately) - if the weapon entity ever
+    // doesn't carry a SpriteComponent, this fails on "sprite missing", not silently on "weapon not
+    // found" the way requiring SpriteComponent in the zip itself would.
+    const weapons: { id: number; ChildrenComponent: ChildrenComponent }[] = registry.getIndexedZipper([
+      Weapon,
+      ChildrenComponent,
+    ]);
+    const weapon = weapons.find((w) => w.ChildrenComponent.parentId === localPlayer.id);
+    if (weapon) {
+      const sprite = registry.getEntityComponent(registry.entityFromIndex(weapon.id), SpriteComponent);
+      sprite?.sprite?.visible(!buildMode.active);
+    }
+  }
 
   buildMode.gridShape.visible(buildMode.active);
   if (buildMode.active) {

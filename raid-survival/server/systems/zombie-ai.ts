@@ -43,6 +43,10 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
     const zombie = registry.getEntityComponent(zombieEntity, Zombie);
     if (!position || !velocity || !hitbox || !zombie) return;
 
+    // A dying zombie (zombie-death.system.ts has already zeroed its Health and started the death
+    // animation timer) is inert - no movement, no attack - until it's actually removed.
+    if (zombie.dying) return;
+
     const network = ctx.libs.getNetwork<NetworkServerLibrary>();
     const delta = ctx.app.delta / 1000;
 

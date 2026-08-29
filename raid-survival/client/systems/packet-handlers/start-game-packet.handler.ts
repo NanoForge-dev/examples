@@ -27,6 +27,9 @@ import { BUILDING_CATALOG, type BuildingType } from "../../building-catalog";
 import { TILE_SIZE } from "../../map-data";
 import { Weapon } from "../../components/weapon.component";
 import { AmmoHudComponent } from "../../components/ammo-hud.component";
+import { ReloadIndicatorComponent } from "../../components/reload-indicator.component";
+import { CursorComponent } from "../../components/cursor.component";
+import { CURSOR_SCALE } from "../cursor.system";
 
 // zOrderSystem only reorders entities that carry a ZIndexComponent - anything without one stays
 // wherever Konva's insertion order left it, permanently below every z-indexed sprite. Health bars
@@ -70,9 +73,13 @@ const BUILD_BAR_GAP = 10;
 const BUILD_BAR_BOTTOM_MARGIN = 20;
 const GRID_STROKE = "rgba(245, 242, 233, 0.25)";
 
-// Held weapon sprite - same LocalTransform as the hand (it's held BY the hand), rotated the same
-// way, just above it in z-order.
-const WEAPON_ROTATOR_OFFSET = -90;
+// Held weapon sprite - same LocalTransform as the hand (it's held BY the hand), just above it in
+// z-order. weapons.png's pistol art faces up-and-right at rest (~-26° in atan2's y-down
+// convention, measured directly off the crop via imgtools - not straight up like hand.png, so it
+// can't reuse the hand's -90 offset), so this cancels that out: offset + 0 aim angle == pointing
+// straight along the aim direction. Still a best-effort pixel-art estimate - nudge it if it reads
+// slightly off once seen in-game.
+const WEAPON_ROTATOR_OFFSET = 26;
 const WEAPON_Z_INDEX = 21;
 
 // Ammo HUD, bottom-left of the screen.
@@ -81,6 +88,17 @@ const AMMO_HUD_BOTTOM_MARGIN = 14;
 const AMMO_ICON_SIZE = { width: 32, height: 32 };
 const AMMO_TEXT_SIZE = { width: 100, height: 32 };
 const AMMO_HUD_GAP = 10;
+
+// "RELOAD!" indicator, directly above the ammo HUD - hidden by default, toggled by
+// reload-indicator.system.ts.
+const RELOAD_ICON_SIZE = { width: 24, height: 6 };
+const RELOAD_ICON_SCALE = 2.5;
+const RELOAD_HUD_GAP = 10;
+
+// Custom crosshair cursor - replaces the OS cursor while in GameScene (see GameScene.load and
+// this file's build-bar hover handlers, below). Size/scale shared with cursor.system.ts (which
+// positions it every tick), so they can't drift apart.
+const CURSOR_Z_INDEX = 100;
 
 export function buildHealthBar(
   layer: Layer,
@@ -186,7 +204,9 @@ function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
   );
   registry.addComponent(weapon, new ChildrenComponent(playerEntity.getId(), { LocalTransform: { x: 6, y: 12 } }));
   registry.addComponent(weapon, new Direction(0, 0));
-  registry.addComponent(weapon, new DirectionRotatorComponent(WEAPON_ROTATOR_OFFSET));
+  // mirrorWhenFacingLeft: true - the gun rotates through the full circle, so without this it
+  // reads upside-down for the whole left half of the arc (see rotate-to-direction.system.ts).
+  registry.addComponent(weapon, new DirectionRotatorComponent(WEAPON_ROTATOR_OFFSET, true, true));
   registry.addComponent(weapon, new ZIndexComponent(WEAPON_Z_INDEX));
   registry.addComponent(weapon, new Weapon(WEAPON_ROTATOR_OFFSET));
 }
@@ -227,6 +247,39 @@ function buildAmmoHud(
 
   const hudEntity = registry.spawnEntity();
   registry.addComponent(hudEntity, new AmmoHudComponent(textComponent.text));
+
+  // Hidden by default (reload-indicator.system.ts drives visibility every tick off the local
+  // player's Weapon.reloading - see that file for why this can't just be set once here).
+  const reloadX = AMMO_HUD_LEFT_MARGIN;
+  const reloadY = iconY - RELOAD_HUD_GAP - RELOAD_ICON_SIZE.height * RELOAD_ICON_SCALE;
+  const reloadEntity = registry.spawnEntity();
+  registry.addComponent(
+    reloadEntity,
+    new SpriteComponent("ui.png", {
+      layer: hudLayer,
+      animationsKey: "ui-reload-animations.txt",
+      scale: { x: RELOAD_ICON_SCALE, y: RELOAD_ICON_SCALE },
+    }),
+  );
+  registry.addComponent(reloadEntity, new TransformComponent(reloadX, reloadY));
+  registry.addComponent(reloadEntity, new ReloadIndicatorComponent());
+}
+
+function buildCursor(hudLayer: Layer, registry: Registry) {
+  const cursorEntity = registry.spawnEntity();
+  registry.addComponent(
+    cursorEntity,
+    new SpriteComponent("ui.png", {
+      layer: hudLayer,
+      animationsKey: "ui-crosshair-animations.txt",
+      scale: { x: CURSOR_SCALE, y: CURSOR_SCALE },
+    }),
+  );
+  registry.addComponent(cursorEntity, new TransformComponent(0, 0));
+  registry.addComponent(cursorEntity, new CursorComponent());
+  // Must never end up buried under other z-indexed sprites once anything else on the HUD changes
+  // - zOrderSystem only reorders entities that have both ZIndexComponent and SpriteComponent.
+  registry.addComponent(cursorEntity, new ZIndexComponent(CURSOR_Z_INDEX));
 }
 
 function buildLobby(scene: Scene, lobbyPacket: any, registry: Registry) {
@@ -432,6 +485,10 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
     });
     rectComponent.rect.on("mouseout", () => {
       const stage = hudLayer.getStage();
+      // These buttons are only ever visible/hittable while build mode is active (see
+      // build-mode.system.ts), and build mode wants the normal OS cursor, not the custom
+      // crosshair - "default" is correct here, not "none" (cursor.system.ts owns "none" only
+      // while build mode is off, when this handler can't fire at all).
       if (stage) stage.container().style.cursor = "default";
     });
 
@@ -472,6 +529,8 @@ function launchGame(packet: any, registry: Registry) {
 
     const localPlayer = packet.players.find((player: any) => player.id === playerId);
     if (localPlayer) buildAmmoHud(newScene.hudLayer, registry, localPlayer.weapon);
+
+    buildCursor(newScene.hudLayer, registry);
   }
 }
 

@@ -69,7 +69,8 @@ export function spawnPacketHandler(packet: any, registry: Registry): void {
   });
   if (it) console.error("entity with networkId already exist: ", packet.networkId);
   const newEnt = registry.spawnEntity();
-  registry.addComponent(newEnt, new TransformComponent(packet.position.x, packet.position.y));
+  const transform = new TransformComponent(packet.position.x, packet.position.y);
+  registry.addComponent(newEnt, transform);
   if (packet.id !== undefined) {
     registry.addComponent(newEnt, new NetworkId(packet.id));
   }
@@ -124,10 +125,14 @@ export function spawnPacketHandler(packet: any, registry: Registry): void {
     case "bullet":
       // Position+Velocity is all move.system.ts needs to dead-reckon it in a straight line,
       // exactly matching the server's own physics (a bullet never changes velocity after firing,
-      // so there's no drift to correct with follow-up packets, unlike a steering zombie). No
-      // Direction/rotation - the tracer dot doesn't need to visually point the way it's flying
-      // at this scale.
+      // so there's no drift to correct with follow-up packets, unlike a steering zombie).
+      // bullet-animations.txt's crop is an elongated pill, not a round dot, so it needs to be
+      // rotated to match its flight direction, same as any other sprite - rotation is set once
+      // here (not via DirectionRotatorComponent/a Direction component - overkill for something
+      // whose direction never changes after spawn) since spriteSystem already applies
+      // TransformComponent.rotation to every sprite unconditionally, every tick.
       registry.addComponent(newEnt, new Velocity(packet.velocity.x, packet.velocity.y));
+      transform.rotation = (Math.atan2(packet.velocity.y, packet.velocity.x) * 180) / Math.PI;
       registry.addComponent(newEnt, new ZIndexComponent(BULLET_Z_INDEX));
       registry.addComponent(
         newEnt,

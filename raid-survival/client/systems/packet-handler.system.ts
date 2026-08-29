@@ -13,6 +13,7 @@ import { moneyPacketHandler } from "./packet-handlers/money-packet.handler";
 import { buildPacketHandler } from "./packet-handlers/build-packet.handler";
 import { weaponStatePacketHandler } from "./packet-handlers/weapon-state-packet.handler";
 import { ammoPacketHandler } from "./packet-handlers/ammo-packet.handler";
+import { lootPacketHandler } from "./packet-handlers/loot-packet.handler";
 import { joinLobbyPacketHandler } from "./packet-handlers/join-lobby-packet.handler";
 import { lobbyInfoPacketHandler } from "./packet-handlers/lobby-info-packet.handler";
 import {startGamePacketHandler} from "./packet-handlers/start-game-packet.handler";
@@ -32,6 +33,7 @@ export const packetHandlers: Map<string, PacketHandler> = new Map([
   ["build", buildPacketHandler],
   ["weaponState", weaponStatePacketHandler],
   ["ammo", ammoPacketHandler],
+  ["loot", lootPacketHandler],
   ["joinLobby", joinLobbyPacketHandler],
   ["lobbyInfo", lobbyInfoPacketHandler],
   ["startGame", startGamePacketHandler],

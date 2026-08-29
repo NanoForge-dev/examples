@@ -6,6 +6,7 @@ import { ShootController } from "../components/shoot.controller";
 import { Direction } from "../components/direction.component";
 import { Vector2d } from "@nanoforge-dev/graphics-2d";
 import { TransformComponent } from "../components/essentials/transform.component";
+import { BuildModeComponent } from "../components/build-mode.component";
 import { sceneManager } from "../main";
 
 const PLAYER_SPRITE_SIZE: Vector2d = { x: 24, y: 24 };
@@ -18,11 +19,27 @@ export function shootControl(registry: Registry, ctx: Context) {
   }[] = registry.getZipper([ShootController, Direction, TransformComponent]);
   const input = ctx.libs.getInput<InputLibrary>();
 
+  const buildModeEntities: { BuildModeComponent: BuildModeComponent }[] = registry.getZipper([
+    BuildModeComponent,
+  ]);
+  const buildModeActive = buildModeEntities[0]?.BuildModeComponent.active ?? false;
+
   const pointerPosition: Vector2d | null = sceneManager.getScene()?.layer?.getRelativePointerPosition() || null;
 
   if (!pointerPosition) return;
 
   entities.forEach(({ ShootController, Direction, TransformComponent }) => {
+    if (buildModeActive) {
+      // A click meant to select a build-bar button or place a wall must not also register as a
+      // shot - build-mode.system.ts hides the weapon sprite for the same reason (see there for
+      // the visual half of this).
+      ShootController.mainWeaponShooting = false;
+      ShootController.secondWeaponShooting = false;
+      ShootController.wasReloadKeyPressed = false;
+      ShootController.reloadRequested = false;
+      return;
+    }
+
     ShootController.mainWeaponShooting = <boolean>(
       input.isKeyPressed(ShootController.keyShootMainWeapon)
     );

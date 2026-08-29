@@ -18,6 +18,7 @@ export class SpriteComponent {
   private _scale: Vector2d = { x: 1, y: 1 };
   private _currentAnimation: string = "idle";
   private _flipped: boolean = false;
+  private _flippedY: boolean = false;
 
   constructor(spriteKey: string, options?: SpriteComponentOptions) {
     this.spriteKey = spriteKey;
@@ -58,6 +59,23 @@ export class SpriteComponent {
   unflip() {
     this._flipped = false;
     this.sprite?.scaleX(this._scale.x);
+  }
+
+  // Vertical mirror (scaleY), distinct from flip()/unflip()'s horizontal one - used by a
+  // continuously-rotating sprite (rotate-to-direction.system.ts) to stay right-side-up while
+  // aiming left, instead of a static left/right-facing sprite mirroring horizontally.
+  isFlippedY() {
+    return this._flippedY;
+  }
+
+  flipY() {
+    this._flippedY = true;
+    this.sprite?.scaleY(this._scale.y * -1);
+  }
+
+  unflipY() {
+    this._flippedY = false;
+    this.sprite?.scaleY(this._scale.y);
   }
 }
 

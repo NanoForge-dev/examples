@@ -27,12 +27,8 @@ export function bulletSystem(registry: Registry, ctx: Context) {
   const maps: { MapCollisions: MapCollisions }[] = registry.getZipper([MapCollisions]);
   const map = maps[0]?.MapCollisions;
 
-  const zombies: { id: number; Position: Position; Hitbox: Hitbox; Health: Health }[] = registry.getIndexedZipper([
-    Zombie,
-    Position,
-    Hitbox,
-    Health,
-  ]);
+  const zombies: { id: number; Zombie: Zombie; Position: Position; Hitbox: Hitbox; Health: Health }[] =
+    registry.getIndexedZipper([Zombie, Position, Hitbox, Health]);
 
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
 
@@ -59,10 +55,16 @@ export function bulletSystem(registry: Registry, ctx: Context) {
       }
     }
 
-    const hitZombie = zombies.find((z) => z.Health.current > 0 && overlapsHitbox(x, y, z.Position, z.Hitbox));
+    const hitZombie = zombies.find(
+      (z) => z.Health.current > 0 && !z.Zombie.dying && overlapsHitbox(x, y, z.Position, z.Hitbox),
+    );
     if (hitZombie) {
       sendToInGamePlayers(network, { type: "kill", id: bullet.id });
       registry.killEntity(registry.entityFromIndex(bullet.id));
+      // The `hit` packet is broadcast-only (client display) - the authoritative damage has to be
+      // applied here, same as zombie-ai.ts's attack does to players/the lobby. Without this,
+      // zombie-death.system.ts's `Health.current <= 0` check never fires.
+      hitZombie.Health.current = Math.max(0, hitZombie.Health.current - bullet.Bullet.damage);
       sendToInGamePlayers(network, { type: "hit", id: hitZombie.id, damage: bullet.Bullet.damage });
     }
   }

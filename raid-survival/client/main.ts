@@ -27,6 +27,9 @@ import { lobbyActionSenders } from "./systems/packet-senders/lobby-action.sender
 import { transformChildrenToParentSystem } from "./systems/transform-children-to-parent.system";
 import { rotateToDirectionSystem } from "./systems/rotate-to-direction.system";
 import { weaponReloadAnimationSystem } from "./systems/weapon-reload-animation.system";
+import { reloadIndicatorSystem } from "./systems/reload-indicator.system";
+import { cursorSystem } from "./systems/cursor.system";
+import { floatingTextSystem } from "./systems/floating-text.system";
 import { zOrderSystem } from "./systems/essentials/z-order.system";
 
 export let clientConfig: {
@@ -84,6 +87,9 @@ export async function main(options: IRunOptions) {
   registry.addSystem(spriteSystem);
   registry.addSystem(transformChildrenToParentSystem);
   registry.addSystem(weaponReloadAnimationSystem);
+  registry.addSystem(reloadIndicatorSystem);
+  registry.addSystem(cursorSystem);
+  registry.addSystem(floatingTextSystem);
   registry.addSystem(rotateToDirectionSystem);
   registry.addSystem(zOrderSystem);
 

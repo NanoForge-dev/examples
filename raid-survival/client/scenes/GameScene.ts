@@ -17,6 +17,10 @@ export class GameScene implements Scene {
   load(registry: Registry, stage: Stage): void {
     this.stage = stage;
 
+    // Replaced by a custom crosshair sprite (cursor.system.ts) - see also this scene's build-bar
+    // hover handlers in start-game-packet.handler.ts, which must restore "none" on mouseout
+    // rather than the OS default, or hovering a button would bring the OS cursor back for good.
+    this.stage.container().style.cursor = "none";
 
     this.layer = new Layer();
     this.layer?.scale({x: 3, y: 3});
@@ -33,6 +37,9 @@ export class GameScene implements Scene {
   }
 
   unload() {
+    // Restore the OS cursor - otherwise it stays hidden (still "none" from load()) on whatever
+    // scene comes next, until the player happens to hover something with its own cursor handler.
+    this.stage.container().style.cursor = "default";
     this.layer?.destroy();
     this.hudLayer?.destroy();
   }

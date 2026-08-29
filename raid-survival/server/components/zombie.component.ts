@@ -27,6 +27,13 @@ export class Zombie {
   // client keeps extrapolating the old direction until the next unrelated broadcast, which looks
   // like a teleport.
   lastMoveTargetId: number | null = null;
+
+  // Set the instant Health.current hits 0 (zombie-death.system.ts) - lets the death animation
+  // play out for a moment before the entity is actually removed, instead of vanishing instantly.
+  // While dying: zombie-ai.ts treats it as inert (no movement/attack), bullet.system.ts won't hit
+  // it a second time.
+  dying: boolean = false;
+  dyingRemaining: number = 0;
 }
 
 // * Required to generate code

@@ -19,5 +19,7 @@ export function zombieStatePacketHandler(packet: any, registry: Registry): void 
   entity.TransformComponent.y = packet.position.y;
   entity.Velocity.x = packet.velocity.x;
   entity.Velocity.y = packet.velocity.y;
-  entity.SpriteComponent.setAnimation(packet.state === "attack" ? "attack" : "idle");
+  entity.SpriteComponent.setAnimation(
+    packet.state === "attack" ? "attack" : packet.state === "dying" ? "death" : "idle",
+  );
 }
