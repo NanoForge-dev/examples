@@ -1,0 +1,68 @@
+import { Registry } from "@nanoforge-dev/ecs-client";
+import { Velocity } from "../../components/velocity.component";
+import { Position } from "../../components/position.component";
+import { MoveInput } from "../../components/move-input.component";
+import { ShootInput } from "../../components/shoot-input.component";
+import { clients } from "../../main";
+import { Context } from "@nanoforge-dev/common";
+import { NetworkServerLibrary } from "@nanoforge-dev/network-server";
+import { sendToInGamePlayers } from "../../network-utils";
+import { Direction } from "../../components/direction.component";
+import { Login } from "../../components/login.component";
+
+export function inputPacketHandler(
+  clientId: number,
+  packet: any,
+  registry: Registry,
+  ctx: Context,
+): void {
+  const network = ctx.libs.getNetwork<NetworkServerLibrary>();
+  const zipper = registry.getIndexedZipper([Login, Velocity, Position, Direction, MoveInput, ShootInput]);
+  const log = clients.find((client) => client.clientId === clientId)?.username;
+  const it = zipper.find(({ Login }) => {
+    return Login.id === log;
+  });
+  if (!it) return;
+
+  if (packet.direction) {
+    it.Direction.x = packet.direction.x;
+    it.Direction.y = packet.direction.y;
+    sendToInGamePlayers(network, {
+      type: "direction",
+      id: it.id,
+      direction: { x: it.Direction.x, y: it.Direction.y },
+    });
+  }
+
+  // Just records held-key intent - move-input.system.ts recomputes actual Velocity from this
+  // every tick (not only when a packet like this one arrives), so a wall collision zeroing an
+  // axis (collision-resolve.ts) is never left stuck once the player is no longer blocked, even
+  // though the client only sends a fresh packet when the *set* of held keys changes.
+  if (packet.moveKeys) {
+    it.MoveInput.up = packet.moveKeys.includes("up");
+    it.MoveInput.down = packet.moveKeys.includes("down");
+    it.MoveInput.left = packet.moveKeys.includes("left");
+    it.MoveInput.right = packet.moveKeys.includes("right");
+  }
+
+  // Same idea as MoveInput - weapon.system.ts recomputes firing every tick from this, not from
+  // packet frequency.
+  if (typeof packet.shooting === "boolean") {
+    it.ShootInput.shooting = packet.shooting;
+  }
+  if (typeof packet.rightShooting === "boolean") {
+    it.ShootInput.rightShooting = packet.rightShooting;
+  }
+  if (
+    packet.mousePosition &&
+    typeof packet.mousePosition.x === "number" &&
+    typeof packet.mousePosition.y === "number"
+  ) {
+    it.ShootInput.mousePosition = { x: packet.mousePosition.x, y: packet.mousePosition.y };
+  }
+  // reload is one-shot (a fresh "R" press, not a held state) - weapon.system.ts consumes and
+  // clears this the next time it runs.
+  if (packet.reload) {
+    it.ShootInput.reloadRequested = true;
+  }
+}

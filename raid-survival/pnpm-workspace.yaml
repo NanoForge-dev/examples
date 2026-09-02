@@ -1,0 +1,7 @@
+allowBuilds:
+  bun: true
+  wrtc: true
+
+overrides:
+  "@nanoforge-dev/loader-website": "link:/home/leoout/eip/loader/apps/website"
+  "@nanoforge-dev/loader-client": "link:/home/leoout/eip/loader/apps/client"
