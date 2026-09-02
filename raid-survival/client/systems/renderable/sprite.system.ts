@@ -12,36 +12,6 @@ const imageCache = new Map<string, HTMLImageElement>();
 const imageLoading = new Map<string, Promise<HTMLImageElement>>();
 const failedSpriteKeys = new Set<string>();
 
-const ASSET_RELOAD_COOLDOWN_MS = 15000;
-const ASSET_RELOAD_STORAGE_KEY = "nf_sprite_asset_reload_at";
-
-function recoverFromStaleAsset(spriteKey: string, path: string, err: unknown) {
-  if (!path.startsWith("blob:")) return false;
-
-  try {
-    const last = Number(sessionStorage.getItem(ASSET_RELOAD_STORAGE_KEY) ?? 0);
-    if (Date.now() - last < ASSET_RELOAD_COOLDOWN_MS) {
-      console.error(
-        `spriteSystem: sprite "${spriteKey}" failed with a stale asset URL, and we already reloaded ` +
-          `recently - not reloading again to avoid a loop.`,
-        err,
-      );
-      return false;
-    }
-    sessionStorage.setItem(ASSET_RELOAD_STORAGE_KEY, String(Date.now()));
-  } catch {
-    // sessionStorage unavailable - fall through and still attempt the reload once.
-  }
-
-  console.error(
-    `spriteSystem: sprite "${spriteKey}" failed with a stale blob: asset URL (nf's hot-reload/OPFS asset ` +
-      `cache went stale for this tab) - reloading the page to recover.`,
-    err,
-  );
-  setTimeout(() => window.location.reload(), 300);
-  return true;
-}
-
 function loadImage(path: string): Promise<HTMLImageElement | undefined> {
   if (imageCache.has(path)) return Promise.resolve(imageCache.get(path));
   if (imageLoading.has(path)) return Promise.resolve(imageLoading.get(path));
@@ -130,13 +100,29 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
         const [, , frameWidth, frameHeight] =
           animations && animations["idle"] ? animations["idle"] : [0, 0, image.width, image.height];
 
+        // This function is async and both awaits above can genuinely take a frame or more (a
+        // first-ever load for this spriteKey/animationsKey; a cached one resolves on a microtask,
+        // still after this synchronous pass through entities has moved on) - long enough for a
+        // "kill" packet to reach and process registry.killEntity() on this exact entity before
+        // this continuation resumes. registry.killEntity() only removes the entity from the ECS
+        // registry; it cannot reach into (let alone null out) this already-captured JS closure's
+        // `entity.SpriteComponent` reference (same WASM-core boundary destroySprite exists to work
+        // around - see kill-packet.handler.ts). Left unguarded, a short-lived bullet that's hit
+        // almost immediately (shotgun pellets at point-blank range) resurrects: its sprite gets
+        // created and added to the layer *after* the kill that was supposed to prevent it,  and
+        // nothing ever destroys it again - a permanently visible, entityless sprite. Re-fetching
+        // the live component and comparing identity catches both a killed entity (nothing found)
+        // and a killed-then-ID-recycled one (found, but a different SpriteComponent instance).
+        const stillAlive = registry.getEntityComponent(registry.entityFromIndex(entity.id), SpriteComponent);
+        if (stillAlive !== entity.SpriteComponent) continue;
+
         const newSprite = new Sprite({
           x: entity.TransformComponent.x,
           y: entity.TransformComponent.y,
           image,
           animation: "idle",
           animations,
-          frameRate: 7,
+          frameRate: entity.SpriteComponent.frameRate,
           width: frameWidth || 24,
           height: frameHeight || 24,
           scale: {
@@ -145,23 +131,40 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
           },
         });
 
-        newSprite.offsetX(newSprite.width() / 2);
+        // Both axes, not just X - offsetY was never set here, so it defaulted to 0 (the crop's
+        // TOP edge). position() below compensates exactly for a sprite at rest (rotation 0, no
+        // flip), so this was invisible for every non-rotating sprite - but rotation()/flipY()
+        // pivot around whatever point offset marks, and a sprite pivoting around its top edge
+        // instead of its true center visibly swings/displaces as it rotates (worse the taller the
+        // crop) instead of spinning cleanly in place. Concretely: bullets logically spawn at the
+        // exact player center (position + hitbox center - the math already matched), but rendered
+        // off that center by roughly half the bullet sprite's height once rotated to its flight
+        // angle; the held weapon/hand similarly visibly drooped off their true rest angle. Fixing
+        // the pivot doesn't change any previously-measured rotation-offset angle (that's about
+        // which way the art faces, independent of which point it spins around).
+        // Defaults to the crop's own geometric center - correct for art drawn centered in its
+        // frame - but overridable per SpriteComponent (see its `pivot` option) for art that isn't,
+        // like a held weapon whose grip sits off-center in a frame with empty space reserved for a
+        // muzzle-flash/recoil animation.
+        const pivot = entity.SpriteComponent.getPivot();
+        newSprite.offsetX(pivot?.x ?? newSprite.width() / 2);
+        newSprite.offsetY(pivot?.y ?? newSprite.height() / 2);
 
         entity.SpriteComponent.sprite = newSprite;
 
         newSprite.start();
         entity.SpriteComponent.layer?.add(newSprite);
       } catch (err) {
+        // No auto-reload here on purpose - a page reload mid-game throws away the whole session
+        // for everyone in it over one asset hiccup, which is far worse than one sprite staying
+        // invisible. Just log it and move on; this spriteKey won't be retried (see
+        // failedSpriteKeys above).
         failedSpriteKeys.add(entity.SpriteComponent.spriteKey);
-
-        const recovering = imageFile ? recoverFromStaleAsset(entity.SpriteComponent.spriteKey, imageFile.path, err) : false;
-        if (!recovering) {
-          console.error(
-            `spriteSystem: giving up on sprite "${entity.SpriteComponent.spriteKey}" after a load failure ` +
-              `(this entity will stay invisible; it will not be retried).`,
-            err,
-          );
-        }
+        console.error(
+          `spriteSystem: giving up on sprite "${entity.SpriteComponent.spriteKey}" after a load failure ` +
+            `(this entity will stay invisible; it will not be retried).`,
+          err,
+        );
       } finally {
         entity.SpriteComponent.loading = false;
       }

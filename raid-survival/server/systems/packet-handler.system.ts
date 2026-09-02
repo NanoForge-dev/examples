@@ -6,6 +6,9 @@ import { clients } from "../main";
 import { joinLobbyPacketHandler } from "./packet-handlers/join-lobby-packet.handler";
 import { startGamePacketHandler } from "./packet-handlers/start-game-packet.handler";
 import { buildPacketHandler } from "./packet-handlers/build-packet.handler";
+import { buyWeaponPacketHandler } from "./packet-handlers/buy-weapon-packet.handler";
+import { buyAmmoPacketHandler } from "./packet-handlers/buy-ammo-packet.handler";
+import { equipWeaponPacketHandler } from "./packet-handlers/equip-weapon-packet.handler";
 
 export type PacketHandler = (
   client: number,
@@ -19,6 +22,9 @@ export const packetHandlers: Map<string, PacketHandler> = new Map([
   ["joinLobby", joinLobbyPacketHandler],
   ["startGame", startGamePacketHandler],
   ["build", buildPacketHandler],
+  ["buyWeapon", buyWeaponPacketHandler],
+  ["buyAmmo", buyAmmoPacketHandler],
+  ["equipWeapon", equipWeaponPacketHandler],
 ]);
 
 export function packetHandler(registry: Registry, ctx: Context) {

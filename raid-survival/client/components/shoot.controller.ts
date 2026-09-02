@@ -13,6 +13,7 @@ export class ShootController {
   // Last value actually sent to the server - lets sendShootControl only send on change, same
   // dedup move-control.senders.system.ts already does for move keys.
   public lastSentMainWeaponShooting: boolean = false;
+  public lastSentSecondWeaponShooting: boolean = false;
   // Edge-detected "R" state (isKeyPressed is level/held, not "just pressed").
   public wasReloadKeyPressed: boolean = false;
   // One-shot - set true on a fresh R press, sent once by sendShootControl then cleared.

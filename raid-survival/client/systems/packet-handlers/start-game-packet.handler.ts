@@ -6,7 +6,7 @@ import { SpriteComponent } from "../../components/renderable/sprite.component";
 import { TransformComponent } from "../../components/essentials/transform.component";
 import { Velocity } from "../../components/essentials/velocity.component";
 import { MoveController } from "../../components/move-controller.component";
-import { Layer, Rect, Shape } from "@nanoforge-dev/graphics-2d";
+import { Layer, Rect, Shape, Vector2d } from "@nanoforge-dev/graphics-2d";
 import { NetworkId } from "../../components/network-id.component";
 import { Direction } from "../../components/direction.component";
 import { ShootController } from "../../components/shoot.controller";
@@ -23,13 +23,18 @@ import { WaveHudComponent } from "../../components/wave-hud.component";
 import { MoneyHudComponent } from "../../components/money-hud.component";
 import { Player } from "../../components/player.component";
 import { BuildModeComponent, type BuildBarButton } from "../../components/build-mode.component";
+import { WeaponShopComponent } from "../../components/weapon-shop.component";
 import { BUILDING_CATALOG, type BuildingType } from "../../building-catalog";
+import { WEAPON_CATALOG, type WeaponType } from "../../weapon-catalog";
 import { TILE_SIZE } from "../../map-data";
 import { Weapon } from "../../components/weapon.component";
 import { AmmoHudComponent } from "../../components/ammo-hud.component";
 import { ReloadIndicatorComponent } from "../../components/reload-indicator.component";
+import { WeaponReloadOverlayComponent } from "../../components/weapon-reload-overlay.component";
 import { CursorComponent } from "../../components/cursor.component";
 import { CURSOR_SCALE } from "../cursor.system";
+import { pickPlayerSkin } from "../../player-skins";
+import { addCoinIcon } from "../../hud-helpers";
 
 // zOrderSystem only reorders entities that carry a ZIndexComponent - anything without one stays
 // wherever Konva's insertion order left it, permanently below every z-indexed sprite. Health bars
@@ -73,24 +78,57 @@ const BUILD_BAR_GAP = 10;
 const BUILD_BAR_BOTTOM_MARGIN = 20;
 const GRID_STROKE = "rgba(245, 242, 233, 0.25)";
 
-// Held weapon sprite - same LocalTransform as the hand (it's held BY the hand), just above it in
-// z-order. weapons.png's pistol art faces up-and-right at rest (~-26° in atan2's y-down
-// convention, measured directly off the crop via imgtools - not straight up like hand.png, so it
-// can't reuse the hand's -90 offset), so this cancels that out: offset + 0 aim angle == pointing
-// straight along the aim direction. Still a best-effort pixel-art estimate - nudge it if it reads
-// slightly off once seen in-game.
-const WEAPON_ROTATOR_OFFSET = 26;
-const WEAPON_Z_INDEX = 21;
+// Above bullets/zombies (BULLET_Z_INDEX, spawn-packet.handler.ts, is 15) so a bullet spawning at
+// the player's own center (weapon.system.ts fires from the player's exact center now) renders
+// tucked behind the player's body instead of floating on top of it. Zombies deliberately stay
+// below BULLET_Z_INDEX (unchanged) - a bullet should never be hidden behind what it's about to
+// hit, only behind the player that fired it.
+const PLAYER_Z_INDEX = 16;
 
-// Ammo HUD, bottom-left of the screen.
+// Held weapon sprites - same LocalTransform per hand (each is held BY that hand), just above it
+// in z-order. Each weapon's own rest-angle rotation offset now lives in weapon-catalog.ts
+// (client), since a shotgun's art doesn't rest at the same angle as the pistol's.
+const WEAPON_Z_INDEX = 21;
+// Left keeps the pistol/hand's original offset exactly (so a fresh spawn - smallGun left, right
+// empty - renders pixel-identical to before two-handed loadouts existed); right is a mirrored
+// guess, not yet visually confirmed. Exported so weapon-reload-animation.system.ts can rebuild a
+// weapon's own LocalTransform (this base offset plus that weapon's own catalog.handOffsetDelta,
+// see there) when a hand's equipped type changes.
+export const HAND_LOCAL_OFFSETS: Record<"left" | "right", Vector2d> = {
+  left: { x: 6, y: 12 },
+  right: { x: -6, y: 12 },
+};
+
+// A weapon entity's (or its reload overlay's) actual LocalTransform: HAND_LOCAL_OFFSETS[hand] plus
+// this weapon's own catalog.handOffsetDelta, if it has one. Needed because the hand and its weapon
+// share the exact same LocalTransform, but each sprite's own `pivot` (see SpriteComponent) renders
+// at THIS ENTITY's own position plus ITS OWN pivot - so if a weapon's pivot isn't numerically equal
+// to hand.png's own default pivot (its frame center, since hand.png is an uncropped 16x16 image),
+// the two entities' pivots land at different world points even sharing the same LocalTransform. A
+// weapon whose pivot happens to coincide (smallGun's 16x16 crop, same size as hand.png, defaults to
+// the same (8,8) center) needs no delta; one that doesn't (the shotgun's grip sits well off its own
+// 52x32 frame's center) needs this correction or it renders visibly away from the hand - see
+// weapon-catalog.ts's handOffsetDelta comment for how it's derived.
+function weaponLocalOffset(hand: "left" | "right", catalog: { spriteKey: string; handOffsetDelta?: Vector2d }): Vector2d {
+  const base = HAND_LOCAL_OFFSETS[hand];
+  const delta = catalog.handOffsetDelta;
+  return delta ? { x: base.x + delta.x, y: base.y + delta.y } : base;
+}
+
+// Ammo HUD, bottom-left of the screen - one row per hand, right-hand row stacked above left's.
+// Hidden entirely (both icon+text and its RELOAD sprite) whenever that hand has nothing equipped
+// - see reload-indicator.system.ts, which now owns both concerns.
 const AMMO_HUD_LEFT_MARGIN = 14;
 const AMMO_HUD_BOTTOM_MARGIN = 14;
-const AMMO_ICON_SIZE = { width: 32, height: 32 };
+// Exported so weapon-inventory-packet.handler.ts can re-fit-scale a hand's ammo HUD icon when
+// that hand gets re-equipped to a different weapon after construction (see there).
+export const AMMO_ICON_SIZE = { width: 32, height: 32 };
 const AMMO_TEXT_SIZE = { width: 100, height: 32 };
 const AMMO_HUD_GAP = 10;
+const AMMO_HUD_ROW_GAP = 6;
 
-// "RELOAD!" indicator, directly above the ammo HUD - hidden by default, toggled by
-// reload-indicator.system.ts.
+// "RELOAD!" indicator - sits beside its own ammo row (not above it, which is where the prior
+// single-row layout put it) so two stacked rows don't collide.
 const RELOAD_ICON_SIZE = { width: 24, height: 6 };
 const RELOAD_ICON_SCALE = 2.5;
 const RELOAD_HUD_GAP = 10;
@@ -99,6 +137,23 @@ const RELOAD_HUD_GAP = 10;
 // this file's build-bar hover handlers, below). Size/scale shared with cursor.system.ts (which
 // positions it every tick), so they can't drift apart.
 const CURSOR_Z_INDEX = 100;
+
+// Coin icon, used everywhere a currency amount is shown (no coin sprite exists in this game's
+// art - see hud-helpers.ts).
+const COIN_ICON_RADIUS = 7;
+const COIN_ICON_GAP = 4; // between the coin and the number that follows it
+
+// Weapon shop panel, right edge of the screen, shown/hidden alongside the build bar (build mode
+// active). The first right-anchored UI element in this codebase - mirrors the build
+// bar/ammo HUD's bottom-anchoring idiom (window.innerHeight - size - margin) horizontally.
+const SHOP_PANEL_RIGHT_MARGIN = 20;
+const SHOP_ENTRY_WIDTH = 100;
+const SHOP_BUY_HEIGHT = 64;
+const SHOP_HAND_BUTTON_HEIGHT = 24;
+const SHOP_HAND_BUTTON_GAP = 4;
+const SHOP_ENTRY_GAP = 14;
+const SHOP_ENTRY_HEIGHT = SHOP_BUY_HEIGHT + SHOP_HAND_BUTTON_GAP + SHOP_HAND_BUTTON_HEIGHT;
+const SHOP_TOP_MARGIN = 110; // clears the wave HUD
 
 export function buildHealthBar(
   layer: Layer,
@@ -151,14 +206,137 @@ export function buildHealthBar(
   registry.addComponent(fill, new HealthBarFill(cavityLocalX));
 }
 
-function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
+// One hand + its held weapon, for one hand slot ("left"/"right") of one player - called twice per
+// player (buildPlayer, below). `weaponType` null means that hand starts unequipped: the weapon
+// sprite still exists (so weapon-inventory-packet.handler.ts has something to re-point later
+// without needing to add components dynamically), just hidden - see reload-indicator.system.ts,
+// which owns visibility for the local player's own hands, and weapon-visibility.system.ts, which
+// owns it for everyone else's.
+function buildHandAndWeapon(
+  scene: Scene,
+  registry: Registry,
+  playerEntity: ReturnType<Registry["spawnEntity"]>,
+  playerPosition: Vector2d,
+  hand: "left" | "right",
+  weaponType: WeaponType | null,
+) {
+  if (!scene.layer) return;
+  const localOffset = HAND_LOCAL_OFFSETS[hand];
+
+  const handEntity = registry.spawnEntity();
+  registry.addComponent(handEntity, new TransformComponent(playerPosition.x, playerPosition.y));
+  registry.addComponent(handEntity, new SpriteComponent("hand.png", { layer: scene.layer }));
+  registry.addComponent(handEntity, new ChildrenComponent(playerEntity.getId(), { LocalTransform: localOffset }));
+  registry.addComponent(handEntity, new Direction(0, 0));
+  // mirrorWhenFacingLeft: true - matches the weapon's own DirectionRotatorComponent below. Without
+  // this the hand and its held weapon rotate by different formulas while aiming left (only the
+  // weapon flipped+re-signed its rotation), diverging by up to 2x the weapon's rest-angle offset -
+  // the hand pointing one way while the gun visibly points somewhere else entirely.
+  // Was -90 - reduced by the same -8 correction as the weapon offsets in weapon-catalog.ts (see
+  // there for why). Unconfirmed magnitude.
+  registry.addComponent(handEntity, new DirectionRotatorComponent(-98, true, true));
+  registry.addComponent(handEntity, new ZIndexComponent(20));
+
+  // Each weapon type can live on its own source image now (e.g. shotgun's Shotgun-Shot.png), not
+  // just a shared weapons.png - an unequipped hand has no weaponType to key off yet, so it starts
+  // out looking like smallGun's (its sprite is hidden regardless - weapon-visibility.system.ts/
+  // build-mode.system.ts - so the choice is arbitrary, just needs to be a valid, loadable pair).
+  // weapon-reload-animation.system.ts's per-tick pass re-points spriteKey/animationsKey/scale
+  // (and hides this in favor of the reload overlay below) once a real weaponType is equipped.
+  const initialCatalog = weaponType ? WEAPON_CATALOG[weaponType] : WEAPON_CATALOG.smallGun;
+  const rotationOffset = weaponType ? WEAPON_CATALOG[weaponType].rotationOffset : 0;
+  const weaponEntity = registry.spawnEntity();
+  registry.addComponent(weaponEntity, new TransformComponent(playerPosition.x, playerPosition.y));
+  registry.addComponent(
+    weaponEntity,
+    new SpriteComponent(initialCatalog.spriteKey, {
+      layer: scene.layer,
+      animationsKey: initialCatalog.animationsKey,
+      scale: { x: initialCatalog.scale, y: initialCatalog.scale },
+      // Where the hand actually grips this weapon's art, when that isn't just the frame's
+      // geometric center (see SpriteComponent's `pivot` option and weapon-catalog.ts's shotgun
+      // entry) - omitted (default centering, every sprite's original behavior) for weapons that
+      // don't override it.
+      ...("pivot" in initialCatalog ? { pivot: initialCatalog.pivot } : {}),
+      // Only meaningful for a weapon with its own "shoot" animation (see catalog.shootSeconds) -
+      // otherwise irrelevant, since a weapon with no shoot animation only ever plays its single-
+      // frame "idle" pose, for which frame rate is moot. Set once at construction, like the
+      // reload overlay's frameRate below, since SpriteComponent.frameRate isn't reactive.
+      ...("shootFrameCount" in initialCatalog
+        ? { frameRate: initialCatalog.shootFrameCount / initialCatalog.shootSeconds }
+        : {}),
+    }),
+  );
+  registry.addComponent(
+    weaponEntity,
+    new ChildrenComponent(playerEntity.getId(), { LocalTransform: weaponLocalOffset(hand, initialCatalog) }),
+  );
+  registry.addComponent(weaponEntity, new Direction(0, 0));
+  // mirrorWhenFacingLeft: true - the gun rotates through the full circle, so without this it
+  // reads upside-down for the whole left half of the arc (see rotate-to-direction.system.ts).
+  registry.addComponent(weaponEntity, new DirectionRotatorComponent(rotationOffset, true, true));
+  registry.addComponent(weaponEntity, new ZIndexComponent(WEAPON_Z_INDEX));
+  registry.addComponent(weaponEntity, new Weapon(hand, weaponType, rotationOffset));
+
+  // Reload-animation overlay - built once, always (regardless of what's initially equipped in
+  // this hand), hidden by default. weapon-reload-animation.system.ts shows it (and hides the
+  // main weapon sprite above) only while this hand's equipped weapon actually has a
+  // reloadSpriteKey AND is reloading. Hardcoded to the shotgun's reload asset for now - it's the
+  // only weapon with one; if a second weapon type gains its own reload animation, this needs to
+  // become per-equipped-type instead (rebuilt or re-keyed on equip, not just visibility-toggled).
+  // A completely separate, independently-loaded sprite entity rather than swapping the main
+  // weapon's own image at reload time on purpose: swapping destroys and recreates the Konva node
+  // (setSpriteKey), which is asynchronous and was visibly glitchy (the weapon flickering out for
+  // a frame or more on every reload) - toggling visibility between two sprites that already exist
+  // is instant.
+  const reloadOverlayCatalog = WEAPON_CATALOG.shotgun;
+  const reloadOverlayEntity = registry.spawnEntity();
+  registry.addComponent(reloadOverlayEntity, new TransformComponent(playerPosition.x, playerPosition.y));
+  registry.addComponent(
+    reloadOverlayEntity,
+    // Not currentAnimation: "reload" here - spriteSystem always constructs its Konva node
+    // hardcoded on "idle" regardless of what's requested (see SpriteComponent.setSpriteKey's own
+    // comment for the full story), so that would just set the wrapper's tracked state without it
+    // ever reaching the real object. weapon-reload-animation.system.ts applies the real "reload"
+    // key once the sprite actually exists, the same idempotent-every-tick way it already does for
+    // the main weapon icon.
+    new SpriteComponent(reloadOverlayCatalog.reloadSpriteKey, {
+      layer: scene.layer,
+      animationsKey: reloadOverlayCatalog.reloadAnimationsKey,
+      frameRate: reloadOverlayCatalog.reloadFrameCount / reloadOverlayCatalog.reloadSeconds,
+      // Same world-space scale AND pivot as the held sprite (reloadSpriteKey is the same
+      // 52x32-per-frame asset pack, same resting pose in frame 0, as the held Shotgun-Shot.png) -
+      // without scale this renders at its native size, roughly 2x too big next to the player;
+      // without pivot it's centered on the frame's empty space instead of on the hand.
+      scale: { x: reloadOverlayCatalog.scale, y: reloadOverlayCatalog.scale },
+      pivot: reloadOverlayCatalog.pivot,
+    }),
+  );
+  registry.addComponent(
+    reloadOverlayEntity,
+    // Same handOffsetDelta correction as the held sprite above, and for the same reason - never
+    // changes at runtime (this overlay always displays the shotgun's reload asset regardless of
+    // what's currently equipped - see the comment above), so it's fine to compute once here rather
+    // than needing weapon-reload-animation.system.ts to re-derive it every tick.
+    new ChildrenComponent(playerEntity.getId(), { LocalTransform: weaponLocalOffset(hand, reloadOverlayCatalog) }),
+  );
+  registry.addComponent(reloadOverlayEntity, new Direction(0, 0));
+  registry.addComponent(
+    reloadOverlayEntity,
+    new DirectionRotatorComponent(reloadOverlayCatalog.rotationOffset, true, true),
+  );
+  registry.addComponent(reloadOverlayEntity, new ZIndexComponent(WEAPON_Z_INDEX));
+  registry.addComponent(reloadOverlayEntity, new WeaponReloadOverlayComponent(hand));
+}
+
+function buildPlayer(scene: Scene, playerPacket: any, registry: Registry, skinIndex: number) {
   if (!scene.layer) return;
 
   const playerEntity = registry.spawnEntity();
   registry.addComponent(playerEntity, new NetworkId(playerPacket.id));
   registry.addComponent(playerEntity, new Player());
   registry.addComponent(playerEntity, new Direction(0, 0));
-  registry.addComponent(playerEntity, new ZIndexComponent(10));
+  registry.addComponent(playerEntity, new ZIndexComponent(PLAYER_Z_INDEX));
   registry.addComponent(
     playerEntity,
     new TransformComponent(playerPacket.position.x, playerPacket.position.y),
@@ -166,7 +344,10 @@ function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
   registry.addComponent(playerEntity, new Velocity(0, 0));
   registry.addComponent(
     playerEntity,
-    new SpriteComponent("player1.png", {
+    // A different skin per player (see player-skins.ts) - skinIndex is this player's position in
+    // packet.players, the same array/order every client receives, so everyone agrees on who looks
+    // like what.
+    new SpriteComponent(pickPlayerSkin(skinIndex), {
       layer: scene.layer,
       animationsKey: "player-animations.txt",
     }),
@@ -178,62 +359,60 @@ function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
   registry.addComponent(playerEntity, new Health(playerPacket.health.current, playerPacket.health.max));
   buildHealthBar(scene.layer || new Layer(), registry, playerEntity, PLAYER_SPRITE_SIZE.width, playerPacket.health);
 
-  const hand = registry.spawnEntity();
-  registry.addComponent(hand, new TransformComponent(playerPacket.position.x, playerPacket.position.y));
-  registry.addComponent(
-    hand,
-    new SpriteComponent("hand.png", {
-      layer: scene.layer || new Layer(),
-    }),
-  );
-  registry.addComponent(hand, new ChildrenComponent(playerEntity.getId(), { LocalTransform: {x: 6, y: 12} }));
-  registry.addComponent(hand, new Direction(0, 0));
-  registry.addComponent(hand, new DirectionRotatorComponent(-90));
-  registry.addComponent(hand, new ZIndexComponent(20));
-
-  // Every player visibly holds their weapon (not just the local one) - same parenting as the
-  // hand it's held by.
-  const weapon = registry.spawnEntity();
-  registry.addComponent(weapon, new TransformComponent(playerPacket.position.x, playerPacket.position.y));
-  registry.addComponent(
-    weapon,
-    new SpriteComponent("weapons.png", {
-      layer: scene.layer || new Layer(),
-      animationsKey: "weapons-animations.txt",
-    }),
-  );
-  registry.addComponent(weapon, new ChildrenComponent(playerEntity.getId(), { LocalTransform: { x: 6, y: 12 } }));
-  registry.addComponent(weapon, new Direction(0, 0));
-  // mirrorWhenFacingLeft: true - the gun rotates through the full circle, so without this it
-  // reads upside-down for the whole left half of the arc (see rotate-to-direction.system.ts).
-  registry.addComponent(weapon, new DirectionRotatorComponent(WEAPON_ROTATOR_OFFSET, true, true));
-  registry.addComponent(weapon, new ZIndexComponent(WEAPON_Z_INDEX));
-  registry.addComponent(weapon, new Weapon(WEAPON_ROTATOR_OFFSET));
+  // Every player visibly holds their weapons (not just the local one) - both hands, so everyone
+  // agrees on what everyone else's loadout looks like.
+  buildHandAndWeapon(scene, registry, playerEntity, playerPacket.position, "left", playerPacket.leftWeaponType ?? null);
+  buildHandAndWeapon(scene, registry, playerEntity, playerPacket.position, "right", playerPacket.rightWeaponType ?? null);
 }
 
 function buildAmmoHud(
   hudLayer: Layer,
   registry: Registry,
-  weapon: { magazineAmmo: number; reserveAmmo: number },
+  hand: "left" | "right",
+  weaponType: WeaponType | null,
+  ammo: { magazineAmmo: number; reserveAmmo: number } | undefined,
 ) {
+  // Right's row sits above left's, so with only smallGun-left equipped (the default at spawn)
+  // this looks exactly like the single-row layout did before two hands existed.
+  const rowIndex = hand === "left" ? 0 : 1;
   const iconX = AMMO_HUD_LEFT_MARGIN;
-  const iconY = window.innerHeight - AMMO_ICON_SIZE.height - AMMO_HUD_BOTTOM_MARGIN;
+  const iconY =
+    window.innerHeight -
+    AMMO_ICON_SIZE.height -
+    AMMO_HUD_BOTTOM_MARGIN -
+    rowIndex * (AMMO_ICON_SIZE.height + AMMO_HUD_ROW_GAP);
 
-  const iconEntity = registry.spawnEntity();
-  registry.addComponent(
-    iconEntity,
-    new SpriteComponent("weapons.png", {
-      layer: hudLayer,
-      animationsKey: "weapons-animations.txt",
-      scale: { x: AMMO_ICON_SIZE.width / 16, y: AMMO_ICON_SIZE.height / 16 },
-    }),
+  // Each weapon can live on its own source image now (see client/weapon-catalog.ts's
+  // spriteKey/animationsKey), so the icon isn't always weapons.png any more either. Fit-scale
+  // (uniform, aspect-preserving) each weapon's own native crop size into the fixed AMMO_ICON_SIZE
+  // box, rather than assuming every icon is the same size - Shotgun-Shot.png's crop is a much
+  // bigger 52x32, and scaling that by a 16-based factor on both axes would overflow the slot and
+  // run into the ammo text next to it. An unassigned hand has no weaponType yet; default to
+  // smallGun's image/icon size since the sprite is hidden in that state anyway.
+  const initialIconCatalog = weaponType ? WEAPON_CATALOG[weaponType] : WEAPON_CATALOG.smallGun;
+  const iconFitScale = Math.min(
+    AMMO_ICON_SIZE.width / initialIconCatalog.iconSize.width,
+    AMMO_ICON_SIZE.height / initialIconCatalog.iconSize.height,
   );
+  const iconEntity = registry.spawnEntity();
+  const iconSprite = new SpriteComponent(initialIconCatalog.spriteKey, {
+    layer: hudLayer,
+    animationsKey: initialIconCatalog.animationsKey,
+    scale: { x: iconFitScale, y: iconFitScale },
+  });
+  // Not setAnimation() here - the sprite doesn't exist yet (spriteSystem builds it lazily,
+  // hardcoded on "idle" regardless of what's requested), so a call this early would only set the
+  // wrapper's tracked state without ever reaching the real Konva object once it's created, then
+  // silently block a later correction via setAnimation's own dedup guard. reload-indicator.system.ts
+  // asserts the real icon animation every tick once the sprite actually exists instead.
+  registry.addComponent(iconEntity, iconSprite);
   registry.addComponent(iconEntity, new TransformComponent(iconX, iconY));
 
-  const reserve = weapon.reserveAmmo === -1 ? "∞" : weapon.reserveAmmo;
+  const magazineAmmo = ammo?.magazineAmmo ?? 0;
+  const reserve = ammo?.reserveAmmo === -1 ? "∞" : (ammo?.reserveAmmo ?? 0);
   const textEntity = registry.spawnEntity();
   const textComponent = new TextComponent(hudLayer, {
-    text: `${weapon.magazineAmmo} / ${reserve}`,
+    text: `${magazineAmmo} / ${reserve}`,
     x: iconX + AMMO_ICON_SIZE.width + AMMO_HUD_GAP,
     y: iconY,
     width: AMMO_TEXT_SIZE.width,
@@ -246,12 +425,15 @@ function buildAmmoHud(
   registry.addComponent(textEntity, textComponent);
 
   const hudEntity = registry.spawnEntity();
-  registry.addComponent(hudEntity, new AmmoHudComponent(textComponent.text));
+  registry.addComponent(hudEntity, new AmmoHudComponent(textComponent.text, iconSprite, hand));
 
-  // Hidden by default (reload-indicator.system.ts drives visibility every tick off the local
-  // player's Weapon.reloading - see that file for why this can't just be set once here).
-  const reloadX = AMMO_HUD_LEFT_MARGIN;
-  const reloadY = iconY - RELOAD_HUD_GAP - RELOAD_ICON_SIZE.height * RELOAD_ICON_SCALE;
+  // Sits beside its row (to the right of the ammo text), not above it - stacking two rows
+  // vertically would otherwise put one row's RELOAD sprite where the other row's ammo icon lives.
+  // Hidden by default; reload-indicator.system.ts drives both this and the row above every tick
+  // (spriteSystem creates the underlying Konva node lazily, so a one-shot visible() call here
+  // would silently no-op forever).
+  const reloadX = iconX + AMMO_ICON_SIZE.width + AMMO_HUD_GAP + AMMO_TEXT_SIZE.width + RELOAD_HUD_GAP;
+  const reloadY = iconY + (AMMO_ICON_SIZE.height - RELOAD_ICON_SIZE.height * RELOAD_ICON_SCALE) / 2;
   const reloadEntity = registry.spawnEntity();
   registry.addComponent(
     reloadEntity,
@@ -262,7 +444,7 @@ function buildAmmoHud(
     }),
   );
   registry.addComponent(reloadEntity, new TransformComponent(reloadX, reloadY));
-  registry.addComponent(reloadEntity, new ReloadIndicatorComponent());
+  registry.addComponent(reloadEntity, new ReloadIndicatorComponent(hand));
 }
 
 function buildCursor(hudLayer: Layer, registry: Registry) {
@@ -372,10 +554,17 @@ function buildWaveHud(layer: Layer, registry: Registry) {
 }
 
 function buildMoneyHud(layer: Layer, registry: Registry, amount: number) {
+  const coinIcon = addCoinIcon(
+    layer,
+    MONEY_HUD_LEFT_MARGIN,
+    MONEY_HUD_TOP_MARGIN + (MONEY_TEXT_SIZE.height - COIN_ICON_RADIUS * 2) / 2,
+    COIN_ICON_RADIUS,
+  );
+
   const moneyTextEntity = registry.spawnEntity();
   const moneyTextComponent = new TextComponent(layer, {
-    text: `Coins: ${amount}`,
-    x: MONEY_HUD_LEFT_MARGIN,
+    text: `${amount}`,
+    x: MONEY_HUD_LEFT_MARGIN + COIN_ICON_RADIUS * 2 + COIN_ICON_GAP,
     y: MONEY_HUD_TOP_MARGIN,
     width: MONEY_TEXT_SIZE.width,
     height: MONEY_TEXT_SIZE.height,
@@ -387,7 +576,7 @@ function buildMoneyHud(layer: Layer, registry: Registry, amount: number) {
   registry.addComponent(moneyTextEntity, moneyTextComponent);
 
   const hudEntity = registry.spawnEntity();
-  registry.addComponent(hudEntity, new MoneyHudComponent(moneyTextComponent.text, amount));
+  registry.addComponent(hudEntity, new MoneyHudComponent(moneyTextComponent.text, amount, coinIcon));
 }
 
 function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) {
@@ -493,11 +682,11 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
     });
 
     const textComponent = new TextComponent(hudLayer, {
-      text: `${entry.label}\n${entry.cost}g`,
+      text: entry.label,
       x,
-      y: barY,
+      y: barY + 8,
       width: BUILD_BUTTON_SIZE.width,
-      height: BUILD_BUTTON_SIZE.height,
+      height: BUILD_BUTTON_SIZE.height / 2,
       align: "center",
       verticalAlign: "middle",
       fontSize: 14,
@@ -507,8 +696,231 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
     });
     registry.addComponent(registry.spawnEntity(), textComponent);
 
-    const button: BuildBarButton = { buildingType, rect: rectComponent.rect, text: textComponent.text };
+    // Coin icon + cost, centered under the label - replaces the old "20g" text suffix.
+    const costY = barY + BUILD_BUTTON_SIZE.height - COIN_ICON_RADIUS * 2 - 10;
+    const costDigits = String(entry.cost).length;
+    const costRowWidth = COIN_ICON_RADIUS * 2 + COIN_ICON_GAP + costDigits * 9;
+    const costX = x + (BUILD_BUTTON_SIZE.width - costRowWidth) / 2;
+    const coin = addCoinIcon(hudLayer, costX, costY, COIN_ICON_RADIUS);
+    coin.visible(false);
+    const costTextComponent = new TextComponent(hudLayer, {
+      text: `${entry.cost}`,
+      x: costX + COIN_ICON_RADIUS * 2 + COIN_ICON_GAP,
+      y: costY - 3,
+      width: costDigits * 12,
+      height: COIN_ICON_RADIUS * 2 + 6,
+      fontSize: 14,
+      fontStyle: "bold",
+      verticalAlign: "middle",
+      fill: "#F5F2E9",
+      visible: false,
+      listening: false,
+    });
+    registry.addComponent(registry.spawnEntity(), costTextComponent);
+
+    const button: BuildBarButton = {
+      buildingType,
+      rect: rectComponent.rect,
+      text: textComponent.text,
+      costText: costTextComponent.text,
+      costIcon: coin,
+    };
     buildMode.barButtons.push(button);
+  });
+}
+
+// One column, one entry per catalog weapon, right-anchored - shown/hidden alongside the build bar
+// (both gated on BuildModeComponent.active, checked in build-mode.system.ts, which also owns this
+// panel's per-tick button-state refresh and the shopBounds click-guard). Clicking a weapon's icon
+// buys it if unowned, buys an ammo refill if already owned (smallGun is `alwaysOwned` - no click
+// handler is ever attached to it, so it's never clickable, matching "you can't click it"). Two
+// small L/R buttons under every entry, including smallGun, assign/unassign that weapon to that
+// hand - clicking a hand button that's already assigned to this weapon unassigns it.
+function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) {
+  const catalogEntries = Object.entries(WEAPON_CATALOG) as [WeaponType, (typeof WEAPON_CATALOG)[WeaponType]][];
+  const panelX = window.innerWidth - SHOP_ENTRY_WIDTH - SHOP_PANEL_RIGHT_MARGIN;
+  const totalHeight = catalogEntries.length * SHOP_ENTRY_HEIGHT + (catalogEntries.length - 1) * SHOP_ENTRY_GAP;
+
+  const weaponShop = new WeaponShopComponent([], {
+    x: panelX,
+    y: SHOP_TOP_MARGIN,
+    width: SHOP_ENTRY_WIDTH,
+    height: totalHeight,
+  });
+  // Seeded from the local player's starting loadout - nothing broadcasts a weaponInventory/ammo
+  // packet at spawn (only buy/refill/equip events do), so without this the shop would show
+  // smallGun as unowned and neither hand highlighted until the first purchase.
+  if (localPlayer) {
+    weaponShop.leftWeaponType = localPlayer.leftWeaponType ?? null;
+    weaponShop.rightWeaponType = localPlayer.rightWeaponType ?? null;
+    for (const w of localPlayer.weapons ?? []) {
+      weaponShop.owned.set(w.weaponType, { reserveAmmo: w.reserveAmmo });
+    }
+  }
+  registry.addComponent(registry.spawnEntity(), weaponShop);
+
+  const handButtonWidth = (SHOP_ENTRY_WIDTH - SHOP_HAND_BUTTON_GAP) / 2;
+
+  catalogEntries.forEach(([weaponType, catalogEntry], index) => {
+    const entryY = SHOP_TOP_MARGIN + index * (SHOP_ENTRY_HEIGHT + SHOP_ENTRY_GAP);
+
+    const buyRectComponent = new RectComponent(hudLayer, {
+      x: panelX,
+      y: entryY,
+      width: SHOP_ENTRY_WIDTH,
+      height: SHOP_BUY_HEIGHT,
+      fill: "#104522",
+      stroke: "#5E8C61",
+      strokeWidth: 2,
+      cornerRadius: 6,
+      visible: false,
+    });
+    registry.addComponent(registry.spawnEntity(), buyRectComponent);
+
+    const buyTextComponent = new TextComponent(hudLayer, {
+      text: catalogEntry.label,
+      x: panelX,
+      y: entryY + 4,
+      width: SHOP_ENTRY_WIDTH,
+      height: SHOP_BUY_HEIGHT - 24,
+      align: "center",
+      fontSize: 13,
+      fontStyle: "bold",
+      fill: "#F5F2E9",
+      visible: false,
+      listening: false,
+    });
+    registry.addComponent(registry.spawnEntity(), buyTextComponent);
+
+    // Cost row (coin icon + number) - alwaysOwned weapons (smallGun) never show one at all, per
+    // "no cost shown", not just a hidden/zeroed one.
+    const costY = entryY + SHOP_BUY_HEIGHT - COIN_ICON_RADIUS * 2 - 6;
+    const coinX = panelX + 14;
+    const costTextComponent = new TextComponent(hudLayer, {
+      text: "",
+      x: coinX + COIN_ICON_RADIUS * 2 + COIN_ICON_GAP,
+      y: costY - 3,
+      width: SHOP_ENTRY_WIDTH - (coinX - panelX) - COIN_ICON_RADIUS * 2 - COIN_ICON_GAP,
+      height: COIN_ICON_RADIUS * 2 + 6,
+      fontSize: 14,
+      fontStyle: "bold",
+      verticalAlign: "middle",
+      fill: "#F5F2E9",
+      visible: false,
+      listening: false,
+    });
+    registry.addComponent(registry.spawnEntity(), costTextComponent);
+
+    let costIcon: ReturnType<typeof addCoinIcon> | undefined;
+    if (!catalogEntry.alwaysOwned) {
+      costIcon = addCoinIcon(hudLayer, coinX, costY, COIN_ICON_RADIUS);
+      costIcon.visible(false);
+
+      buyRectComponent.rect.on("click", () => {
+        weaponShop.pendingBuyType = weaponType;
+      });
+      buyRectComponent.rect.on("mouseover", () => {
+        const stage = hudLayer.getStage();
+        if (stage) stage.container().style.cursor = "pointer";
+      });
+      buyRectComponent.rect.on("mouseout", () => {
+        const stage = hudLayer.getStage();
+        if (stage) stage.container().style.cursor = "default";
+      });
+    }
+
+    const leftButtonComponent = new RectComponent(hudLayer, {
+      x: panelX,
+      y: entryY + SHOP_BUY_HEIGHT + SHOP_HAND_BUTTON_GAP,
+      width: handButtonWidth,
+      height: SHOP_HAND_BUTTON_HEIGHT,
+      fill: "#104522",
+      stroke: "#5E8C61",
+      strokeWidth: 2,
+      cornerRadius: 4,
+      visible: false,
+    });
+    registry.addComponent(registry.spawnEntity(), leftButtonComponent);
+    const leftLabelComponent = new TextComponent(hudLayer, {
+      text: "L",
+      x: panelX,
+      y: entryY + SHOP_BUY_HEIGHT + SHOP_HAND_BUTTON_GAP,
+      width: handButtonWidth,
+      height: SHOP_HAND_BUTTON_HEIGHT,
+      align: "center",
+      verticalAlign: "middle",
+      fontSize: 12,
+      fill: "#F5F2E9",
+      visible: false,
+      listening: false,
+    });
+    registry.addComponent(registry.spawnEntity(), leftLabelComponent);
+    leftButtonComponent.rect.on("click", () => {
+      weaponShop.pendingEquip = {
+        hand: "left",
+        weaponType: weaponShop.leftWeaponType === weaponType ? null : weaponType,
+      };
+    });
+    leftButtonComponent.rect.on("mouseover", () => {
+      const stage = hudLayer.getStage();
+      if (stage) stage.container().style.cursor = "pointer";
+    });
+    leftButtonComponent.rect.on("mouseout", () => {
+      const stage = hudLayer.getStage();
+      if (stage) stage.container().style.cursor = "default";
+    });
+
+    const rightButtonX = panelX + handButtonWidth + SHOP_HAND_BUTTON_GAP;
+    const rightButtonComponent = new RectComponent(hudLayer, {
+      x: rightButtonX,
+      y: entryY + SHOP_BUY_HEIGHT + SHOP_HAND_BUTTON_GAP,
+      width: handButtonWidth,
+      height: SHOP_HAND_BUTTON_HEIGHT,
+      fill: "#104522",
+      stroke: "#5E8C61",
+      strokeWidth: 2,
+      cornerRadius: 4,
+      visible: false,
+    });
+    registry.addComponent(registry.spawnEntity(), rightButtonComponent);
+    const rightLabelComponent = new TextComponent(hudLayer, {
+      text: "R",
+      x: rightButtonX,
+      y: entryY + SHOP_BUY_HEIGHT + SHOP_HAND_BUTTON_GAP,
+      width: handButtonWidth,
+      height: SHOP_HAND_BUTTON_HEIGHT,
+      align: "center",
+      verticalAlign: "middle",
+      fontSize: 12,
+      fill: "#F5F2E9",
+      visible: false,
+      listening: false,
+    });
+    registry.addComponent(registry.spawnEntity(), rightLabelComponent);
+    rightButtonComponent.rect.on("click", () => {
+      weaponShop.pendingEquip = {
+        hand: "right",
+        weaponType: weaponShop.rightWeaponType === weaponType ? null : weaponType,
+      };
+    });
+    rightButtonComponent.rect.on("mouseover", () => {
+      const stage = hudLayer.getStage();
+      if (stage) stage.container().style.cursor = "pointer";
+    });
+    rightButtonComponent.rect.on("mouseout", () => {
+      const stage = hudLayer.getStage();
+      if (stage) stage.container().style.cursor = "default";
+    });
+
+    weaponShop.entries.push({
+      weaponType,
+      buyRect: buyRectComponent.rect,
+      buyText: buyTextComponent.text,
+      costText: costTextComponent.text,
+      costIcon,
+      leftButton: leftButtonComponent.rect,
+      rightButton: rightButtonComponent.rect,
+    });
   });
 }
 
@@ -518,9 +930,9 @@ function launchGame(packet: any, registry: Registry) {
 
   buildLobby(newScene, packet.lobby, registry);
 
-  for (const player of packet.players) {
-    buildPlayer(newScene, player, registry);
-  }
+  packet.players.forEach((player: any, index: number) => {
+    buildPlayer(newScene, player, registry, index);
+  });
 
   if (newScene.hudLayer) {
     buildWaveHud(newScene.hudLayer, registry);
@@ -528,7 +940,32 @@ function launchGame(packet: any, registry: Registry) {
     if (newScene.layer) buildBuildMode(newScene.layer, newScene.hudLayer, registry);
 
     const localPlayer = packet.players.find((player: any) => player.id === playerId);
-    if (localPlayer) buildAmmoHud(newScene.hudLayer, registry, localPlayer.weapon);
+    buildWeaponShop(newScene.hudLayer, registry, localPlayer);
+
+    if (localPlayer) {
+      // Reserve comes from the shared per-type record; magazine is per-hand now (see
+      // weapon-inventory.component.ts, server) and arrives as its own left/rightMagazineAmmo field
+      // instead of living inside the weapons[] entry.
+      const findAmmo = (weaponType: WeaponType | null, magazineAmmo: number) => {
+        if (!weaponType) return undefined;
+        const reserveAmmo = localPlayer.weapons.find((w: any) => w.weaponType === weaponType)?.reserveAmmo ?? 0;
+        return { magazineAmmo, reserveAmmo };
+      };
+      buildAmmoHud(
+        newScene.hudLayer,
+        registry,
+        "left",
+        localPlayer.leftWeaponType,
+        findAmmo(localPlayer.leftWeaponType, localPlayer.leftMagazineAmmo),
+      );
+      buildAmmoHud(
+        newScene.hudLayer,
+        registry,
+        "right",
+        localPlayer.rightWeaponType,
+        findAmmo(localPlayer.rightWeaponType, localPlayer.rightMagazineAmmo),
+      );
+    }
 
     buildCursor(newScene.hudLayer, registry);
   }

@@ -1,10 +1,12 @@
-import { Rect, Shape, Text } from "@nanoforge-dev/graphics-2d";
+import { Circle, Rect, Shape, Text } from "@nanoforge-dev/graphics-2d";
 import { type BuildingType } from "../building-catalog";
 
 export interface BuildBarButton {
   buildingType: BuildingType;
   rect: Rect;
   text: Text;
+  costText: Text;
+  costIcon: Circle;
 }
 
 // Screen-space (hudLayer-local, which is unscaled/unpositioned so local === screen) bounds of

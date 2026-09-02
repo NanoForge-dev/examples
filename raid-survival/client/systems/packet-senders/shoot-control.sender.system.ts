@@ -27,16 +27,35 @@ export function sendShootControl(registry: Registry, ctx: Context) {
       ShootController.lastSentMainWeaponShooting = ShootController.mainWeaponShooting;
     }
 
+    // Same dedup as mainWeaponShooting above - this is the one missing piece that makes the
+    // already-wired right-click input (ShootController.secondWeaponShooting,
+    // shoot-control.system.ts) actually reach the server.
+    if (ShootController.secondWeaponShooting !== ShootController.lastSentSecondWeaponShooting) {
+      network.tcp.sendData(
+        new TextEncoder().encode(
+          JSON.stringify({ type: "input", rightShooting: ShootController.secondWeaponShooting }),
+        ),
+      );
+      ShootController.lastSentSecondWeaponShooting = ShootController.secondWeaponShooting;
+    }
+
     if (ShootController.reloadRequested) {
       network.tcp.sendData(new TextEncoder().encode(JSON.stringify({ type: "input", reload: true })));
       ShootController.reloadRequested = false;
     }
 
+    // `direction` is purely visual from here on (rotation broadcast to other clients) -
+    // weapon.system.ts (server) no longer aims bullets with it. `mousePosition` (world-space,
+    // same coordinate space Position/Hitbox already live in - see shoot-control.system.ts, which
+    // computes both from the same getRelativePointerPosition() call) is what the server
+    // recomputes a fresh aim vector from at the exact moment a shot fires, so a shot can never
+    // use a Direction value that's gone stale relative to the mouse by even one packet.
     network.tcp.sendData(
       new TextEncoder().encode(
         JSON.stringify({
           type: "input",
           direction: { x: Direction.x, y: Direction.y },
+          mousePosition: { x: ShootController.position.x, y: ShootController.position.y },
         }),
       ),
     );

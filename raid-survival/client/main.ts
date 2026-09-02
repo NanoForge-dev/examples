@@ -28,6 +28,7 @@ import { transformChildrenToParentSystem } from "./systems/transform-children-to
 import { rotateToDirectionSystem } from "./systems/rotate-to-direction.system";
 import { weaponReloadAnimationSystem } from "./systems/weapon-reload-animation.system";
 import { reloadIndicatorSystem } from "./systems/reload-indicator.system";
+import { weaponVisibilitySystem } from "./systems/weapon-visibility.system";
 import { cursorSystem } from "./systems/cursor.system";
 import { floatingTextSystem } from "./systems/floating-text.system";
 import { zOrderSystem } from "./systems/essentials/z-order.system";
@@ -86,10 +87,15 @@ export async function main(options: IRunOptions) {
   registry.addSystem(moveSystem);
   registry.addSystem(spriteSystem);
   registry.addSystem(transformChildrenToParentSystem);
-  registry.addSystem(weaponReloadAnimationSystem);
   registry.addSystem(reloadIndicatorSystem);
+  registry.addSystem(weaponVisibilitySystem);
   registry.addSystem(cursorSystem);
   registry.addSystem(floatingTextSystem);
+  // After buildModeSystem/weaponVisibilitySystem (above), before rotateToDirectionSystem (below) -
+  // it forces the main weapon sprite hidden while a dedicated reload animation overlay is playing
+  // instead, and that write needs to be the last one standing for the tick; it also sets
+  // DirectionRotatorComponent.offset, which rotateToDirectionSystem must still consume afterward.
+  registry.addSystem(weaponReloadAnimationSystem);
   registry.addSystem(rotateToDirectionSystem);
   registry.addSystem(zOrderSystem);
 

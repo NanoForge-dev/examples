@@ -50,6 +50,16 @@ export function inputPacketHandler(
   if (typeof packet.shooting === "boolean") {
     it.ShootInput.shooting = packet.shooting;
   }
+  if (typeof packet.rightShooting === "boolean") {
+    it.ShootInput.rightShooting = packet.rightShooting;
+  }
+  if (
+    packet.mousePosition &&
+    typeof packet.mousePosition.x === "number" &&
+    typeof packet.mousePosition.y === "number"
+  ) {
+    it.ShootInput.mousePosition = { x: packet.mousePosition.x, y: packet.mousePosition.y };
+  }
   // reload is one-shot (a fresh "R" press, not a held state) - weapon.system.ts consumes and
   // clears this the next time it runs.
   if (packet.reload) {

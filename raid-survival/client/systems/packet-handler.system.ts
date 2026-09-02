@@ -12,7 +12,9 @@ import { gameOverPacketHandler } from "./packet-handlers/game-over-packet.handle
 import { moneyPacketHandler } from "./packet-handlers/money-packet.handler";
 import { buildPacketHandler } from "./packet-handlers/build-packet.handler";
 import { weaponStatePacketHandler } from "./packet-handlers/weapon-state-packet.handler";
+import { weaponFiredPacketHandler } from "./packet-handlers/weapon-fired-packet.handler";
 import { ammoPacketHandler } from "./packet-handlers/ammo-packet.handler";
+import { weaponInventoryPacketHandler } from "./packet-handlers/weapon-inventory-packet.handler";
 import { lootPacketHandler } from "./packet-handlers/loot-packet.handler";
 import { joinLobbyPacketHandler } from "./packet-handlers/join-lobby-packet.handler";
 import { lobbyInfoPacketHandler } from "./packet-handlers/lobby-info-packet.handler";
@@ -32,7 +34,9 @@ export const packetHandlers: Map<string, PacketHandler> = new Map([
   ["money", moneyPacketHandler],
   ["build", buildPacketHandler],
   ["weaponState", weaponStatePacketHandler],
+  ["weaponFired", weaponFiredPacketHandler],
   ["ammo", ammoPacketHandler],
+  ["weaponInventory", weaponInventoryPacketHandler],
   ["loot", lootPacketHandler],
   ["joinLobby", joinLobbyPacketHandler],
   ["lobbyInfo", lobbyInfoPacketHandler],

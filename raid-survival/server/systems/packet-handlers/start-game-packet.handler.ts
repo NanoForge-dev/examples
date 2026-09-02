@@ -17,7 +17,7 @@ import { IAComponent } from "../../components/ia.component";
 import { WaveState } from "../../components/wave-state.component";
 import { Money } from "../../components/money.component";
 import { MoveInput } from "../../components/move-input.component";
-import { Weapon } from "../../components/weapon.component";
+import { WeaponInventory, type OwnedWeapon } from "../../components/weapon-inventory.component";
 import { ShootInput } from "../../components/shoot-input.component";
 import { WEAPON_CATALOG } from "../../weapon-catalog";
 import { createZombieBehavior, ZOMBIE_MAX_HEALTH } from "../zombie-ai";
@@ -143,7 +143,13 @@ export function startGamePacketHandler(
     username: string;
     position: Vector2d;
     health: { current: number; max: number };
-    weapon: { weaponType: string; magazineAmmo: number; reserveAmmo: number };
+    // Ownership + shared reserve only now - magazine is per-hand (see
+    // weapon-inventory.component.ts), carried separately below as left/rightMagazineAmmo.
+    weapons: { weaponType: string; reserveAmmo: number }[];
+    leftWeaponType: string | null;
+    rightWeaponType: string | null;
+    leftMagazineAmmo: number;
+    rightMagazineAmmo: number;
   }[] = [];
 
   const startingWeaponCatalog = WEAPON_CATALOG[STARTING_WEAPON_TYPE];
@@ -166,21 +172,37 @@ export function startGamePacketHandler(
       new Hitbox(PLAYER_HITBOX_SIZE.x, PLAYER_HITBOX_SIZE.y, PLAYER_HITBOX_OFFSET.x, PLAYER_HITBOX_OFFSET.y),
     );
     registry.addComponent(player, new Health(PLAYER_MAX_HEALTH, PLAYER_MAX_HEALTH));
-    const startingAmmo = {
-      magazineAmmo: startingWeaponCatalog.magazineSize,
-      reserveAmmo: startingWeaponCatalog.infiniteReserve ? -1 : 0,
+
+    // Every player starts owning exactly smallGun, equipped left - same grant as before this
+    // feature, just represented as a one-entry inventory instead of a single Weapon component.
+    // smallGun is infiniteReserve, so its reserve is left at the catalog's -1 sentinel regardless
+    // of the magazine handed to leftState below - same "arrives loaded, never touches reserve"
+    // shape equipWeaponPacketHandler's claimHand uses for any infiniteReserve weapon.
+    const startingWeapon: OwnedWeapon = {
+      weaponType: STARTING_WEAPON_TYPE,
+      reserveAmmo: startingWeaponCatalog.startingReserve,
     };
-    registry.addComponent(
-      player,
-      new Weapon(STARTING_WEAPON_TYPE, startingAmmo.magazineAmmo, startingAmmo.reserveAmmo),
-    );
+    const inventory = new WeaponInventory();
+    inventory.owned.push(startingWeapon);
+    inventory.leftWeaponType = STARTING_WEAPON_TYPE;
+    inventory.leftState = {
+      magazineAmmo: startingWeaponCatalog.magazineSize,
+      state: "idle",
+      reloadRemaining: 0,
+      cooldownRemaining: 0,
+    };
+    registry.addComponent(player, inventory);
     registry.addComponent(player, new ShootInput());
     playersInformation.push({
       id: client.entityId,
       username: client.username,
       position: PLAYERS_SPAWNERS[index],
       health: { current: PLAYER_MAX_HEALTH, max: PLAYER_MAX_HEALTH },
-      weapon: { weaponType: STARTING_WEAPON_TYPE, ...startingAmmo },
+      weapons: [{ weaponType: startingWeapon.weaponType, reserveAmmo: startingWeapon.reserveAmmo }],
+      leftWeaponType: inventory.leftWeaponType,
+      rightWeaponType: inventory.rightWeaponType,
+      leftMagazineAmmo: inventory.leftState.magazineAmmo,
+      rightMagazineAmmo: inventory.rightState?.magazineAmmo ?? 0,
     });
   });
 

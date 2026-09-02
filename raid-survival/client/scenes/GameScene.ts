@@ -22,6 +22,10 @@ export class GameScene implements Scene {
     // rather than the OS default, or hovering a button would bring the OS cursor back for good.
     this.stage.container().style.cursor = "none";
 
+    // Right-click is now a real fire button (the second weapon slot) - without this the browser's
+    // native context menu would pop up on every right-click.
+    this.stage.container().addEventListener("contextmenu", (e) => e.preventDefault());
+
     this.layer = new Layer();
     this.layer?.scale({x: 3, y: 3});
     const context = this.layer.getCanvas()._canvas.getContext("2d");

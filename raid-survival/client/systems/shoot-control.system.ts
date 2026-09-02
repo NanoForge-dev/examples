@@ -26,19 +26,23 @@ export function shootControl(registry: Registry, ctx: Context) {
 
   const pointerPosition: Vector2d | null = sceneManager.getScene()?.layer?.getRelativePointerPosition() || null;
 
-  if (!pointerPosition) return;
-
   entities.forEach(({ ShootController, Direction, TransformComponent }) => {
     if (buildModeActive) {
       // A click meant to select a build-bar button or place a wall must not also register as a
       // shot - build-mode.system.ts hides the weapon sprite for the same reason (see there for
-      // the visual half of this).
+      // the visual half of this). Checked before the pointerPosition guard below (not after) so
+      // that a fire button held down when the pointer briefly leaves the canvas doesn't get stuck
+      // "on" forever if build mode opens while that's happening - this branch must always run.
       ShootController.mainWeaponShooting = false;
       ShootController.secondWeaponShooting = false;
       ShootController.wasReloadKeyPressed = false;
       ShootController.reloadRequested = false;
       return;
     }
+
+    // Only the aim-dependent polling below needs a pointer position - skip it, but don't skip the
+    // build-mode branch above, which must run every tick regardless.
+    if (!pointerPosition) return;
 
     ShootController.mainWeaponShooting = <boolean>(
       input.isKeyPressed(ShootController.keyShootMainWeapon)
