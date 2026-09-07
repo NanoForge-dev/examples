@@ -12,6 +12,6 @@ export function lobbyInfoPacketHandler(packet: any, registry: Registry): void {
   firstLobbyStatus.LobbyStatusComponent.players = [];
 
   for (const player of packet.players) {
-    firstLobbyStatus.LobbyStatusComponent.players.push({id: player.id, username: player.username})
+    firstLobbyStatus.LobbyStatusComponent.players.push({ id: player.id, username: player.username, skin: player.skin ?? 1 });
   }
 }

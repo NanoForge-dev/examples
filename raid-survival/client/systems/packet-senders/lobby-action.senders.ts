@@ -13,7 +13,13 @@ export function lobbyActionSenders(registry: Registry, ctx: Context) {
   switch (firstLobbyStatus.LobbyStatusComponent.action) {
     case LobbyAction.JOIN_LOBBY:
       network.tcp.sendData(
-        new TextEncoder().encode(JSON.stringify({ type: "joinLobby", username: firstLobbyStatus.LobbyStatusComponent.username })),
+        new TextEncoder().encode(
+          JSON.stringify({
+            type: "joinLobby",
+            username: firstLobbyStatus.LobbyStatusComponent.username,
+            skin: firstLobbyStatus.LobbyStatusComponent.skin,
+          }),
+        ),
       );
       break;
     case LobbyAction.START_GAME:

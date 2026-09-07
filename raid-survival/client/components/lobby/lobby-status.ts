@@ -1,6 +1,7 @@
 export interface LobbyPlayer {
-  id: string;
+  id: number;
   username: string;
+  skin: number;
 }
 
 export enum LobbyState {
@@ -18,6 +19,10 @@ export enum LobbyAction {
 export class LobbyStatusComponent {
   name = this.constructor.name;
   username = "";
+  // Which of the 3 available character skins (player1.png..player3.png) the player picked in
+  // MenuScene's join widget - sent along with the join request and echoed back to everyone via
+  // LobbyPlayer.skin so the lobby grid and (eventually) the in-game sprite reflect the choice.
+  skin: number = 1;
   state: LobbyState = LobbyState.UNJOINED;
   action: LobbyAction = LobbyAction.EMPTY;
   players: LobbyPlayer[] = [];

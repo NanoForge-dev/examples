@@ -141,6 +141,7 @@ export function startGamePacketHandler(
   const playersInformation: {
     id: number;
     username: string;
+    skin: number;
     position: Vector2d;
     health: { current: number; max: number };
     // Ownership + shared reserve only now - magazine is per-hand (see
@@ -196,6 +197,7 @@ export function startGamePacketHandler(
     playersInformation.push({
       id: client.entityId,
       username: client.username,
+      skin: client.skin,
       position: PLAYERS_SPAWNERS[index],
       health: { current: PLAYER_MAX_HEALTH, max: PLAYER_MAX_HEALTH },
       weapons: [{ weaponType: startingWeapon.weaponType, reserveAmmo: startingWeapon.reserveAmmo }],

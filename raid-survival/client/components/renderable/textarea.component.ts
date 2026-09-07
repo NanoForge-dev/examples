@@ -52,13 +52,22 @@ export class TextAreaComponent {
   }
 
   private applyTextStyle(): void {
+    const innerHeight = this.text.height() - this.text.padding() * 2;
+
     this.textarea.style.fontSize = this.text.fontSize() + "px";
-    this.textarea.style.lineHeight = this.text.lineHeight().toString();
+    // A single-line textarea centers vertically when its line-height matches the content box's
+    // height - the Konva Text's own verticalAlign only affects the hidden `this.text` node, never
+    // the actual visible <textarea>, so it has to be replicated here by hand.
+    this.textarea.style.lineHeight =
+      this.text.verticalAlign() === "middle" ? innerHeight + "px" : this.text.lineHeight().toString();
     this.textarea.style.fontFamily = this.text.fontFamily();
     this.textarea.style.textAlign = this.text.align();
     this.textarea.style.color = (this.text.fill() as string) ?? "#000";
     this.textarea.style.width = this.text.width() - this.text.padding() * 2 + "px";
-    this.textarea.style.height = this.text.height() - this.text.padding() * 2 + 5 + "px";
+    // Matches width's formula (box size minus symmetric padding) - the textarea has to actually
+    // fill that padded box for the line-height centering trick above to center against the right
+    // reference frame, instead of centering inside a shorter box that then sits flush at the top.
+    this.textarea.style.height = innerHeight + "px";
   }
 
   private findClipAncestor(node: Container): Group | Layer | Stage | null {
@@ -78,9 +87,14 @@ export class TextAreaComponent {
     const containerRect = stage.container().getBoundingClientRect();
     const textAbs = this.text.getAbsolutePosition();
     const scale = stage.getAbsoluteScale();
+    // width/height above are already inset by padding on both sides (box size minus padding*2) -
+    // the position has to be inset by the same padding, on both axes, or the textarea ends up
+    // flush against the box's top-left corner with all the slack pushed to the bottom-right
+    // instead of the box's content being evenly inset/centered.
+    const padding = this.text.padding();
 
-    const pageX = containerRect.left + textAbs.x * scale.x;
-    const pageY = containerRect.top + textAbs.y * scale.y;
+    const pageX = containerRect.left + (textAbs.x + padding) * scale.x;
+    const pageY = containerRect.top + (textAbs.y + padding) * scale.y;
 
     if (this.clipAncestor) {
       const clipRect = this.getAbsoluteClipRect(this.clipAncestor, containerRect, scale);

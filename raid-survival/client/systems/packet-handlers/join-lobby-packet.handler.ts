@@ -18,6 +18,7 @@ export function joinLobbyPacketHandler(packet: any, registry: Registry): void {
       firstLobbyStatus.LobbyStatusComponent.players.push({
         id: player.id,
         username: player.username,
+        skin: player.skin ?? 1,
       });
       if (player.username === firstLobbyStatus.LobbyStatusComponent.username)
         setPlayerId(player.id);

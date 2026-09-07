@@ -3,5 +3,5 @@ allowBuilds:
   wrtc: true
 
 overrides:
-  "@nanoforge-dev/loader-website": "link:/home/leoout/eip/loader/apps/website"
-  "@nanoforge-dev/loader-client": "link:/home/leoout/eip/loader/apps/client"
+  "@nanoforge-dev/loader-website": "link:/home/harper/Documents/Nanoforge/Loader/apps/website"
+  "@nanoforge-dev/loader-client": "link:/home/harper/Documents/Nanoforge/Loader/apps/client"

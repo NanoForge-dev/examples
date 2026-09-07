@@ -28,7 +28,13 @@ export enum GameStatusEnum {
 
 export const gameStatus = { status: GameStatusEnum.Lobby };
 
-export const clients: { clientId: number; entityId: number; username: string; connected: boolean }[] = [];
+export const clients: {
+  clientId: number;
+  entityId: number;
+  username: string;
+  connected: boolean;
+  skin: number;
+}[] = [];
 
 export async function main(options: IRunOptions) {
   const app = NanoforgeFactory.createServer();

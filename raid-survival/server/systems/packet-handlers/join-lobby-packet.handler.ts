@@ -12,6 +12,10 @@ export function joinLobbyPacketHandler(
 ): void {
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
 
+  // Client-picked index into player1.png..player3.png (see MenuScene's skin swatches) - clamped
+  // here so a malformed/missing value can never propagate into an out-of-range sprite key.
+  const skin = Number.isInteger(packet.skin) && packet.skin >= 1 && packet.skin <= 3 ? packet.skin : 1;
+
   function sendJoinLobbyInfo() {
     network.tcp.sendToClient(
       clientId,
@@ -23,6 +27,7 @@ export function joinLobbyPacketHandler(
             return {
               id: client.entityId,
               username: client.username,
+              skin: client.skin,
             };
           }),
         }),
@@ -34,6 +39,7 @@ export function joinLobbyPacketHandler(
       players: clients.map((client) => ({
         id: client.entityId,
         username: client.username,
+        skin: client.skin,
       })),
     });
   }
@@ -65,6 +71,7 @@ export function joinLobbyPacketHandler(
   if (client) {
     client.clientId = clientId;
     client.connected = true;
+    client.skin = skin;
     // A returning client (e.g. after a finished game reset everything via
     // registry.clearEntities() in game-over.system.ts) needs a fresh entity - whatever it held
     // before may no longer exist, and reusing a dead entity id is unsafe.
@@ -75,6 +82,7 @@ export function joinLobbyPacketHandler(
       clientId,
       entityId: _registry.spawnEntity().getId(),
       connected: true,
+      skin,
     };
     clients.push(client);
   }

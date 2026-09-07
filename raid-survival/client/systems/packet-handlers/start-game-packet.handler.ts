@@ -33,7 +33,6 @@ import { ReloadIndicatorComponent } from "../../components/reload-indicator.comp
 import { WeaponReloadOverlayComponent } from "../../components/weapon-reload-overlay.component";
 import { CursorComponent } from "../../components/cursor.component";
 import { CURSOR_SCALE } from "../cursor.system";
-import { pickPlayerSkin } from "../../player-skins";
 import { addCoinIcon } from "../../hud-helpers";
 
 // zOrderSystem only reorders entities that carry a ZIndexComponent - anything without one stays
@@ -329,7 +328,7 @@ function buildHandAndWeapon(
   registry.addComponent(reloadOverlayEntity, new WeaponReloadOverlayComponent(hand));
 }
 
-function buildPlayer(scene: Scene, playerPacket: any, registry: Registry, skinIndex: number) {
+function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
   if (!scene.layer) return;
 
   const playerEntity = registry.spawnEntity();
@@ -342,12 +341,13 @@ function buildPlayer(scene: Scene, playerPacket: any, registry: Registry, skinIn
     new TransformComponent(playerPacket.position.x, playerPacket.position.y),
   );
   registry.addComponent(playerEntity, new Velocity(0, 0));
+  // player1.png..player3.png share the same 24x24 idle/walk/death layout (see
+  // player-animations.txt) - picked in MenuScene's skin swatches and carried through the
+  // joinLobby/startGame packets, clamped again here in case a stale/malformed value slipped in.
+  const skin = Number.isInteger(playerPacket.skin) && playerPacket.skin >= 1 && playerPacket.skin <= 3 ? playerPacket.skin : 1;
   registry.addComponent(
     playerEntity,
-    // A different skin per player (see player-skins.ts) - skinIndex is this player's position in
-    // packet.players, the same array/order every client receives, so everyone agrees on who looks
-    // like what.
-    new SpriteComponent(pickPlayerSkin(skinIndex), {
+    new SpriteComponent(`player${skin}.png`, {
       layer: scene.layer,
       animationsKey: "player-animations.txt",
     }),
@@ -930,8 +930,8 @@ function launchGame(packet: any, registry: Registry) {
 
   buildLobby(newScene, packet.lobby, registry);
 
-  packet.players.forEach((player: any, index: number) => {
-    buildPlayer(newScene, player, registry, index);
+  packet.players.forEach((player: any) => {
+    buildPlayer(newScene, player, registry);
   });
 
   if (newScene.hudLayer) {
