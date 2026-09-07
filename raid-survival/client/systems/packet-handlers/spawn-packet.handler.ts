@@ -16,7 +16,6 @@ import { buildHealthBar } from "./start-game-packet.handler";
 import { Player } from "../../components/player.component";
 import { Building } from "../../components/building.component";
 import { TILE_SIZE } from "../../map-data";
-import { pickPlayerSkin } from "../../player-skins";
 
 // Wall's native crop (wall-animations.txt) is an 18x27 barrel - close to square already, just
 // scaled down slightly to land near the tile's own 16px width. The barrel standing a bit taller
@@ -45,14 +44,16 @@ function buildPlayer(newEnt: Entity, packet: any, registry: Registry) {
 
   registry.addComponent(newEnt, new Direction(packet.direction.x, packet.direction.y));
   registry.addComponent(newEnt, new Velocity(packet.velocity.x, packet.velocity.y));
+  // "player.png" doesn't exist as a static asset (only player1.png..player3.png do) - this path
+  // is currently unreachable (nothing server-side ever sends a "spawn" packet with
+  // entityType:"player", see spawnPacketHandler below; every player is built via
+  // start-game-packet.handler.ts's own buildPlayer instead), but fixed to the player's actual
+  // chosen skin (see start-game-packet.handler.ts's buildPlayer) rather than left pointing at a
+  // file that can't load.
+  const skin = Number.isInteger(packet.skin) && packet.skin >= 1 && packet.skin <= 3 ? packet.skin : 1;
   registry.addComponent(
     newEnt,
-    // "player.png" doesn't exist as a static asset (only player1.png..player4.png do) - this path
-    // is currently unreachable (nothing server-side ever sends a "spawn" packet with
-    // entityType:"player", see spawnPacketHandler below; every player is built via
-    // start-game-packet.handler.ts's own buildPlayer instead), but fixed to a real, per-player
-    // skin rather than left pointing at a file that can't load.
-    new SpriteComponent(pickPlayerSkin(packet.id ?? 0), {
+    new SpriteComponent(`player${skin}.png`, {
       animationsKey: "player-animations.txt",
       scale: { x: 3, y: 3 },
     }),
