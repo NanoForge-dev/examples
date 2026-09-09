@@ -1,0 +1,10 @@
+{
+  "name": "nanoforge-app",
+  "language": "ts",
+  "client": {
+    "enable": true
+  },
+  "server": {
+    "enable": false
+  }
+}

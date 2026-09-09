@@ -7,12 +7,18 @@ import { MenuScene } from "./MenuScene";
 import { sceneManager } from "../main";
 
 // Modeled on MenuScene's plain Rect/Text UI pattern - a static screen, no ECS gameplay entities.
+// Doubles as the victory screen (server/systems/game-over.system.ts's "victory" result, all waves
+// cleared with nothing left alive) - same layout and Retry flow either way, just the headline/
+// accent color changes, rather than a whole separate scene for what's otherwise identical UI.
 export class GameOverScene implements Scene {
   readonly name = "gameOver";
   layer: Layer | undefined;
   private stage!: Stage;
 
-  constructor(private zombiesKilled: number) {}
+  constructor(
+    private zombiesKilled: number,
+    private won: boolean = false,
+  ) {}
 
   load(registry: Registry, stage: Stage): void {
     this.stage = stage;
@@ -50,7 +56,7 @@ export class GameOverScene implements Scene {
     registry.addComponent(
       registry.spawnEntity(),
       new TextComponent(this.layer, {
-        text: "GAME OVER",
+        text: this.won ? "VICTORY!" : "GAME OVER",
         x: panelX,
         y: panelY + 30,
         width: panelSize.width,
@@ -58,7 +64,23 @@ export class GameOverScene implements Scene {
         fontSize: 32,
         fontStyle: "bold",
         align: "center",
-        fill: "#F5F2E9",
+        // Gold for a win, the same muted red the join-error text uses for a loss - a clear win/
+        // lose read at a glance, not just the wording.
+        fill: this.won ? "#D9A441" : "#E88686",
+      }),
+    );
+
+    registry.addComponent(
+      registry.spawnEntity(),
+      new TextComponent(this.layer, {
+        text: this.won ? "All waves survived!" : "The raid has fallen.",
+        x: panelX,
+        y: panelY + 78,
+        width: panelSize.width,
+        height: 20,
+        fontSize: 14,
+        align: "center",
+        fill: "#8FBB9B",
       }),
     );
 
@@ -67,7 +89,7 @@ export class GameOverScene implements Scene {
       new TextComponent(this.layer, {
         text: `Zombies killed: ${this.zombiesKilled}`,
         x: panelX,
-        y: panelY + 100,
+        y: panelY + 106,
         width: panelSize.width,
         height: 30,
         fontSize: 20,
@@ -115,7 +137,7 @@ export class GameOverScene implements Scene {
     registry.addComponent(
       registry.spawnEntity(),
       new TextComponent(this.layer, {
-        text: "Retry",
+        text: this.won ? "Play Again" : "Retry",
         x: buttonX,
         y: buttonY,
         width: buttonSize.width,
