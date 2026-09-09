@@ -8,27 +8,66 @@ import { AssetManagerLibrary } from "@nanoforge-dev/asset-manager";
 
 type Animations = Record<string, number[]>;
 
+// A path here is a blob: URL (see AssetManagerLibrary.getAsset/NfFile - assets are pre-fetched
+// into blobs once, up front, during the initial "Download: X.png" loading screen; this code never
+// sees a real HTTP path to retry against). Blob URLs are locally-resolved, no network round trip,
+// but browsers - WebKit/Safari especially - can intermittently fail to resolve one under load or
+// memory pressure (observed: Image.onerror with no detail, and separately a bare
+// "NetworkError when attempting to fetch resource" from the fetch() inside loadAnimations' NfFile
+// - that exact wording is Safari's, Chrome says "Failed to fetch"). Retrying the SAME blob URL a
+// couple of times recovers the transient case; it can't help a permanently-revoked blob (the asset
+// manager gives us nothing else to fall back to), which is still a real, separate limitation.
+const ASSET_LOAD_MAX_ATTEMPTS = 3;
+const ASSET_LOAD_RETRY_DELAY_MS = 300;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withRetry<T>(load: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= ASSET_LOAD_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await load();
+    } catch (err) {
+      lastError = err;
+      if (attempt < ASSET_LOAD_MAX_ATTEMPTS) await sleep(ASSET_LOAD_RETRY_DELAY_MS * attempt);
+    }
+  }
+  throw lastError;
+}
+
 const imageCache = new Map<string, HTMLImageElement>();
 const imageLoading = new Map<string, Promise<HTMLImageElement>>();
 const failedSpriteKeys = new Set<string>();
+
+function loadImageOnce(path: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Failed to load image: ${path}`));
+    image.src = path;
+  });
+}
 
 function loadImage(path: string): Promise<HTMLImageElement | undefined> {
   if (imageCache.has(path)) return Promise.resolve(imageCache.get(path));
   if (imageLoading.has(path)) return Promise.resolve(imageLoading.get(path));
 
-  const promise = new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => {
+  const promise = withRetry(() => loadImageOnce(path));
+  // A single .then(onFulfilled, onRejected) rather than separate .then()/.finally() calls -
+  // each one hangs its own derived promise off `promise`, and an unused derived promise that
+  // rejects (.finally() mirrors the original's outcome) trips an "unhandled rejection" warning
+  // of its own, on top of whatever spriteSystem's own await/catch already reports for `promise`
+  // itself. This one settles (never rejects) regardless of which branch runs, so nothing else
+  // needs to observe it.
+  promise.then(
+    (image) => {
       imageCache.set(path, image);
       imageLoading.delete(path);
-      resolve(image);
-    };
-    image.onerror = () => {
-      imageLoading.delete(path);
-      reject(new Error(`Failed to load image: ${path}`));
-    };
-    image.src = path;
-  });
+    },
+    () => imageLoading.delete(path), // give up path already logs/handles this in spriteSystem
+  );
 
   imageLoading.set(path, promise);
   return promise;
@@ -41,7 +80,7 @@ function loadAnimations(file: NfFile): Promise<Animations | undefined> {
   if (animationsCache.has(file.path)) return Promise.resolve(animationsCache.get(file.path));
   if (animationsLoading.has(file.path)) return Promise.resolve(animationsLoading.get(file.path));
 
-  const promise = file.text().then((raw) => {
+  const promise = withRetry(() => file.text()).then((raw) => {
     const result: Animations = {};
 
     raw
@@ -63,6 +102,15 @@ function loadAnimations(file: NfFile): Promise<Animations | undefined> {
     animationsCache.set(file.path, result);
     return result;
   });
+  // Same single-handler reasoning as loadImage above - avoids a second derived promise (from a
+  // separate .finally()) that could trip its own "unhandled rejection" warning. This also fixes a
+  // latent gap the original code had: on failure it never removed the rejected promise from
+  // animationsLoading at all, leaving every future call for the same file permanently stuck
+  // replaying that one rejection instead of ever being eligible to load again.
+  promise.then(
+    () => animationsLoading.delete(file.path),
+    () => animationsLoading.delete(file.path),
+  );
 
   animationsLoading.set(file.path, promise);
   return promise;
@@ -113,7 +161,10 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
         // nothing ever destroys it again - a permanently visible, entityless sprite. Re-fetching
         // the live component and comparing identity catches both a killed entity (nothing found)
         // and a killed-then-ID-recycled one (found, but a different SpriteComponent instance).
-        const stillAlive = registry.getEntityComponent(registry.entityFromIndex(entity.id), SpriteComponent);
+        const stillAlive = registry.getEntityComponent(
+          registry.entityFromIndex(entity.id),
+          SpriteComponent,
+        );
         if (stillAlive !== entity.SpriteComponent) continue;
 
         const newSprite = new Sprite({
