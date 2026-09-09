@@ -15,7 +15,10 @@ export function lootPacketHandler(packet: any, registry: Registry): void {
 
   const textEntity = registry.spawnEntity();
   const textComponent = new TextComponent(layer, {
-    text: `+${packet.amount}`,
+    // `text`/`color` are optional overrides - loot-box-pickup.system.ts uses them for heal/ammo
+    // boxes (no plain "+amount" reads naturally for those); the original zombie-coin-drop call
+    // site never sets either, so it's unaffected and still shows "+amount" in gold.
+    text: packet.text ?? `+${packet.amount}`,
     x: packet.position.x - LOOT_TEXT_SIZE.width / 2,
     y: packet.position.y,
     width: LOOT_TEXT_SIZE.width,
@@ -23,7 +26,7 @@ export function lootPacketHandler(packet: any, registry: Registry): void {
     align: "center",
     fontSize: LOOT_TEXT_FONT_SIZE,
     fontStyle: "bold",
-    fill: "gold",
+    fill: packet.color ?? "gold",
     listening: false,
   });
   registry.addComponent(textEntity, textComponent);

@@ -12,6 +12,9 @@ export class WaveHudComponent {
     public progressTrack: Rect,
     public progressFill: Rect,
     public aliveText: Text,
+    // Shown below the progress bar only while a "cooldown" waveInfo packet arrives (the 20s gap
+    // between one wave finishing and the next starting) - empty/invisible the rest of the time.
+    public countdownText: Text,
   ) {}
 }
 

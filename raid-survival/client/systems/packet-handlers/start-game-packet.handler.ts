@@ -6,10 +6,14 @@ import { SpriteComponent } from "../../components/renderable/sprite.component";
 import { TransformComponent } from "../../components/essentials/transform.component";
 import { Velocity } from "../../components/essentials/velocity.component";
 import { MoveController } from "../../components/move-controller.component";
-import { Layer, Rect, Shape, Vector2d } from "@nanoforge-dev/graphics-2d";
+import { Arc, Circle, Layer, Rect, Ring, Shape, Vector2d } from "@nanoforge-dev/graphics-2d";
 import { NetworkId } from "../../components/network-id.component";
 import { Direction } from "../../components/direction.component";
 import { ShootController } from "../../components/shoot.controller";
+import { ReviveController } from "../../components/revive-controller.component";
+import { ReviveIndicatorComponent } from "../../components/revive-indicator.component";
+import { ReviveHintIndicatorComponent } from "../../components/revive-hint-indicator.component";
+import { BuildingInteractIndicatorComponent } from "../../components/building-interact-indicator.component";
 import { ChildrenComponent } from "../../components/children.component";
 import { Scene } from "../../scenes/Scene";
 import { DirectionRotatorComponent } from "../../components/direction-rotator.component";
@@ -23,8 +27,10 @@ import { WaveHudComponent } from "../../components/wave-hud.component";
 import { MoneyHudComponent } from "../../components/money-hud.component";
 import { Player } from "../../components/player.component";
 import { BuildModeComponent, type BuildBarButton } from "../../components/build-mode.component";
+import { MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } from "../build-mode.system";
 import { WeaponShopComponent } from "../../components/weapon-shop.component";
 import { BUILDING_CATALOG, type BuildingType } from "../../building-catalog";
+import { TOWER_RANGE } from "../../building-economy";
 import { WEAPON_CATALOG, type WeaponType } from "../../weapon-catalog";
 import { TILE_SIZE } from "../../map-data";
 import { Weapon } from "../../components/weapon.component";
@@ -40,6 +46,17 @@ import { addCoinIcon } from "../../hud-helpers";
 // need to render above whatever's standing near their owner (zombies/players cluster right
 // around the lobby), so they get the highest tier - above hands (20).
 const HEALTH_BAR_Z_INDEX = 30;
+// One tier above the frame, not equal to it: zOrderSystem sorts ties by whatever order
+// getZipper() happens to enumerate same-z entities in, which follows underlying storage/slot
+// order, not necessarily "frame was built first" - slots get recycled as other entities die
+// (zombies, mainly), so that order isn't guaranteed to put the fill after (visually on top of)
+// the frame just because buildHealthBar() below always constructs it second. A spawn that
+// happens to land the fill in an earlier slot than its own frame renders with the frame's border
+// covering the green fill entirely - a bar that "looks empty" even at full health. Giving the
+// fill its own strictly-higher z-index makes the SORT itself guarantee it renders on top,
+// regardless of enumeration order - not the "which one built the sprite first" tie-break above,
+// which was never actually reliable.
+const HEALTH_BAR_FILL_Z_INDEX = HEALTH_BAR_Z_INDEX + 1;
 
 // Native player sprite size (player-animations.txt, unscaled).
 const PLAYER_SPRITE_SIZE = { width: 24, height: 24 };
@@ -58,6 +75,21 @@ const HEALTH_BAR_FILL_MAX_SCALE_X = HEALTH_BAR_FILL_CAVITY.width / HEALTH_BAR_FI
 // Vertical gap between the health bar and the top of whatever it's attached to.
 const HEALTH_BAR_GAP_ABOVE = 10;
 
+// "Hold E to revive" progress circle, built for every player (buildReviveIndicator) right above
+// their health bar - radius/thickness chosen so its bottom edge clears the health bar's own top
+// edge (frame sits HEALTH_BAR_GAP_ABOVE=10px up, 6px tall) with a few pixels of margin.
+const REVIVE_RING_RADIUS = 8;
+const REVIVE_RING_THICKNESS = 3;
+const REVIVE_RING_GAP_ABOVE = 20;
+// Above both the revive ring (20) and the "Reloading..." text (RELOAD_TEXT_GAP_ABOVE, 22) so a
+// downed player's hint never overlaps either.
+const REVIVE_HINT_TEXT_GAP_ABOVE = 34;
+
+// "Press E to..." proximity hint - built for every tower/wall/the lobby (buildInteractIndicator),
+// above their health bar (further up than the revive ring's own gap, since a building has no
+// revive ring to share space with, but staying consistent with that spacing reads fine).
+const INTERACT_INDICATOR_GAP_ABOVE = 22;
+
 // Wave HUD, laid out left-to-right and centered at the top of the screen: "Wave x/y", a
 // progress bar over the current wave's sub-waves, then the live zombie count.
 const WAVE_TEXT_SIZE = { width: 110, height: 24 };
@@ -65,6 +97,10 @@ const WAVE_PROGRESS_BAR_SIZE = { width: 180, height: 14 };
 const ALIVE_TEXT_SIZE = { width: 100, height: 24 };
 const WAVE_HUD_GAP = 12;
 const WAVE_HUD_TOP_MARGIN = 14;
+// "Next round in Ns" - centered under the progress bar, only visible during the between-waves
+// cooldown (wave-info-packet.handler.ts owns showing/hiding it).
+const WAVE_COUNTDOWN_TEXT_SIZE = { height: 18 };
+const WAVE_COUNTDOWN_GAP = 6;
 
 // Money HUD, top-left of the screen.
 const MONEY_TEXT_SIZE = { width: 140, height: 24 };
@@ -76,6 +112,12 @@ const BUILD_BUTTON_SIZE = { width: 90, height: 70 };
 const BUILD_BAR_GAP = 10;
 const BUILD_BAR_BOTTOM_MARGIN = 20;
 const GRID_STROKE = "rgba(245, 242, 233, 0.25)";
+// Top-right "+"/"-" camera zoom controls, only visible/hittable in build mode alongside the build
+// bar (same idiom as every other bar element) - same bottom-left-corner-anchoring pattern the ammo
+// HUD uses, mirrored to the opposite corner.
+const ZOOM_BUTTON_SIZE = { width: 36, height: 36 };
+const ZOOM_BUTTON_GAP = 8;
+const ZOOM_BUTTON_MARGIN = 16;
 
 // Above bullets/zombies (BULLET_Z_INDEX, spawn-packet.handler.ts, is 15) so a bullet spawning at
 // the player's own center (weapon.system.ts fires from the player's exact center now) renders
@@ -84,21 +126,17 @@ const GRID_STROKE = "rgba(245, 242, 233, 0.25)";
 // hit, only behind the player that fired it.
 const PLAYER_Z_INDEX = 16;
 
-// Held weapon sprites - same LocalTransform per hand (each is held BY that hand), just above it
-// in z-order. Each weapon's own rest-angle rotation offset now lives in weapon-catalog.ts
-// (client), since a shotgun's art doesn't rest at the same angle as the pistol's.
+// Held weapon sprite, just above the hand in z-order. Each weapon's own rest-angle rotation
+// offset lives in weapon-catalog.ts (client), since a shotgun's art doesn't rest at the same
+// angle as the pistol's.
 const WEAPON_Z_INDEX = 21;
-// Left keeps the pistol/hand's original offset exactly (so a fresh spawn - smallGun left, right
-// empty - renders pixel-identical to before two-handed loadouts existed); right is a mirrored
-// guess, not yet visually confirmed. Exported so weapon-reload-animation.system.ts can rebuild a
-// weapon's own LocalTransform (this base offset plus that weapon's own catalog.handOffsetDelta,
-// see there) when a hand's equipped type changes.
-export const HAND_LOCAL_OFFSETS: Record<"left" | "right", Vector2d> = {
-  left: { x: 6, y: 12 },
-  right: { x: -6, y: 12 },
-};
+// The one hand's original offset, preserved exactly from before dual wielding existed (and after
+// its removal). Exported so weapon-reload-animation.system.ts can rebuild a weapon's own
+// LocalTransform (this base offset plus that weapon's own catalog.handOffsetDelta, see there)
+// when the equipped type changes.
+export const WEAPON_LOCAL_OFFSET: Vector2d = { x: 6, y: 12 };
 
-// A weapon entity's (or its reload overlay's) actual LocalTransform: HAND_LOCAL_OFFSETS[hand] plus
+// A weapon entity's (or its reload overlay's) actual LocalTransform: WEAPON_LOCAL_OFFSET plus
 // this weapon's own catalog.handOffsetDelta, if it has one. Needed because the hand and its weapon
 // share the exact same LocalTransform, but each sprite's own `pivot` (see SpriteComponent) renders
 // at THIS ENTITY's own position plus ITS OWN pivot - so if a weapon's pivot isn't numerically equal
@@ -108,29 +146,28 @@ export const HAND_LOCAL_OFFSETS: Record<"left" | "right", Vector2d> = {
 // the same (8,8) center) needs no delta; one that doesn't (the shotgun's grip sits well off its own
 // 52x32 frame's center) needs this correction or it renders visibly away from the hand - see
 // weapon-catalog.ts's handOffsetDelta comment for how it's derived.
-function weaponLocalOffset(hand: "left" | "right", catalog: { spriteKey: string; handOffsetDelta?: Vector2d }): Vector2d {
-  const base = HAND_LOCAL_OFFSETS[hand];
+function weaponLocalOffset(catalog: { spriteKey: string; handOffsetDelta?: Vector2d }): Vector2d {
   const delta = catalog.handOffsetDelta;
-  return delta ? { x: base.x + delta.x, y: base.y + delta.y } : base;
+  return delta
+    ? { x: WEAPON_LOCAL_OFFSET.x + delta.x, y: WEAPON_LOCAL_OFFSET.y + delta.y }
+    : WEAPON_LOCAL_OFFSET;
 }
 
-// Ammo HUD, bottom-left of the screen - one row per hand, right-hand row stacked above left's.
-// Hidden entirely (both icon+text and its RELOAD sprite) whenever that hand has nothing equipped
-// - see reload-indicator.system.ts, which now owns both concerns.
+// Ammo HUD, bottom-left of the screen - a single row now (dual wielding removed). Hidden entirely
+// (icon+text) whenever nothing is equipped - see reload-indicator.system.ts.
 const AMMO_HUD_LEFT_MARGIN = 14;
 const AMMO_HUD_BOTTOM_MARGIN = 14;
-// Exported so weapon-inventory-packet.handler.ts can re-fit-scale a hand's ammo HUD icon when
-// that hand gets re-equipped to a different weapon after construction (see there).
+// Exported so weapon-inventory-packet.handler.ts can re-fit-scale the ammo HUD icon when the
+// equipped weapon changes after construction (see there).
 export const AMMO_ICON_SIZE = { width: 32, height: 32 };
 const AMMO_TEXT_SIZE = { width: 100, height: 32 };
 const AMMO_HUD_GAP = 10;
-const AMMO_HUD_ROW_GAP = 6;
 
-// "RELOAD!" indicator - sits beside its own ammo row (not above it, which is where the prior
-// single-row layout put it) so two stacked rows don't collide.
-const RELOAD_ICON_SIZE = { width: 24, height: 6 };
-const RELOAD_ICON_SCALE = 2.5;
-const RELOAD_HUD_GAP = 10;
+// World-space "Reloading..." label, shown above every player's health bar while their equipped
+// weapon is mid-reload - visible to everyone nearby, not just a local HUD element (see
+// buildReloadIndicator/reload-indicator.system.ts). Sits above the health bar the same way
+// REVIVE_RING_GAP_ABOVE does, just further up so the two never overlap.
+const RELOAD_TEXT_GAP_ABOVE = 22;
 
 // Custom crosshair cursor - replaces the OS cursor while in GameScene (see GameScene.load and
 // this file's build-bar hover handlers, below). Size/scale shared with cursor.system.ts (which
@@ -148,10 +185,12 @@ const COIN_ICON_GAP = 4; // between the coin and the number that follows it
 const SHOP_PANEL_RIGHT_MARGIN = 20;
 const SHOP_ENTRY_WIDTH = 100;
 const SHOP_BUY_HEIGHT = 64;
-const SHOP_HAND_BUTTON_HEIGHT = 24;
-const SHOP_HAND_BUTTON_GAP = 4;
+// One "Select"/"Selected" button spanning the full entry width, below the buy button - replaces
+// the old two-hand L/R buttons now that dual wielding is gone.
+const SHOP_SELECT_BUTTON_HEIGHT = 24;
+const SHOP_SELECT_BUTTON_GAP = 4;
 const SHOP_ENTRY_GAP = 14;
-const SHOP_ENTRY_HEIGHT = SHOP_BUY_HEIGHT + SHOP_HAND_BUTTON_GAP + SHOP_HAND_BUTTON_HEIGHT;
+const SHOP_ENTRY_HEIGHT = SHOP_BUY_HEIGHT + SHOP_SELECT_BUTTON_GAP + SHOP_SELECT_BUTTON_HEIGHT;
 const SHOP_TOP_MARGIN = 110; // clears the wave HUD
 
 export function buildHealthBar(
@@ -172,7 +211,9 @@ export function buildHealthBar(
   );
   registry.addComponent(
     frame,
-    new ChildrenComponent(parentEntity.getId(), { LocalTransform: { x: frameLocalX, y: frameLocalY } }),
+    new ChildrenComponent(parentEntity.getId(), {
+      LocalTransform: { x: frameLocalX, y: frameLocalY },
+    }),
   );
   registry.addComponent(frame, new Direction(0, 0));
   registry.addComponent(frame, new ZIndexComponent(HEALTH_BAR_Z_INDEX));
@@ -198,34 +239,200 @@ export function buildHealthBar(
   );
   registry.addComponent(
     fill,
-    new ChildrenComponent(parentEntity.getId(), { LocalTransform: { x: fillLocalX, y: fillLocalY } }),
+    new ChildrenComponent(parentEntity.getId(), {
+      LocalTransform: { x: fillLocalX, y: fillLocalY },
+    }),
   );
   registry.addComponent(fill, new Direction(0, 0));
-  registry.addComponent(fill, new ZIndexComponent(HEALTH_BAR_Z_INDEX));
+  registry.addComponent(fill, new ZIndexComponent(HEALTH_BAR_FILL_Z_INDEX));
   registry.addComponent(fill, new HealthBarFill(cavityLocalX));
 }
 
-// One hand + its held weapon, for one hand slot ("left"/"right") of one player - called twice per
-// player (buildPlayer, below). `weaponType` null means that hand starts unequipped: the weapon
-// sprite still exists (so weapon-inventory-packet.handler.ts has something to re-point later
-// without needing to add components dynamically), just hidden - see reload-indicator.system.ts,
-// which owns visibility for the local player's own hands, and weapon-visibility.system.ts, which
-// owns it for everyone else's.
+// "Press E to..." hint text, built alongside a tower/wall/the lobby's own health bar (above it,
+// see INTERACT_INDICATOR_GAP_ABOVE) - starts empty/hidden; building-interact-indicator.system.ts
+// drives its text and visibility every tick off the local player's proximity and the target's own
+// Health (and Tower level, if it has one).
+export function buildInteractIndicator(
+  layer: Layer,
+  registry: Registry,
+  parentEntity: ReturnType<Registry["spawnEntity"]>,
+  parentWidth: number,
+) {
+  const localX = parentWidth / 2;
+  const localY = -INTERACT_INDICATOR_GAP_ABOVE;
+
+  const textComponent = new TextComponent(layer, {
+    text: "",
+    x: 0,
+    y: 0,
+    width: 160,
+    align: "center",
+    offsetX: 80,
+    fontSize: 11,
+    fontStyle: "bold",
+    fill: "#F5F2E9",
+    stroke: "#000000",
+    strokeWidth: 2,
+    fillAfterStrokeEnabled: true,
+    listening: false,
+    visible: false,
+  });
+
+  const indicator = registry.spawnEntity();
+  registry.addComponent(indicator, new TransformComponent(0, 0));
+  registry.addComponent(
+    indicator,
+    new ChildrenComponent(parentEntity.getId(), { LocalTransform: { x: localX, y: localY } }),
+  );
+  registry.addComponent(indicator, new Direction(0, 0));
+  registry.addComponent(indicator, new BuildingInteractIndicatorComponent(textComponent.text));
+}
+
+// Grey->green "hold E to revive" progress circle, one per player, built alongside their health
+// bar (buildHealthBar, above) but sitting higher above them so the two never overlap. Starts
+// fully hidden; revive-packet.handler.ts drives visibility/progress from the server's
+// authoritative revive.system.ts events, revive-indicator.system.ts positions it every tick (it's
+// raw Konva shapes, not a SpriteComponent, so spriteSystem never touches it).
+function buildReviveIndicator(
+  layer: Layer,
+  registry: Registry,
+  parentEntity: ReturnType<Registry["spawnEntity"]>,
+  parentWidth: number,
+) {
+  const localX = parentWidth / 2;
+  const localY = -REVIVE_RING_GAP_ABOVE;
+
+  const background = new Ring({
+    innerRadius: REVIVE_RING_RADIUS - REVIVE_RING_THICKNESS,
+    outerRadius: REVIVE_RING_RADIUS,
+    fill: "rgba(90, 90, 90, 0.85)",
+    visible: false,
+  });
+  // rotation: -90 so the fill starts from the top and grows clockwise as `angle` increases,
+  // rather than starting at Konva's default 3-o'clock position.
+  const fill = new Arc({
+    innerRadius: REVIVE_RING_RADIUS - REVIVE_RING_THICKNESS,
+    outerRadius: REVIVE_RING_RADIUS,
+    angle: 0,
+    rotation: -90,
+    fill: "#4caf50",
+    visible: false,
+  });
+  layer.add(background);
+  layer.add(fill);
+
+  const indicator = registry.spawnEntity();
+  registry.addComponent(indicator, new TransformComponent(0, 0));
+  registry.addComponent(
+    indicator,
+    new ChildrenComponent(parentEntity.getId(), { LocalTransform: { x: localX, y: localY } }),
+  );
+  registry.addComponent(indicator, new Direction(0, 0));
+  registry.addComponent(indicator, new ReviveIndicatorComponent(background, fill));
+}
+
+// "Hold E to revive" hint text, built alongside a player's own revive ring (above it, see
+// REVIVE_HINT_TEXT_GAP_ABOVE) - starts empty/hidden; revive-hint-indicator.system.ts drives its
+// visibility every tick off the local player's own proximity/aliveness and this player's Health,
+// same idiom as buildInteractIndicator's tower/wall hint above.
+function buildReviveHintIndicator(
+  layer: Layer,
+  registry: Registry,
+  parentEntity: ReturnType<Registry["spawnEntity"]>,
+  parentWidth: number,
+) {
+  const localX = parentWidth / 2;
+  const localY = -REVIVE_HINT_TEXT_GAP_ABOVE;
+
+  const textComponent = new TextComponent(layer, {
+    text: "Hold E to revive",
+    x: 0,
+    y: 0,
+    width: 160,
+    align: "center",
+    offsetX: 80,
+    fontSize: 11,
+    fontStyle: "bold",
+    fill: "#F5F2E9",
+    stroke: "#000000",
+    strokeWidth: 2,
+    fillAfterStrokeEnabled: true,
+    listening: false,
+    visible: false,
+  });
+
+  const indicator = registry.spawnEntity();
+  registry.addComponent(indicator, new TransformComponent(0, 0));
+  registry.addComponent(
+    indicator,
+    new ChildrenComponent(parentEntity.getId(), { LocalTransform: { x: localX, y: localY } }),
+  );
+  registry.addComponent(indicator, new Direction(0, 0));
+  registry.addComponent(indicator, new ReviveHintIndicatorComponent(textComponent.text));
+}
+
+// World-space "Reloading..." label, one per player, sitting above the health bar (further up
+// than the revive ring - RELOAD_TEXT_GAP_ABOVE > REVIVE_RING_GAP_ABOVE - so the two never
+// overlap). Starts hidden; reload-indicator.system.ts drives visibility every tick off this
+// player's own Weapon.reloading and re-positions it every tick from TransformComponent, the same
+// way revive-indicator.system.ts positions the revive ring's Arc/Ring - Text isn't a Sprite, so
+// spriteSystem never touches it.
+function buildReloadIndicator(
+  layer: Layer,
+  registry: Registry,
+  parentEntity: ReturnType<Registry["spawnEntity"]>,
+  parentWidth: number,
+) {
+  const localX = parentWidth / 2;
+  const localY = -RELOAD_TEXT_GAP_ABOVE;
+
+  const textComponent = new TextComponent(layer, {
+    text: "Reloading...",
+    x: 0,
+    y: 0,
+    width: 100,
+    align: "center",
+    offsetX: 50,
+    fontSize: 12,
+    fontStyle: "bold",
+    fill: "#F5F2E9",
+    listening: false,
+    visible: false,
+  });
+
+  const indicator = registry.spawnEntity();
+  registry.addComponent(indicator, new TransformComponent(0, 0));
+  registry.addComponent(
+    indicator,
+    new ChildrenComponent(parentEntity.getId(), { LocalTransform: { x: localX, y: localY } }),
+  );
+  registry.addComponent(indicator, new Direction(0, 0));
+  registry.addComponent(indicator, new ReloadIndicatorComponent(textComponent.text));
+}
+
+// The single hand + its held weapon for a player (buildPlayer, below). `weaponType` null means
+// the player starts unequipped: the weapon sprite still exists (so
+// weapon-inventory-packet.handler.ts has something to re-point later without needing to add
+// components dynamically), just hidden - see reload-indicator.system.ts, which owns visibility
+// for the local player's own HUD, and weapon-visibility.system.ts, which owns it for everyone
+// else's.
 function buildHandAndWeapon(
   scene: Scene,
   registry: Registry,
   playerEntity: ReturnType<Registry["spawnEntity"]>,
   playerPosition: Vector2d,
-  hand: "left" | "right",
   weaponType: WeaponType | null,
 ) {
   if (!scene.layer) return;
-  const localOffset = HAND_LOCAL_OFFSETS[hand];
+  const localOffset = WEAPON_LOCAL_OFFSET;
 
   const handEntity = registry.spawnEntity();
   registry.addComponent(handEntity, new TransformComponent(playerPosition.x, playerPosition.y));
   registry.addComponent(handEntity, new SpriteComponent("hand.png", { layer: scene.layer }));
-  registry.addComponent(handEntity, new ChildrenComponent(playerEntity.getId(), { LocalTransform: localOffset }));
+  registry.addComponent(
+    handEntity,
+    new ChildrenComponent(playerEntity.getId(), { LocalTransform: localOffset }),
+  );
   registry.addComponent(handEntity, new Direction(0, 0));
   // mirrorWhenFacingLeft: true - matches the weapon's own DirectionRotatorComponent below. Without
   // this the hand and its held weapon rotate by different formulas while aiming left (only the
@@ -237,9 +444,10 @@ function buildHandAndWeapon(
   registry.addComponent(handEntity, new ZIndexComponent(20));
 
   // Each weapon type can live on its own source image now (e.g. shotgun's Shotgun-Shot.png), not
-  // just a shared weapons.png - an unequipped hand has no weaponType to key off yet, so it starts
-  // out looking like smallGun's (its sprite is hidden regardless - weapon-visibility.system.ts/
-  // build-mode.system.ts - so the choice is arbitrary, just needs to be a valid, loadable pair).
+  // just a shared weapons.png - an unequipped player has no weaponType to key off yet, so it
+  // starts out looking like smallGun's (its sprite is hidden regardless - weapon-visibility.
+  // system.ts/build-mode.system.ts - so the choice is arbitrary, just needs to be a valid,
+  // loadable pair).
   // weapon-reload-animation.system.ts's per-tick pass re-points spriteKey/animationsKey/scale
   // (and hides this in favor of the reload overlay below) once a real weaponType is equipped.
   const initialCatalog = weaponType ? WEAPON_CATALOG[weaponType] : WEAPON_CATALOG.smallGun;
@@ -268,21 +476,23 @@ function buildHandAndWeapon(
   );
   registry.addComponent(
     weaponEntity,
-    new ChildrenComponent(playerEntity.getId(), { LocalTransform: weaponLocalOffset(hand, initialCatalog) }),
+    new ChildrenComponent(playerEntity.getId(), {
+      LocalTransform: weaponLocalOffset(initialCatalog),
+    }),
   );
   registry.addComponent(weaponEntity, new Direction(0, 0));
   // mirrorWhenFacingLeft: true - the gun rotates through the full circle, so without this it
   // reads upside-down for the whole left half of the arc (see rotate-to-direction.system.ts).
   registry.addComponent(weaponEntity, new DirectionRotatorComponent(rotationOffset, true, true));
   registry.addComponent(weaponEntity, new ZIndexComponent(WEAPON_Z_INDEX));
-  registry.addComponent(weaponEntity, new Weapon(hand, weaponType, rotationOffset));
+  registry.addComponent(weaponEntity, new Weapon(weaponType, rotationOffset));
 
-  // Reload-animation overlay - built once, always (regardless of what's initially equipped in
-  // this hand), hidden by default. weapon-reload-animation.system.ts shows it (and hides the
-  // main weapon sprite above) only while this hand's equipped weapon actually has a
-  // reloadSpriteKey AND is reloading. Hardcoded to the shotgun's reload asset for now - it's the
-  // only weapon with one; if a second weapon type gains its own reload animation, this needs to
-  // become per-equipped-type instead (rebuilt or re-keyed on equip, not just visibility-toggled).
+  // Reload-animation overlay - built once, always (regardless of what's initially equipped),
+  // hidden by default. weapon-reload-animation.system.ts shows it (and hides the main weapon
+  // sprite above) only while the equipped weapon actually has a reloadSpriteKey AND is reloading.
+  // Hardcoded to the shotgun's reload asset for now - it's the only weapon with one; if a second
+  // weapon type gains its own reload animation, this needs to become per-equipped-type instead
+  // (rebuilt or re-keyed on equip, not just visibility-toggled).
   // A completely separate, independently-loaded sprite entity rather than swapping the main
   // weapon's own image at reload time on purpose: swapping destroys and recreates the Konva node
   // (setSpriteKey), which is asynchronous and was visibly glitchy (the weapon flickering out for
@@ -290,7 +500,10 @@ function buildHandAndWeapon(
   // is instant.
   const reloadOverlayCatalog = WEAPON_CATALOG.shotgun;
   const reloadOverlayEntity = registry.spawnEntity();
-  registry.addComponent(reloadOverlayEntity, new TransformComponent(playerPosition.x, playerPosition.y));
+  registry.addComponent(
+    reloadOverlayEntity,
+    new TransformComponent(playerPosition.x, playerPosition.y),
+  );
   registry.addComponent(
     reloadOverlayEntity,
     // Not currentAnimation: "reload" here - spriteSystem always constructs its Konva node
@@ -317,7 +530,9 @@ function buildHandAndWeapon(
     // changes at runtime (this overlay always displays the shotgun's reload asset regardless of
     // what's currently equipped - see the comment above), so it's fine to compute once here rather
     // than needing weapon-reload-animation.system.ts to re-derive it every tick.
-    new ChildrenComponent(playerEntity.getId(), { LocalTransform: weaponLocalOffset(hand, reloadOverlayCatalog) }),
+    new ChildrenComponent(playerEntity.getId(), {
+      LocalTransform: weaponLocalOffset(reloadOverlayCatalog),
+    }),
   );
   registry.addComponent(reloadOverlayEntity, new Direction(0, 0));
   registry.addComponent(
@@ -325,7 +540,7 @@ function buildHandAndWeapon(
     new DirectionRotatorComponent(reloadOverlayCatalog.rotationOffset, true, true),
   );
   registry.addComponent(reloadOverlayEntity, new ZIndexComponent(WEAPON_Z_INDEX));
-  registry.addComponent(reloadOverlayEntity, new WeaponReloadOverlayComponent(hand));
+  registry.addComponent(reloadOverlayEntity, new WeaponReloadOverlayComponent());
 }
 
 function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
@@ -344,7 +559,10 @@ function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
   // player1.png..player3.png share the same 24x24 idle/walk/death layout (see
   // player-animations.txt) - picked in MenuScene's skin swatches and carried through the
   // joinLobby/startGame packets, clamped again here in case a stale/malformed value slipped in.
-  const skin = Number.isInteger(playerPacket.skin) && playerPacket.skin >= 1 && playerPacket.skin <= 3 ? playerPacket.skin : 1;
+  const skin =
+    Number.isInteger(playerPacket.skin) && playerPacket.skin >= 1 && playerPacket.skin <= 3
+      ? playerPacket.skin
+      : 1;
   registry.addComponent(
     playerEntity,
     new SpriteComponent(`player${skin}.png`, {
@@ -355,39 +573,66 @@ function buildPlayer(scene: Scene, playerPacket: any, registry: Registry) {
   if (playerId === playerPacket.id) {
     registry.addComponent(playerEntity, new MoveController());
     registry.addComponent(playerEntity, new ShootController());
+    registry.addComponent(playerEntity, new ReviveController());
   }
-  registry.addComponent(playerEntity, new Health(playerPacket.health.current, playerPacket.health.max));
-  buildHealthBar(scene.layer || new Layer(), registry, playerEntity, PLAYER_SPRITE_SIZE.width, playerPacket.health);
+  registry.addComponent(
+    playerEntity,
+    new Health(playerPacket.health.current, playerPacket.health.max),
+  );
+  buildHealthBar(
+    scene.layer || new Layer(),
+    registry,
+    playerEntity,
+    PLAYER_SPRITE_SIZE.width,
+    playerPacket.health,
+  );
+  buildReviveIndicator(
+    scene.layer || new Layer(),
+    registry,
+    playerEntity,
+    PLAYER_SPRITE_SIZE.width,
+  );
+  buildReviveHintIndicator(
+    scene.layer || new Layer(),
+    registry,
+    playerEntity,
+    PLAYER_SPRITE_SIZE.width,
+  );
+  buildReloadIndicator(
+    scene.layer || new Layer(),
+    registry,
+    playerEntity,
+    PLAYER_SPRITE_SIZE.width,
+  );
 
-  // Every player visibly holds their weapons (not just the local one) - both hands, so everyone
-  // agrees on what everyone else's loadout looks like.
-  buildHandAndWeapon(scene, registry, playerEntity, playerPacket.position, "left", playerPacket.leftWeaponType ?? null);
-  buildHandAndWeapon(scene, registry, playerEntity, playerPacket.position, "right", playerPacket.rightWeaponType ?? null);
+  // Every player visibly holds their weapon (not just the local one), so everyone agrees on what
+  // everyone else's loadout looks like.
+  buildHandAndWeapon(
+    scene,
+    registry,
+    playerEntity,
+    playerPacket.position,
+    playerPacket.weaponType ?? null,
+  );
 }
 
 function buildAmmoHud(
   hudLayer: Layer,
   registry: Registry,
-  hand: "left" | "right",
   weaponType: WeaponType | null,
   ammo: { magazineAmmo: number; reserveAmmo: number } | undefined,
 ) {
-  // Right's row sits above left's, so with only smallGun-left equipped (the default at spawn)
-  // this looks exactly like the single-row layout did before two hands existed.
-  const rowIndex = hand === "left" ? 0 : 1;
+  // A single row now (dual wielding removed) - same bottom-left corner the old single-weapon HUD
+  // used.
   const iconX = AMMO_HUD_LEFT_MARGIN;
-  const iconY =
-    window.innerHeight -
-    AMMO_ICON_SIZE.height -
-    AMMO_HUD_BOTTOM_MARGIN -
-    rowIndex * (AMMO_ICON_SIZE.height + AMMO_HUD_ROW_GAP);
+  const iconY = window.innerHeight - AMMO_ICON_SIZE.height - AMMO_HUD_BOTTOM_MARGIN;
 
   // Each weapon can live on its own source image now (see client/weapon-catalog.ts's
   // spriteKey/animationsKey), so the icon isn't always weapons.png any more either. Fit-scale
   // (uniform, aspect-preserving) each weapon's own native crop size into the fixed AMMO_ICON_SIZE
   // box, rather than assuming every icon is the same size - Shotgun-Shot.png's crop is a much
   // bigger 52x32, and scaling that by a 16-based factor on both axes would overflow the slot and
-  // run into the ammo text next to it. An unassigned hand has no weaponType yet; default to
+  // run into the ammo text next to it. Nothing equipped yet has no weaponType; default to
   // smallGun's image/icon size since the sprite is hidden in that state anyway.
   const initialIconCatalog = weaponType ? WEAPON_CATALOG[weaponType] : WEAPON_CATALOG.smallGun;
   const iconFitScale = Math.min(
@@ -425,26 +670,7 @@ function buildAmmoHud(
   registry.addComponent(textEntity, textComponent);
 
   const hudEntity = registry.spawnEntity();
-  registry.addComponent(hudEntity, new AmmoHudComponent(textComponent.text, iconSprite, hand));
-
-  // Sits beside its row (to the right of the ammo text), not above it - stacking two rows
-  // vertically would otherwise put one row's RELOAD sprite where the other row's ammo icon lives.
-  // Hidden by default; reload-indicator.system.ts drives both this and the row above every tick
-  // (spriteSystem creates the underlying Konva node lazily, so a one-shot visible() call here
-  // would silently no-op forever).
-  const reloadX = iconX + AMMO_ICON_SIZE.width + AMMO_HUD_GAP + AMMO_TEXT_SIZE.width + RELOAD_HUD_GAP;
-  const reloadY = iconY + (AMMO_ICON_SIZE.height - RELOAD_ICON_SIZE.height * RELOAD_ICON_SCALE) / 2;
-  const reloadEntity = registry.spawnEntity();
-  registry.addComponent(
-    reloadEntity,
-    new SpriteComponent("ui.png", {
-      layer: hudLayer,
-      animationsKey: "ui-reload-animations.txt",
-      scale: { x: RELOAD_ICON_SCALE, y: RELOAD_ICON_SCALE },
-    }),
-  );
-  registry.addComponent(reloadEntity, new TransformComponent(reloadX, reloadY));
-  registry.addComponent(reloadEntity, new ReloadIndicatorComponent(hand));
+  registry.addComponent(hudEntity, new AmmoHudComponent(textComponent.text, iconSprite));
 }
 
 function buildCursor(hudLayer: Layer, registry: Registry) {
@@ -480,13 +706,32 @@ function buildLobby(scene: Scene, lobbyPacket: any, registry: Registry) {
   );
   registry.addComponent(lobbyEntity, new Lobby());
   registry.addComponent(lobbyEntity, new ZIndexComponent(10));
-  registry.addComponent(lobbyEntity, new Health(lobbyPacket.health.current, lobbyPacket.health.max));
-  buildHealthBar(scene.layer || new Layer(), registry, lobbyEntity, LOBBY_SPRITE_SIZE.width, lobbyPacket.health);
+  registry.addComponent(
+    lobbyEntity,
+    new Health(lobbyPacket.health.current, lobbyPacket.health.max),
+  );
+  buildHealthBar(
+    scene.layer || new Layer(),
+    registry,
+    lobbyEntity,
+    LOBBY_SPRITE_SIZE.width,
+    lobbyPacket.health,
+  );
+  buildInteractIndicator(
+    scene.layer || new Layer(),
+    registry,
+    lobbyEntity,
+    LOBBY_SPRITE_SIZE.width,
+  );
 }
 
 function buildWaveHud(layer: Layer, registry: Registry) {
   const totalWidth =
-    WAVE_TEXT_SIZE.width + WAVE_HUD_GAP + WAVE_PROGRESS_BAR_SIZE.width + WAVE_HUD_GAP + ALIVE_TEXT_SIZE.width;
+    WAVE_TEXT_SIZE.width +
+    WAVE_HUD_GAP +
+    WAVE_PROGRESS_BAR_SIZE.width +
+    WAVE_HUD_GAP +
+    ALIVE_TEXT_SIZE.width;
   const startX = window.innerWidth / 2 - totalWidth / 2;
 
   const waveTextEntity = registry.spawnEntity();
@@ -546,10 +791,33 @@ function buildWaveHud(layer: Layer, registry: Registry) {
   });
   registry.addComponent(aliveTextEntity, aliveTextComponent);
 
+  // Centered under the progress bar, hidden except during the between-waves cooldown -
+  // wave-info-packet.handler.ts owns both its text and visibility.
+  const countdownTextEntity = registry.spawnEntity();
+  const countdownTextComponent = new TextComponent(layer, {
+    text: "",
+    x: barX,
+    y: barY + WAVE_PROGRESS_BAR_SIZE.height + WAVE_COUNTDOWN_GAP,
+    width: WAVE_PROGRESS_BAR_SIZE.width,
+    height: WAVE_COUNTDOWN_TEXT_SIZE.height,
+    align: "center",
+    fontSize: 14,
+    fontStyle: "bold",
+    fill: "#F5F2E9",
+    visible: false,
+  });
+  registry.addComponent(countdownTextEntity, countdownTextComponent);
+
   const hudEntity = registry.spawnEntity();
   registry.addComponent(
     hudEntity,
-    new WaveHudComponent(waveTextComponent.text, trackComponent.rect, fillComponent.rect, aliveTextComponent.text),
+    new WaveHudComponent(
+      waveTextComponent.text,
+      trackComponent.rect,
+      fillComponent.rect,
+      aliveTextComponent.text,
+      countdownTextComponent.text,
+    ),
   );
 }
 
@@ -576,7 +844,10 @@ function buildMoneyHud(layer: Layer, registry: Registry, amount: number) {
   registry.addComponent(moneyTextEntity, moneyTextComponent);
 
   const hudEntity = registry.spawnEntity();
-  registry.addComponent(hudEntity, new MoneyHudComponent(moneyTextComponent.text, amount, coinIcon));
+  registry.addComponent(
+    hudEntity,
+    new MoneyHudComponent(moneyTextComponent.text, amount, coinIcon),
+  );
 }
 
 function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) {
@@ -634,19 +905,192 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
   });
   worldLayer.add(previewRect);
 
-  const catalogEntries = Object.entries(BUILDING_CATALOG) as [BuildingType, (typeof BUILDING_CATALOG)[BuildingType]][];
-  const totalWidth =
-    catalogEntries.length * BUILD_BUTTON_SIZE.width + (catalogEntries.length - 1) * BUILD_BAR_GAP;
+  // Shown only while the tower build-bar entry is selected, centered on the placement preview -
+  // lets a player see how much ground a tower would actually cover before committing to a spot.
+  // Radius is set every tick by build-mode.system.ts (TOWER_RANGE, client/building-economy.ts).
+  const rangeCircle = new Circle({
+    x: 0,
+    y: 0,
+    radius: 0,
+    stroke: "rgba(245, 242, 233, 0.6)",
+    strokeWidth: 1,
+    dash: [4, 4],
+    fill: "rgba(245, 242, 233, 0.08)",
+    visible: false,
+    listening: false,
+  });
+  worldLayer.add(rangeCircle);
+
+  // Every ALREADY-BUILT tower's own range, all drawn by one Shape rather than a Circle per tower -
+  // a destroyed tower's circle then needs no cleanup of its own in kill-packet.handler.ts, it
+  // simply stops being drawn the next tick. Distinct from `rangeCircle` above, which only ever
+  // previews ONE not-yet-placed tower while its build-bar entry is selected.
+  //
+  // The sceneFunc below deliberately reads ONLY this plain array, never the registry directly -
+  // Konva can call sceneFunc from its own render loop, off build-mode.system.ts's tick (e.g. a
+  // batched redraw after .visible()/.moveToTop()), and calling registry.getZipper() from an
+  // arbitrary point in the frame like that isn't safe. build-mode.system.ts refills THIS SAME
+  // array (by reference, via BuildModeComponent.towerRangeCenters) from live
+  // Building/TransformComponent state once per tick instead.
+  const towerRangeCenters: { x: number; y: number }[] = [];
+  const towerRangeCircles = new Shape({
+    stroke: "rgba(245, 242, 233, 0.35)",
+    strokeWidth: 1,
+    dash: [4, 4],
+    listening: false,
+    visible: false,
+    sceneFunc: (context, shape) => {
+      context.beginPath();
+      for (const { x: centerX, y: centerY } of towerRangeCenters) {
+        context.moveTo(centerX + TOWER_RANGE, centerY);
+        context.arc(centerX, centerY, TOWER_RANGE, 0, Math.PI * 2);
+      }
+      context.strokeShape(shape);
+    },
+  });
+  worldLayer.add(towerRangeCircles);
+
+  const catalogEntries = Object.entries(BUILDING_CATALOG) as [
+    BuildingType,
+    (typeof BUILDING_CATALOG)[BuildingType],
+  ][];
+  // +1 slot for the "Destroy" button, appended after every catalog entry.
+  const buttonCount = catalogEntries.length + 1;
+  const totalWidth = buttonCount * BUILD_BUTTON_SIZE.width + (buttonCount - 1) * BUILD_BAR_GAP;
   const barX = window.innerWidth / 2 - totalWidth / 2;
   const barY = window.innerHeight - BUILD_BUTTON_SIZE.height - BUILD_BAR_BOTTOM_MARGIN;
 
-  const buildMode = new BuildModeComponent(gridShape, previewRect, [], {
-    x: barX,
+  const destroyX = barX + catalogEntries.length * (BUILD_BUTTON_SIZE.width + BUILD_BAR_GAP);
+  const destroyRectComponent = new RectComponent(hudLayer, {
+    x: destroyX,
     y: barY,
-    width: totalWidth,
+    width: BUILD_BUTTON_SIZE.width,
     height: BUILD_BUTTON_SIZE.height,
+    fill: "#521010",
+    stroke: "#8C5E5E",
+    strokeWidth: 2,
+    cornerRadius: 6,
+    visible: false,
   });
+  registry.addComponent(registry.spawnEntity(), destroyRectComponent);
+  const destroyTextComponent = new TextComponent(hudLayer, {
+    text: "Destroy\n(50% refund)",
+    x: destroyX,
+    y: barY,
+    width: BUILD_BUTTON_SIZE.width,
+    height: BUILD_BUTTON_SIZE.height,
+    align: "center",
+    verticalAlign: "middle",
+    fontSize: 13,
+    fontStyle: "bold",
+    fill: "#F5F2E9",
+    visible: false,
+    listening: false,
+  });
+  registry.addComponent(registry.spawnEntity(), destroyTextComponent);
+
+  // "-" / "+" zoom buttons, top-right corner (screen-space, hudLayer) - "+" rightmost (closest to
+  // the corner), "-" to its left, the conventional left-to-right zoom-out-to-zoom-in order. Clicks
+  // here only move BuildModeComponent.targetZoomLevel; build-mode.system.ts eases the live
+  // zoomLevel toward it every tick and applies that to the world layer's scale.
+  const zoomInX = window.innerWidth - ZOOM_BUTTON_MARGIN - ZOOM_BUTTON_SIZE.width;
+  const zoomOutX = zoomInX - ZOOM_BUTTON_GAP - ZOOM_BUTTON_SIZE.width;
+  const zoomY = ZOOM_BUTTON_MARGIN;
+
+  function buildZoomButton(x: number, label: string) {
+    const rectComponent = new RectComponent(hudLayer, {
+      x,
+      y: zoomY,
+      width: ZOOM_BUTTON_SIZE.width,
+      height: ZOOM_BUTTON_SIZE.height,
+      fill: "#104522",
+      stroke: "#5E8C61",
+      strokeWidth: 2,
+      cornerRadius: 6,
+      visible: false,
+    });
+    registry.addComponent(registry.spawnEntity(), rectComponent);
+    rectComponent.rect.on("mouseover", () => {
+      const stage = hudLayer.getStage();
+      if (stage) stage.container().style.cursor = "pointer";
+    });
+    rectComponent.rect.on("mouseout", () => {
+      const stage = hudLayer.getStage();
+      if (stage) stage.container().style.cursor = "default";
+    });
+
+    const textComponent = new TextComponent(hudLayer, {
+      text: label,
+      x,
+      y: zoomY,
+      width: ZOOM_BUTTON_SIZE.width,
+      height: ZOOM_BUTTON_SIZE.height,
+      align: "center",
+      verticalAlign: "middle",
+      fontSize: 20,
+      fontStyle: "bold",
+      fill: "#F5F2E9",
+      visible: false,
+      listening: false,
+    });
+    registry.addComponent(registry.spawnEntity(), textComponent);
+
+    return { rect: rectComponent.rect, text: textComponent.text };
+  }
+
+  const zoomInButton = buildZoomButton(zoomInX, "+");
+  const zoomOutButton = buildZoomButton(zoomOutX, "-");
+
+  const buildMode = new BuildModeComponent(
+    gridShape,
+    previewRect,
+    rangeCircle,
+    [],
+    {
+      rect: destroyRectComponent.rect,
+      text: destroyTextComponent.text,
+    },
+    {
+      x: barX,
+      y: barY,
+      width: totalWidth,
+      height: BUILD_BUTTON_SIZE.height,
+    },
+    towerRangeCircles,
+    towerRangeCenters,
+    zoomInButton,
+    zoomOutButton,
+    {
+      x: Math.min(zoomInX, zoomOutX),
+      y: zoomY,
+      width: Math.max(zoomInX, zoomOutX) + ZOOM_BUTTON_SIZE.width - Math.min(zoomInX, zoomOutX),
+      height: ZOOM_BUTTON_SIZE.height,
+    },
+  );
   registry.addComponent(registry.spawnEntity(), buildMode);
+
+  // Only ever moves `targetZoomLevel` - build-mode.system.ts eases the LIVE `zoomLevel` toward it
+  // a little every tick rather than snapping straight there, so a click doesn't jump the camera.
+  zoomInButton.rect.on("click", () => {
+    buildMode.targetZoomLevel = Math.min(MAX_ZOOM, buildMode.targetZoomLevel + ZOOM_STEP);
+  });
+  zoomOutButton.rect.on("click", () => {
+    buildMode.targetZoomLevel = Math.max(MIN_ZOOM, buildMode.targetZoomLevel - ZOOM_STEP);
+  });
+
+  destroyRectComponent.rect.on("click", () => {
+    // Click again to turn it off - same toggle-off-on-reclick idiom the building buttons use.
+    buildMode.destroyMode = !buildMode.destroyMode;
+    if (buildMode.destroyMode) buildMode.selectedBuildingType = null;
+  });
+  destroyRectComponent.rect.on("mouseover", () => {
+    const stage = hudLayer.getStage();
+    if (stage) stage.container().style.cursor = "pointer";
+  });
+  destroyRectComponent.rect.on("mouseout", () => {
+    const stage = hudLayer.getStage();
+    if (stage) stage.container().style.cursor = "default";
+  });
 
   catalogEntries.forEach(([buildingType, entry], index) => {
     const x = barX + index * (BUILD_BUTTON_SIZE.width + BUILD_BAR_GAP);
@@ -666,7 +1110,9 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
 
     rectComponent.rect.on("click", () => {
       // Click again to deselect.
-      buildMode.selectedBuildingType = buildMode.selectedBuildingType === buildingType ? null : buildingType;
+      buildMode.selectedBuildingType =
+        buildMode.selectedBuildingType === buildingType ? null : buildingType;
+      if (buildMode.selectedBuildingType) buildMode.destroyMode = false;
     });
     rectComponent.rect.on("mouseover", () => {
       const stage = hudLayer.getStage();
@@ -737,9 +1183,13 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
 // small L/R buttons under every entry, including smallGun, assign/unassign that weapon to that
 // hand - clicking a hand button that's already assigned to this weapon unassigns it.
 function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) {
-  const catalogEntries = Object.entries(WEAPON_CATALOG) as [WeaponType, (typeof WEAPON_CATALOG)[WeaponType]][];
+  const catalogEntries = Object.entries(WEAPON_CATALOG) as [
+    WeaponType,
+    (typeof WEAPON_CATALOG)[WeaponType],
+  ][];
   const panelX = window.innerWidth - SHOP_ENTRY_WIDTH - SHOP_PANEL_RIGHT_MARGIN;
-  const totalHeight = catalogEntries.length * SHOP_ENTRY_HEIGHT + (catalogEntries.length - 1) * SHOP_ENTRY_GAP;
+  const totalHeight =
+    catalogEntries.length * SHOP_ENTRY_HEIGHT + (catalogEntries.length - 1) * SHOP_ENTRY_GAP;
 
   const weaponShop = new WeaponShopComponent([], {
     x: panelX,
@@ -749,17 +1199,14 @@ function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) 
   });
   // Seeded from the local player's starting loadout - nothing broadcasts a weaponInventory/ammo
   // packet at spawn (only buy/refill/equip events do), so without this the shop would show
-  // smallGun as unowned and neither hand highlighted until the first purchase.
+  // smallGun as unowned and unselected until the first purchase.
   if (localPlayer) {
-    weaponShop.leftWeaponType = localPlayer.leftWeaponType ?? null;
-    weaponShop.rightWeaponType = localPlayer.rightWeaponType ?? null;
+    weaponShop.equippedWeaponType = localPlayer.weaponType ?? null;
     for (const w of localPlayer.weapons ?? []) {
       weaponShop.owned.set(w.weaponType, { reserveAmmo: w.reserveAmmo });
     }
   }
   registry.addComponent(registry.spawnEntity(), weaponShop);
-
-  const handButtonWidth = (SHOP_ENTRY_WIDTH - SHOP_HAND_BUTTON_GAP) / 2;
 
   catalogEntries.forEach(([weaponType, catalogEntry], index) => {
     const entryY = SHOP_TOP_MARGIN + index * (SHOP_ENTRY_HEIGHT + SHOP_ENTRY_GAP);
@@ -829,24 +1276,26 @@ function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) 
       });
     }
 
-    const leftButtonComponent = new RectComponent(hudLayer, {
+    // One button per entry now (dual wielding removed) - toggles this weapon equipped/unequipped;
+    // its label flips between "Select" and "Selected" (build-mode.system.ts owns that per tick).
+    const selectButtonComponent = new RectComponent(hudLayer, {
       x: panelX,
-      y: entryY + SHOP_BUY_HEIGHT + SHOP_HAND_BUTTON_GAP,
-      width: handButtonWidth,
-      height: SHOP_HAND_BUTTON_HEIGHT,
+      y: entryY + SHOP_BUY_HEIGHT + SHOP_SELECT_BUTTON_GAP,
+      width: SHOP_ENTRY_WIDTH,
+      height: SHOP_SELECT_BUTTON_HEIGHT,
       fill: "#104522",
       stroke: "#5E8C61",
       strokeWidth: 2,
       cornerRadius: 4,
       visible: false,
     });
-    registry.addComponent(registry.spawnEntity(), leftButtonComponent);
-    const leftLabelComponent = new TextComponent(hudLayer, {
-      text: "L",
+    registry.addComponent(registry.spawnEntity(), selectButtonComponent);
+    const selectLabelComponent = new TextComponent(hudLayer, {
+      text: "Select",
       x: panelX,
-      y: entryY + SHOP_BUY_HEIGHT + SHOP_HAND_BUTTON_GAP,
-      width: handButtonWidth,
-      height: SHOP_HAND_BUTTON_HEIGHT,
+      y: entryY + SHOP_BUY_HEIGHT + SHOP_SELECT_BUTTON_GAP,
+      width: SHOP_ENTRY_WIDTH,
+      height: SHOP_SELECT_BUTTON_HEIGHT,
       align: "center",
       verticalAlign: "middle",
       fontSize: 12,
@@ -854,60 +1303,17 @@ function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) 
       visible: false,
       listening: false,
     });
-    registry.addComponent(registry.spawnEntity(), leftLabelComponent);
-    leftButtonComponent.rect.on("click", () => {
+    registry.addComponent(registry.spawnEntity(), selectLabelComponent);
+    selectButtonComponent.rect.on("click", () => {
       weaponShop.pendingEquip = {
-        hand: "left",
-        weaponType: weaponShop.leftWeaponType === weaponType ? null : weaponType,
+        weaponType: weaponShop.equippedWeaponType === weaponType ? null : weaponType,
       };
     });
-    leftButtonComponent.rect.on("mouseover", () => {
+    selectButtonComponent.rect.on("mouseover", () => {
       const stage = hudLayer.getStage();
       if (stage) stage.container().style.cursor = "pointer";
     });
-    leftButtonComponent.rect.on("mouseout", () => {
-      const stage = hudLayer.getStage();
-      if (stage) stage.container().style.cursor = "default";
-    });
-
-    const rightButtonX = panelX + handButtonWidth + SHOP_HAND_BUTTON_GAP;
-    const rightButtonComponent = new RectComponent(hudLayer, {
-      x: rightButtonX,
-      y: entryY + SHOP_BUY_HEIGHT + SHOP_HAND_BUTTON_GAP,
-      width: handButtonWidth,
-      height: SHOP_HAND_BUTTON_HEIGHT,
-      fill: "#104522",
-      stroke: "#5E8C61",
-      strokeWidth: 2,
-      cornerRadius: 4,
-      visible: false,
-    });
-    registry.addComponent(registry.spawnEntity(), rightButtonComponent);
-    const rightLabelComponent = new TextComponent(hudLayer, {
-      text: "R",
-      x: rightButtonX,
-      y: entryY + SHOP_BUY_HEIGHT + SHOP_HAND_BUTTON_GAP,
-      width: handButtonWidth,
-      height: SHOP_HAND_BUTTON_HEIGHT,
-      align: "center",
-      verticalAlign: "middle",
-      fontSize: 12,
-      fill: "#F5F2E9",
-      visible: false,
-      listening: false,
-    });
-    registry.addComponent(registry.spawnEntity(), rightLabelComponent);
-    rightButtonComponent.rect.on("click", () => {
-      weaponShop.pendingEquip = {
-        hand: "right",
-        weaponType: weaponShop.rightWeaponType === weaponType ? null : weaponType,
-      };
-    });
-    rightButtonComponent.rect.on("mouseover", () => {
-      const stage = hudLayer.getStage();
-      if (stage) stage.container().style.cursor = "pointer";
-    });
-    rightButtonComponent.rect.on("mouseout", () => {
+    selectButtonComponent.rect.on("mouseout", () => {
       const stage = hudLayer.getStage();
       if (stage) stage.container().style.cursor = "default";
     });
@@ -918,8 +1324,8 @@ function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) 
       buyText: buyTextComponent.text,
       costText: costTextComponent.text,
       costIcon,
-      leftButton: leftButtonComponent.rect,
-      rightButton: rightButtonComponent.rect,
+      selectButton: selectButtonComponent.rect,
+      selectLabel: selectLabelComponent.text,
     });
   });
 }
@@ -943,27 +1349,20 @@ function launchGame(packet: any, registry: Registry) {
     buildWeaponShop(newScene.hudLayer, registry, localPlayer);
 
     if (localPlayer) {
-      // Reserve comes from the shared per-type record; magazine is per-hand now (see
-      // weapon-inventory.component.ts, server) and arrives as its own left/rightMagazineAmmo field
-      // instead of living inside the weapons[] entry.
+      // Reserve comes from the shared per-type record; magazine is on the single equipped
+      // weapon's own state now (see weapon-inventory.component.ts, server) and arrives as its own
+      // magazineAmmo field instead of living inside the weapons[] entry.
       const findAmmo = (weaponType: WeaponType | null, magazineAmmo: number) => {
         if (!weaponType) return undefined;
-        const reserveAmmo = localPlayer.weapons.find((w: any) => w.weaponType === weaponType)?.reserveAmmo ?? 0;
+        const reserveAmmo =
+          localPlayer.weapons.find((w: any) => w.weaponType === weaponType)?.reserveAmmo ?? 0;
         return { magazineAmmo, reserveAmmo };
       };
       buildAmmoHud(
         newScene.hudLayer,
         registry,
-        "left",
-        localPlayer.leftWeaponType,
-        findAmmo(localPlayer.leftWeaponType, localPlayer.leftMagazineAmmo),
-      );
-      buildAmmoHud(
-        newScene.hudLayer,
-        registry,
-        "right",
-        localPlayer.rightWeaponType,
-        findAmmo(localPlayer.rightWeaponType, localPlayer.rightMagazineAmmo),
+        localPlayer.weaponType,
+        findAmmo(localPlayer.weaponType, localPlayer.magazineAmmo),
       );
     }
 

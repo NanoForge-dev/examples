@@ -6,6 +6,9 @@ import { spawnPacketHandler } from "./packet-handlers/spawn-packet.handler";
 import { directionPacketHandler } from "./packet-handlers/direction-packet.handler";
 import { killPacketHandler } from "./packet-handlers/kill-packet.handler";
 import { hitPacketHandler } from "./packet-handlers/hit-packet.handler";
+import { revivePacketHandler } from "./packet-handlers/revive-packet.handler";
+import { towerUpdatePacketHandler } from "./packet-handlers/tower-update-packet.handler";
+import { healPacketHandler } from "./packet-handlers/heal-packet.handler";
 import { zombieStatePacketHandler } from "./packet-handlers/zombie-state-packet.handler";
 import { waveInfoPacketHandler } from "./packet-handlers/wave-info-packet.handler";
 import { gameOverPacketHandler } from "./packet-handlers/game-over-packet.handler";
@@ -18,7 +21,7 @@ import { weaponInventoryPacketHandler } from "./packet-handlers/weapon-inventory
 import { lootPacketHandler } from "./packet-handlers/loot-packet.handler";
 import { joinLobbyPacketHandler } from "./packet-handlers/join-lobby-packet.handler";
 import { lobbyInfoPacketHandler } from "./packet-handlers/lobby-info-packet.handler";
-import {startGamePacketHandler} from "./packet-handlers/start-game-packet.handler";
+import { startGamePacketHandler } from "./packet-handlers/start-game-packet.handler";
 
 export type PacketHandler = (packet: unknown, registry: Registry, ctx: Context) => unknown;
 
@@ -28,6 +31,9 @@ export const packetHandlers: Map<string, PacketHandler> = new Map([
   ["direction", directionPacketHandler],
   ["kill", killPacketHandler],
   ["hit", hitPacketHandler],
+  ["revive", revivePacketHandler],
+  ["towerUpdate", towerUpdatePacketHandler],
+  ["heal", healPacketHandler],
   ["zombieState", zombieStatePacketHandler],
   ["waveInfo", waveInfoPacketHandler],
   ["gameOver", gameOverPacketHandler],

@@ -15,7 +15,7 @@ import { sendToInGamePlayers } from "../network-utils";
 // between one wave finishing and the next starting - the numbers most likely to need tuning
 // alongside the wave counts themselves (server/static/zombie-waves.txt).
 const SUB_WAVE_INTERVAL_SECONDS = 3;
-const WAVE_COOLDOWN_SECONDS = 10;
+const WAVE_COOLDOWN_SECONDS = 20;
 
 // Static assets ship flattened next to the built server bundle - everything under
 // server/static/ lands directly beside main.js at runtime, not nested under a "static/" folder
@@ -71,6 +71,16 @@ export function zombieWaveSystem(registry: Registry, ctx: Context) {
     }
   } else {
     state.timer += delta;
+
+    // Re-broadcast whenever the displayed whole-second countdown ticks down, not every tick -
+    // the same "only send on a visible change" reasoning move-control.senders.system.ts already
+    // applies to input packets, just applied to an outgoing broadcast instead.
+    const remainingSecond = Math.max(0, Math.ceil(WAVE_COOLDOWN_SECONDS - state.timer));
+    if (remainingSecond !== state.lastCountdownSecond) {
+      state.lastCountdownSecond = remainingSecond;
+      changed = true;
+    }
+
     if (state.timer >= WAVE_COOLDOWN_SECONDS) {
       state.waveIndex += 1;
       state.subWaveIndex = 0;
@@ -95,6 +105,11 @@ function broadcastWaveInfo(network: NetworkServerLibrary, registry: Registry, st
     subWave: state.phase === "finished" ? wave.length : state.subWaveIndex,
     subWaveCount: wave.length,
     aliveZombies: countAliveZombies(registry),
+    phase: state.phase,
+    // Only meaningful while "cooldown" - wave-info-packet.handler.ts hides the countdown text
+    // otherwise. Whole seconds, matching what's actually displayed (state.lastCountdownSecond).
+    cooldownRemaining:
+      state.phase === "cooldown" ? Math.max(0, Math.ceil(WAVE_COOLDOWN_SECONDS - state.timer)) : 0,
   });
 }
 

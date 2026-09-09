@@ -17,6 +17,10 @@ export class WaveState {
   // alive-zombie count) to derive a "zombies killed" tally, since nothing kills a zombie's own
   // Health component directly today.
   totalSpawned: number = 0;
+  // Last whole-second countdown value broadcast during "cooldown" (see zombie-wave.system.ts) -
+  // lets it re-broadcast at most once per displayed second instead of every tick, the same
+  // "only send on a visible change" idea sendShootControl already applies to input packets.
+  lastCountdownSecond: number = -1;
 }
 
 // * Required to generate code

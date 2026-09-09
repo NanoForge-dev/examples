@@ -4,11 +4,9 @@
 export class ShootInput {
   name = this.constructor.name;
 
-  shooting: boolean = false; // left-click / main hand
-  rightShooting: boolean = false; // right-click / off hand
+  shooting: boolean = false; // left-click - the single equipped weapon
   // One-shot: set true by a reload input packet, consumed (and reset to false) the next tick
-  // weapon.system.ts runs, whether or not a reload actually started. Applies to both hands at
-  // once (see weapon.system.ts).
+  // weapon.system.ts runs, whether or not a reload actually started.
   reloadRequested: boolean = false;
   // World-space mouse position, updated every input packet - weapon.system.ts recomputes the aim
   // vector fresh from this (player position -> mouse) at the exact moment a shot fires, instead

@@ -3,6 +3,7 @@ import { Velocity } from "../../components/velocity.component";
 import { Position } from "../../components/position.component";
 import { MoveInput } from "../../components/move-input.component";
 import { ShootInput } from "../../components/shoot-input.component";
+import { ReviveInput } from "../../components/revive-input.component";
 import { clients } from "../../main";
 import { Context } from "@nanoforge-dev/common";
 import { NetworkServerLibrary } from "@nanoforge-dev/network-server";
@@ -17,7 +18,15 @@ export function inputPacketHandler(
   ctx: Context,
 ): void {
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
-  const zipper = registry.getIndexedZipper([Login, Velocity, Position, Direction, MoveInput, ShootInput]);
+  const zipper = registry.getIndexedZipper([
+    Login,
+    Velocity,
+    Position,
+    Direction,
+    MoveInput,
+    ShootInput,
+    ReviveInput,
+  ]);
   const log = clients.find((client) => client.clientId === clientId)?.username;
   const it = zipper.find(({ Login }) => {
     return Login.id === log;
@@ -50,9 +59,6 @@ export function inputPacketHandler(
   if (typeof packet.shooting === "boolean") {
     it.ShootInput.shooting = packet.shooting;
   }
-  if (typeof packet.rightShooting === "boolean") {
-    it.ShootInput.rightShooting = packet.rightShooting;
-  }
   if (
     packet.mousePosition &&
     typeof packet.mousePosition.x === "number" &&
@@ -64,5 +70,17 @@ export function inputPacketHandler(
   // clears this the next time it runs.
   if (packet.reload) {
     it.ShootInput.reloadRequested = true;
+  }
+
+  // Held-key intent for the revive channel, same "recomputed every tick, not on packet
+  // frequency" idea as MoveInput/ShootInput - revive.system.ts owns range/timing.
+  if (typeof packet.reviveKeyHeld === "boolean") {
+    it.ReviveInput.held = packet.reviveKeyHeld;
+  }
+
+  // One-shot, same "R"-style semantics as ShootInput.reloadRequested above - a fresh E press,
+  // not a held state. tower-interact.system.ts consumes and clears it.
+  if (packet.interactRequested) {
+    it.ReviveInput.interactRequested = true;
   }
 }

@@ -1,12 +1,10 @@
-// Marker on a hand's reload-animation overlay sprite entity (built once alongside the hand+weapon
-// in buildHandAndWeapon, start-game-packet.handler.ts, only for weapon types with a catalog
-// reloadSpriteKey - currently just the shotgun) - lets weapon-reload-animation.system.ts find the
-// right one of a player's two (one per hand) without mixing them up, the same pattern
-// ReloadIndicatorComponent already uses for the "RELOAD!" HUD sprite.
+// Marker on a player's reload-animation overlay sprite entity (built once alongside the weapon in
+// buildHandAndWeapon, start-game-packet.handler.ts, only for weapon types with a catalog
+// reloadSpriteKey - currently just the shotgun). One weapon per player now (dual wielding
+// removed), so this needs no disambiguating field - weapon-reload-animation.system.ts finds it
+// via ChildrenComponent.parentId alone.
 export class WeaponReloadOverlayComponent {
   name = this.constructor.name;
-
-  constructor(public hand: "left" | "right") {}
 }
 
 // * Required to generate code

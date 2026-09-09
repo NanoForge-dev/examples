@@ -1,16 +1,14 @@
 import { type WeaponType } from "../weapon-catalog";
 
-// Marker on a weapon child entity (parented to a player, same as the hand - see buildPlayer in
-// start-game-packet.handler.ts). Every player now has TWO of these (one per hand) - `hand` and
-// `weaponType` are what let weapon-state-packet.handler.ts, ammo-packet.handler.ts, and
-// reload-indicator.system.ts pick the RIGHT one of a player's two weapon children via
-// ChildrenComponent.parentId, instead of the old single-weapon `.find()`.
+// Marker on the single weapon child entity (parented to a player - see buildPlayer in
+// start-game-packet.handler.ts). One weapon at a time per player (dual wielding removed) -
+// weapon-state-packet.handler.ts, ammo-packet.handler.ts, and reload-indicator.system.ts find it
+// via ChildrenComponent.parentId alone, no hand disambiguation needed.
 export class Weapon {
   name = this.constructor.name;
 
   constructor(
-    public hand: "left" | "right",
-    // null while this hand has nothing equipped - the sprite is hidden in that state (see
+    // null while nothing is equipped - the sprite is hidden in that state (see
     // buildHandAndWeapon / weapon-inventory-packet.handler.ts).
     public weaponType: WeaponType | null,
     // The DirectionRotatorComponent offset this weapon normally rotates with (aim-tracking) -
@@ -31,12 +29,13 @@ export class Weapon {
   reloadDurationSeconds: number = 0;
 
   // A one-shot "play the recoil/muzzle-flash animation" pulse, set true by
-  // weapon-fired-packet.handler.ts the instant this hand's weaponFired broadcast arrives (server,
-  // the exact moment a shot fires - not local input state, so this animates for every player's
-  // shots, not just the local one). weapon-reload-animation.system.ts counts firingElapsed up and
-  // flips this back to false once the weapon's own catalog.shootSeconds elapses - purely a client
-  // visual duration, unrelated to the server's actual fire-rate cooldown. No-op for a weapon with
-  // no shoot animation (e.g. smallGun) - see weapon-reload-animation.system.ts.
+  // weapon-fired-packet.handler.ts the instant this player's weaponFired broadcast arrives
+  // (server, the exact moment a shot fires - not local input state, so this animates for every
+  // player's shots, not just the local one). weapon-reload-animation.system.ts counts
+  // firingElapsed up and flips this back to false once the weapon's own catalog.shootSeconds
+  // elapses - purely a client visual duration, unrelated to the server's actual fire-rate
+  // cooldown. No-op for a weapon with no shoot animation (e.g. smallGun) - see
+  // weapon-reload-animation.system.ts.
   firing: boolean = false;
   firingElapsed: number = 0;
 }

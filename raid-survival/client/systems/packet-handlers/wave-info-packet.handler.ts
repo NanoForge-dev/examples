@@ -14,4 +14,11 @@ export function waveInfoPacketHandler(packet: any, registry: Registry): void {
   hud.progressFill.width(hud.progressTrack.width() * fraction);
 
   hud.aliveText.text(`${packet.aliveZombies} zombies`);
+
+  if (packet.phase === "cooldown") {
+    hud.countdownText.text(`Next round in ${packet.cooldownRemaining}s`);
+    hud.countdownText.visible(true);
+  } else {
+    hud.countdownText.visible(false);
+  }
 }

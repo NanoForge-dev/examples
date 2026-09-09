@@ -45,6 +45,46 @@ export const WEAPON_CATALOG = {
     spreadDegrees: 25, // total cone width - 5 pellets evenly spaced across ±12.5°
     bulletSpeed: 500,
   },
+  // Fast, loose, and hungry: highest fire rate and magazine size of any weapon, paid for with
+  // low per-shot damage and a wide spread cone - sprays rather than aims. Numbers invented for
+  // this feature (the request specified the shape - "fast, big magazine, big dispersion" - not
+  // exact values), easy to retune.
+  uzi: {
+    alwaysOwned: false,
+    cost: 200,
+    magazineSize: 30,
+    infiniteReserve: false,
+    startingReserve: 60,
+    maxReserve: 180,
+    ammoRefillAmount: 30,
+    ammoRefillCost: 20,
+    fireRatePerSecond: 12,
+    reloadSeconds: 2,
+    damage: 3,
+    pellets: 1,
+    spreadDegrees: 18,
+    bulletSpeed: 500,
+  },
+  // The opposite tradeoff: slowest fire rate and smallest magazine, paid off with the highest
+  // per-shot damage and zero spread (dead-center every time). Numbers invented for this feature
+  // (the request specified the shape - "slow, small magazine, high damage, very precise" - not
+  // exact values), easy to retune.
+  sniper: {
+    alwaysOwned: false,
+    cost: 300,
+    magazineSize: 4,
+    infiniteReserve: false,
+    startingReserve: 8,
+    maxReserve: 24,
+    ammoRefillAmount: 4,
+    ammoRefillCost: 40,
+    fireRatePerSecond: 0.8,
+    reloadSeconds: 3,
+    damage: 40,
+    pellets: 1,
+    spreadDegrees: 0,
+    bulletSpeed: 900,
+  },
 } as const;
 
 export type WeaponType = keyof typeof WEAPON_CATALOG;

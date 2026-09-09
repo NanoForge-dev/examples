@@ -1,8 +1,14 @@
-// What can be built and what it costs. One entry today ("wall"); adding a new type is just
-// adding a new key here plus a client-side entry in the build bar
-// (client/building-catalog.ts - kept in sync manually, see that file's header comment).
+// What can be built and what it costs. `maxHealth` is the level-1 (just-built) max HP for a
+// building that can level up (tower.component.ts owns the level/HP/fire-rate progression from
+// there via tower.system.ts/tower-interact.system.ts) - adding a new type is just adding a new
+// key here plus a client-side entry in the build bar (client/building-catalog.ts - kept in sync
+// manually, see that file's header comment). `footprintTiles` is how many tiles wide/tall the
+// building occupies (wall is the original 1x1; the tower needs real room for its garrisoned NPC
+// and growing sprite, hence 3x3) - canPlaceBuilding below and build-packet.handler.ts both size
+// placement/collision off this instead of assuming every building is exactly one tile.
 export const BUILDING_CATALOG = {
-  wall: { cost: 20, maxHealth: 200 },
+  wall: { cost: 20, maxHealth: 200, footprintTiles: { width: 1, height: 1 } },
+  tower: { cost: 100, maxHealth: 100, footprintTiles: { width: 3, height: 3 } },
 } as const;
 
 export type BuildingType = keyof typeof BUILDING_CATALOG;
@@ -29,6 +35,10 @@ export interface OccupiedBox {
 // against `obstacles`, not tile-index equality - tile-index equality is only valid for
 // comparing two things that are both already tile-aligned (a candidate tile vs. another
 // building), which is why every other obstacle (buildings) is expressed the same way, as a box.
+//
+// footprintTiles defaults to 1x1 (every call site before towers existed implicitly meant that) -
+// (tileX, tileY) is the footprint's top-left tile, and every tile it covers must be in-bounds and
+// non-tree, not just the anchor tile.
 export function canPlaceBuilding(
   tileX: number,
   tileY: number,
@@ -37,15 +47,25 @@ export function canPlaceBuilding(
   rows: number,
   isTreeCell: (col: number, row: number) => boolean,
   obstacles: OccupiedBox[],
+  footprintTiles: { width: number; height: number } = { width: 1, height: 1 },
 ): boolean {
   if (!Number.isInteger(tileX) || !Number.isInteger(tileY)) return false;
-  if (tileX < 0 || tileY < 0 || tileX >= cols || tileY >= rows) return false;
-  if (isTreeCell(tileX, tileY)) return false;
+  if (tileX < 0 || tileY < 0) return false;
+  if (tileX + footprintTiles.width > cols || tileY + footprintTiles.height > rows) return false;
+
+  for (let dy = 0; dy < footprintTiles.height; dy++) {
+    for (let dx = 0; dx < footprintTiles.width; dx++) {
+      if (isTreeCell(tileX + dx, tileY + dy)) return false;
+    }
+  }
 
   const x = tileX * tileSize;
   const y = tileY * tileSize;
+  const width = footprintTiles.width * tileSize;
+  const height = footprintTiles.height * tileSize;
 
   return !obstacles.some(
-    (box) => x < box.x + box.width && x + tileSize > box.x && y < box.y + box.height && y + tileSize > box.y,
+    (box) =>
+      x < box.x + box.width && x + width > box.x && y < box.y + box.height && y + height > box.y,
   );
 }

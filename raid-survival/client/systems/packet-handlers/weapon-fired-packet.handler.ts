@@ -18,11 +18,10 @@ export function weaponFiredPacketHandler(packet: any, registry: Registry): void 
     Weapon,
     ChildrenComponent,
   ]);
-  // Routed by hand AND weaponType, same as weapon-state-packet.handler.ts and for the same
-  // reason: guards against a stale in-flight packet for a hand that's since been re-equipped to
-  // something else.
+  // Routed by weaponType, same as weapon-state-packet.handler.ts and for the same reason: guards
+  // against a stale in-flight packet for a weapon that's since been unequipped.
   const match = weapons.find(
-    (w) => w.ChildrenComponent.parentId === player.id && w.Weapon.hand === packet.hand && w.Weapon.weaponType === packet.weaponType,
+    (w) => w.ChildrenComponent.parentId === player.id && w.Weapon.weaponType === packet.weaponType,
   );
   if (!match) return;
 

@@ -9,6 +9,7 @@ import { TextComponent } from "../components/renderable/text.component";
 import { SpriteComponent } from "../components/renderable/sprite.component";
 import { TransformComponent } from "../components/essentials/transform.component";
 import { LobbyAction, LobbyState, LobbyStatusComponent } from "../components/lobby/lobby-status";
+import { classForSkin, PLAYER_CLASS_INFO } from "../player-class-catalog";
 import { playerId } from "../main";
 
 // One accent color per available skin (player1.png..player3.png - the only ones that share
@@ -60,6 +61,54 @@ const CAROUSEL_EASE = 0.22;
 
 const LOBBY_PREVIEW_SCALE = 2.5;
 
+// Side panels flanking the join/lobby panel - story left, rules+keybinds right. Only drawn when
+// the window is wide enough for both to sit fully on screen next to the (fixed-position, never
+// itself resized) main panel; on a narrow window they're skipped rather than drawn cramped or
+// off-screen, since this scene doesn't handle window resize at all (see `background`'s own
+// window.innerWidth/innerHeight snapshot in load()).
+const SIDE_PANEL_WIDTH = 260;
+const SIDE_PANEL_GAP = 30;
+const SIDE_PANEL_PADDING = 20;
+
+const STORY_PARAGRAPHS = [
+  "Three weeks after the outbreak, the cities are gone. What's left of the response teams held wherever they could dig in - an old trade depot, walled in on the fly, is yours now.",
+  "Every night the horde finds the walls. Every lull between waves is spent scavenging, rebuilding, and spending whatever gold you looted on better guns.",
+  "Nobody is coming to relieve you. Hold the depot. Survive the waves.",
+];
+
+const RULES = [
+  "Squad up with up to 4 survivors in one lobby.",
+  "Zombies attack in escalating waves, with a cooldown between each to prepare.",
+  "Kill zombies or crack open loot crates to earn gold.",
+  "Spend gold at the shop on weapons, ammo, walls and towers.",
+  "Walls and towers slow and block the horde - place them to protect the depot.",
+  "Downed? A teammate can revive you by holding E next to you.",
+];
+
+const KEYBINDS: { key: string; description: string }[] = [
+  { key: "WASD", description: "Move" },
+  { key: "Mouse", description: "Aim" },
+  { key: "LMB", description: "Shoot" },
+  { key: "R", description: "Reload" },
+  { key: "E", description: "Hold near a downed teammate to revive" },
+  { key: "B", description: "Toggle build mode" },
+];
+
+// Cheap line-count estimate (no dynamic reflow measurement available before the Text node is
+// actually laid out by Konva) used purely to size each side panel's background/spacing ahead of
+// time - not pixel-perfect, but close enough for menu copy at these widths/font sizes.
+function estimateWrappedHeight(
+  text: string,
+  width: number,
+  fontSize: number,
+  lineHeight = 1.4,
+): number {
+  const avgCharWidth = fontSize * 0.55;
+  const charsPerLine = Math.max(1, Math.floor(width / avgCharWidth));
+  const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
+  return lines * fontSize * lineHeight;
+}
+
 interface CarouselItem {
   sprite: SpriteComponent;
   transform: TransformComponent;
@@ -106,6 +155,7 @@ export class MenuScene implements Scene {
   private carouselSkins: CarouselItem[] = [];
   private skinCaption: TextComponent | undefined;
   private skinDots: RectComponent[] = [];
+  private classCaption: TextComponent | undefined;
   private lastWheelAt = 0;
 
   private playerCountText: TextComponent | undefined;
@@ -147,7 +197,10 @@ export class MenuScene implements Scene {
       },
     });
     registry.addComponent(mainWidgetGroup, mainWidgetGroupComponent);
-    this.panelOrigin = { x: mainWidgetGroupComponent.group.x(), y: mainWidgetGroupComponent.group.y() };
+    this.panelOrigin = {
+      x: mainWidgetGroupComponent.group.x(),
+      y: mainWidgetGroupComponent.group.y(),
+    };
 
     const mainWidgetBackground = registry.spawnEntity();
     registry.addComponent(
@@ -166,6 +219,11 @@ export class MenuScene implements Scene {
 
     this.joinLobbyGroup = this.buildJoinLobbyWidget(registry, mainWidgetGroupComponent.group).group;
     this.lobbyGroup = this.buildLobbyWidget(registry, mainWidgetGroupComponent.group).group;
+
+    // Parented straight to the layer, not to either sliding widget group - these stay put (and
+    // stay visible) across the join screen and the lobby the same way panelOrigin's outer panel
+    // does, giving new players the story/rules/keybinds regardless of which screen they're on.
+    this.buildInfoPanels(registry);
   }
 
   unload(): void {
@@ -246,7 +304,9 @@ export class MenuScene implements Scene {
 
   private tickLobby(players: { id: number; username: string; skin: number }[]): void {
     if (this.playerCountText) {
-      this.playerCountText.text.text(`${players.length} / ${this.lobbySlots.length} players joined`);
+      this.playerCountText.text.text(
+        `${players.length} / ${this.lobbySlots.length} players joined`,
+      );
     }
 
     const originX = this.panelOrigin.x + (this.lobbyGroup?.x() ?? 0);
@@ -579,8 +639,12 @@ export class MenuScene implements Scene {
       );
     };
 
-    buildArrow("<", panelWidth / 2 - 150 - arrowSize / 2, () => selectSkin(this.selectedSkinIndex - 1));
-    buildArrow(">", panelWidth / 2 + 150 - arrowSize / 2, () => selectSkin(this.selectedSkinIndex + 1));
+    buildArrow("<", panelWidth / 2 - 150 - arrowSize / 2, () =>
+      selectSkin(this.selectedSkinIndex - 1),
+    );
+    buildArrow(">", panelWidth / 2 + 150 - arrowSize / 2, () =>
+      selectSkin(this.selectedSkinIndex + 1),
+    );
 
     this.skinCaption = new TextComponent(group, {
       text: "",
@@ -622,6 +686,21 @@ export class MenuScene implements Scene {
       this.skinDots.push(dotComponent);
     }
 
+    // Below the dots - each skin IS a class pick (server/player-class-catalog.ts), so this is
+    // what actually tells a player what they're choosing, not just cosmetics.
+    this.classCaption = new TextComponent(group, {
+      text: "",
+      x: 0,
+      y: 284,
+      width: panelWidth,
+      height: 30,
+      fontSize: 11,
+      align: "center",
+      fill: PANEL_TEXT,
+      listening: false,
+    });
+    registry.addComponent(registry.spawnEntity(), this.classCaption);
+
     const selectSkin = (index: number) => {
       this.selectedSkinIndex = ((index % SKIN_COUNT) + SKIN_COUNT) % SKIN_COUNT;
       if (this.lobbyStatusComponent) this.lobbyStatusComponent.skin = this.selectedSkinIndex + 1;
@@ -629,6 +708,8 @@ export class MenuScene implements Scene {
       this.skinDots.forEach((dot, i) => {
         dot.rect.fill(i === this.selectedSkinIndex ? skinColor(i) : BUTTON_BORDER);
       });
+      const classInfo = PLAYER_CLASS_INFO[classForSkin(this.selectedSkinIndex + 1)];
+      this.classCaption?.text.text(`${classInfo.name} - ${classInfo.description}`);
     };
 
     selectSkin(this.selectedSkinIndex);
@@ -836,5 +917,264 @@ export class MenuScene implements Scene {
     );
 
     return lobbyGroupComponent;
+  }
+
+  private buildInfoPanels(registry: Registry): void {
+    const layer = this.layer;
+    if (!layer) return;
+
+    const leftX = this.panelOrigin.x - SIDE_PANEL_GAP - SIDE_PANEL_WIDTH;
+    const rightX = this.panelOrigin.x + PANEL_SIZE.width + SIDE_PANEL_GAP;
+    // Skip entirely on a window too narrow to fit both panels fully on screen rather than
+    // drawing them cramped, overlapping the main panel, or clipped off the edge.
+    if (leftX < 12 || rightX + SIDE_PANEL_WIDTH > window.innerWidth - 12) return;
+
+    this.buildStoryPanel(registry, layer, leftX, this.panelOrigin.y);
+    this.buildRulesAndKeybindsPanel(registry, layer, rightX, this.panelOrigin.y);
+  }
+
+  private buildStoryPanel(registry: Registry, layer: Layer, x: number, y: number): void {
+    const contentWidth = SIDE_PANEL_WIDTH - SIDE_PANEL_PADDING * 2;
+    const titleAreaHeight = 66;
+    const paragraphGap = 14;
+
+    const paragraphHeights = STORY_PARAGRAPHS.map((text) =>
+      estimateWrappedHeight(text, contentWidth, 13),
+    );
+    const contentHeight =
+      paragraphHeights.reduce((sum, h) => sum + h, 0) +
+      paragraphGap * (STORY_PARAGRAPHS.length - 1);
+    const panelHeight = titleAreaHeight + contentHeight + SIDE_PANEL_PADDING;
+
+    registry.addComponent(
+      registry.spawnEntity(),
+      new RectComponent(layer, {
+        x,
+        y,
+        width: SIDE_PANEL_WIDTH,
+        height: panelHeight,
+        fill: PANEL_BG,
+        cornerRadius: 8,
+        stroke: BUTTON_BORDER,
+        strokeWidth: 1,
+        listening: false,
+      }),
+    );
+    registry.addComponent(
+      registry.spawnEntity(),
+      new TextComponent(layer, {
+        text: "THE STORY",
+        x,
+        y: y + 20,
+        width: SIDE_PANEL_WIDTH,
+        height: 20,
+        fontSize: 16,
+        fontStyle: "bold",
+        align: "center",
+        fill: ACCENT,
+        listening: false,
+      }),
+    );
+    registry.addComponent(
+      registry.spawnEntity(),
+      new RectComponent(layer, {
+        x: x + SIDE_PANEL_PADDING,
+        y: y + 46,
+        width: SIDE_PANEL_WIDTH - SIDE_PANEL_PADDING * 2,
+        height: 1,
+        fill: BUTTON_BORDER,
+        listening: false,
+      }),
+    );
+
+    let cursorY = y + titleAreaHeight;
+    STORY_PARAGRAPHS.forEach((text, i) => {
+      const height = paragraphHeights[i] ?? estimateWrappedHeight(text, contentWidth, 13);
+      registry.addComponent(
+        registry.spawnEntity(),
+        new TextComponent(layer, {
+          text,
+          x: x + SIDE_PANEL_PADDING,
+          y: cursorY,
+          width: contentWidth,
+          height,
+          fontSize: 13,
+          lineHeight: 1.4,
+          fill: PANEL_TEXT,
+          wrap: "word",
+          listening: false,
+        }),
+      );
+      cursorY += height + paragraphGap;
+    });
+  }
+
+  private buildRulesAndKeybindsPanel(registry: Registry, layer: Layer, x: number, y: number): void {
+    const contentWidth = SIDE_PANEL_WIDTH - SIDE_PANEL_PADDING * 2;
+    const bulletIndent = 16;
+    const bulletTextWidth = contentWidth - bulletIndent;
+    const titleAreaHeight = 66;
+    const bulletGap = 10;
+    const sectionGap = 26;
+    const keybindRowHeight = 34;
+
+    const ruleHeights = RULES.map((text) => estimateWrappedHeight(text, bulletTextWidth, 12));
+    const rulesHeight = ruleHeights.reduce((sum, h) => sum + h, 0) + bulletGap * (RULES.length - 1);
+    const keybindsHeight = KEYBINDS.length * keybindRowHeight;
+    const panelHeight =
+      titleAreaHeight + rulesHeight + sectionGap + 26 + keybindsHeight + SIDE_PANEL_PADDING;
+
+    registry.addComponent(
+      registry.spawnEntity(),
+      new RectComponent(layer, {
+        x,
+        y,
+        width: SIDE_PANEL_WIDTH,
+        height: panelHeight,
+        fill: PANEL_BG,
+        cornerRadius: 8,
+        stroke: BUTTON_BORDER,
+        strokeWidth: 1,
+        listening: false,
+      }),
+    );
+    registry.addComponent(
+      registry.spawnEntity(),
+      new TextComponent(layer, {
+        text: "RULES",
+        x,
+        y: y + 20,
+        width: SIDE_PANEL_WIDTH,
+        height: 20,
+        fontSize: 16,
+        fontStyle: "bold",
+        align: "center",
+        fill: ACCENT,
+        listening: false,
+      }),
+    );
+    registry.addComponent(
+      registry.spawnEntity(),
+      new RectComponent(layer, {
+        x: x + SIDE_PANEL_PADDING,
+        y: y + 46,
+        width: contentWidth,
+        height: 1,
+        fill: BUTTON_BORDER,
+        listening: false,
+      }),
+    );
+
+    let cursorY = y + titleAreaHeight;
+    RULES.forEach((text, i) => {
+      const height = ruleHeights[i] ?? estimateWrappedHeight(text, bulletTextWidth, 12);
+      registry.addComponent(
+        registry.spawnEntity(),
+        new RectComponent(layer, {
+          x: x + SIDE_PANEL_PADDING,
+          y: cursorY + 5,
+          width: 6,
+          height: 6,
+          cornerRadius: 3,
+          fill: ACCENT,
+          listening: false,
+        }),
+      );
+      registry.addComponent(
+        registry.spawnEntity(),
+        new TextComponent(layer, {
+          text,
+          x: x + SIDE_PANEL_PADDING + bulletIndent,
+          y: cursorY,
+          width: bulletTextWidth,
+          height,
+          fontSize: 12,
+          lineHeight: 1.4,
+          fill: PANEL_TEXT,
+          wrap: "word",
+          listening: false,
+        }),
+      );
+      cursorY += height + bulletGap;
+    });
+
+    cursorY += sectionGap;
+    registry.addComponent(
+      registry.spawnEntity(),
+      new TextComponent(layer, {
+        text: "KEYBINDS",
+        x,
+        y: cursorY,
+        width: SIDE_PANEL_WIDTH,
+        height: 20,
+        fontSize: 16,
+        fontStyle: "bold",
+        align: "center",
+        fill: ACCENT,
+        listening: false,
+      }),
+    );
+    registry.addComponent(
+      registry.spawnEntity(),
+      new RectComponent(layer, {
+        x: x + SIDE_PANEL_PADDING,
+        y: cursorY + 26,
+        width: contentWidth,
+        height: 1,
+        fill: BUTTON_BORDER,
+        listening: false,
+      }),
+    );
+    cursorY += 26 + 14;
+
+    const keySize = { width: 52, height: 24 };
+    KEYBINDS.forEach(({ key, description }) => {
+      registry.addComponent(
+        registry.spawnEntity(),
+        new RectComponent(layer, {
+          x: x + SIDE_PANEL_PADDING,
+          y: cursorY,
+          width: keySize.width,
+          height: keySize.height,
+          cornerRadius: 6,
+          fill: BUTTON_BG,
+          stroke: BUTTON_BORDER,
+          strokeWidth: 1,
+          listening: false,
+        }),
+      );
+      registry.addComponent(
+        registry.spawnEntity(),
+        new TextComponent(layer, {
+          text: key,
+          x: x + SIDE_PANEL_PADDING,
+          y: cursorY,
+          width: keySize.width,
+          height: keySize.height,
+          fontSize: 11,
+          fontStyle: "bold",
+          align: "center",
+          verticalAlign: "middle",
+          fill: PANEL_TEXT,
+          listening: false,
+        }),
+      );
+      registry.addComponent(
+        registry.spawnEntity(),
+        new TextComponent(layer, {
+          text: description,
+          x: x + SIDE_PANEL_PADDING + keySize.width + 10,
+          y: cursorY,
+          width: contentWidth - keySize.width - 10,
+          height: keySize.height,
+          fontSize: 11,
+          verticalAlign: "middle",
+          fill: MUTED_TEXT,
+          wrap: "word",
+          listening: false,
+        }),
+      );
+      cursorY += keybindRowHeight;
+    });
   }
 }

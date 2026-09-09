@@ -19,6 +19,9 @@ import { Money } from "../../components/money.component";
 import { MoveInput } from "../../components/move-input.component";
 import { WeaponInventory, type OwnedWeapon } from "../../components/weapon-inventory.component";
 import { ShootInput } from "../../components/shoot-input.component";
+import { ReviveInput } from "../../components/revive-input.component";
+import { PlayerClass as PlayerClassComponent } from "../../components/player-class.component";
+import { classForSkin, PLAYER_CLASS_CATALOG } from "../../player-class-catalog";
 import { WEAPON_CATALOG } from "../../weapon-catalog";
 import { createZombieBehavior, ZOMBIE_MAX_HEALTH } from "../zombie-ai";
 import { Vector2d } from "@nanoforge-dev/graphics-2d";
@@ -27,7 +30,6 @@ import mapCollisionData from "../../static/map-collision.json";
 const MAX_PLAYERS = 4;
 
 const LOBBY_MAX_HEALTH = 500;
-const PLAYER_MAX_HEALTH = 100;
 const STARTING_MONEY = 150;
 const STARTING_WEAPON_TYPE = "smallGun";
 
@@ -48,7 +50,8 @@ const PLAYER_HITBOX_OFFSET: Vector2d = {
 
 const LOBBY_SPRITE_SIZE: Vector2d = { x: 187, y: 143 };
 
-const tilesFor = (size: number) => Math.ceil(size / mapCollisionData.tileSize) * mapCollisionData.tileSize;
+const tilesFor = (size: number) =>
+  Math.ceil(size / mapCollisionData.tileSize) * mapCollisionData.tileSize;
 const LOBBY_COLLISION_BOX: Vector2d = {
   x: tilesFor(LOBBY_SPRITE_SIZE.x),
   y: tilesFor(LOBBY_SPRITE_SIZE.y),
@@ -85,7 +88,11 @@ const ZOMBIE_COIN_VALUE = 10;
 
 // Spawns a single zombie from a random tree cell, hunting via its own IAComponent. How many to
 // spawn and when is entirely zombie-wave.system.ts's concern - this just knows how to spawn one.
-export function spawnZombie(registry: Registry, network: NetworkServerLibrary, lobbyEntityId: number): void {
+export function spawnZombie(
+  registry: Registry,
+  network: NetworkServerLibrary,
+  lobbyEntityId: number,
+): void {
   const cell = mapTreeLocations[Math.floor(Math.random() * mapTreeLocations.length)];
   if (!cell) return;
 
@@ -127,7 +134,12 @@ export function startGamePacketHandler(
   const map = registry.spawnEntity();
   registry.addComponent(
     map,
-    new MapCollisions(mapCollisionData.tileSize, mapCollisionData.cols, mapCollisionData.rows, mapTreeLocations),
+    new MapCollisions(
+      mapCollisionData.tileSize,
+      mapCollisionData.cols,
+      mapCollisionData.rows,
+      mapTreeLocations,
+    ),
   );
 
   const lobby = registry.spawnEntity();
@@ -144,16 +156,12 @@ export function startGamePacketHandler(
     skin: number;
     position: Vector2d;
     health: { current: number; max: number };
-    // Ownership + shared reserve only now - magazine is per-hand (see
-    // weapon-inventory.component.ts), carried separately below as left/rightMagazineAmmo.
+    // Ownership + shared reserve only now - magazine is on the single equipped weapon's own
+    // state (see weapon-inventory.component.ts), carried separately below as magazineAmmo.
     weapons: { weaponType: string; reserveAmmo: number }[];
-    leftWeaponType: string | null;
-    rightWeaponType: string | null;
-    leftMagazineAmmo: number;
-    rightMagazineAmmo: number;
+    weaponType: string | null;
+    magazineAmmo: number;
   }[] = [];
-
-  const startingWeaponCatalog = WEAPON_CATALOG[STARTING_WEAPON_TYPE];
 
   clients.forEach((client, index) => {
     if (index >= MAX_PLAYERS) return;
@@ -164,47 +172,65 @@ export function startGamePacketHandler(
     client.entityId = player.getId();
     registry.addComponent(player, new Direction(1, 0));
     registry.addComponent(player, new Login(client.username));
-    registry.addComponent(player, new Position(PLAYERS_SPAWNERS[index].x, PLAYERS_SPAWNERS[index].y));
+    registry.addComponent(
+      player,
+      new Position(PLAYERS_SPAWNERS[index].x, PLAYERS_SPAWNERS[index].y),
+    );
     registry.addComponent(player, new Velocity(0, 0));
     registry.addComponent(player, new MoveInput());
     registry.addComponent(player, new CollisionBox(PLAYER_COLLISION_BOX.x, PLAYER_COLLISION_BOX.y));
     registry.addComponent(
       player,
-      new Hitbox(PLAYER_HITBOX_SIZE.x, PLAYER_HITBOX_SIZE.y, PLAYER_HITBOX_OFFSET.x, PLAYER_HITBOX_OFFSET.y),
+      new Hitbox(
+        PLAYER_HITBOX_SIZE.x,
+        PLAYER_HITBOX_SIZE.y,
+        PLAYER_HITBOX_OFFSET.x,
+        PLAYER_HITBOX_OFFSET.y,
+      ),
     );
-    registry.addComponent(player, new Health(PLAYER_MAX_HEALTH, PLAYER_MAX_HEALTH));
+    // Class is derived entirely from the chosen skin (see player-class-catalog.ts) - no separate
+    // class-selection UI, the skin picker IS the class picker.
+    const playerClass = classForSkin(client.skin);
+    const classCatalog = PLAYER_CLASS_CATALOG[playerClass];
+    const maxHealth = classCatalog.maxHealth;
+    registry.addComponent(player, new Health(maxHealth, maxHealth));
+    registry.addComponent(player, new PlayerClassComponent(playerClass));
 
-    // Every player starts owning exactly smallGun, equipped left - same grant as before this
-    // feature, just represented as a one-entry inventory instead of a single Weapon component.
-    // smallGun is infiniteReserve, so its reserve is left at the catalog's -1 sentinel regardless
-    // of the magazine handed to leftState below - same "arrives loaded, never touches reserve"
-    // shape equipWeaponPacketHandler's claimHand uses for any infiniteReserve weapon.
+    // Every player starts owning and equipping smallGun, EXCEPT a fighter, who starts with a
+    // shotgun instead (2 magazines' worth of ammo total - one loaded, one in reserve, the same
+    // "arrives loaded" idea as smallGun's, just for a finite-reserve weapon). smallGun is
+    // infiniteReserve, so its reserve is left at the catalog's -1 sentinel regardless of the
+    // magazine handed to `state` below - same "arrives loaded, never touches reserve" shape
+    // equipWeaponPacketHandler's claimWeapon uses for any infiniteReserve weapon.
+    const startingWeaponType = playerClass === "fighter" ? "shotgun" : STARTING_WEAPON_TYPE;
+    const startingCatalog = WEAPON_CATALOG[startingWeaponType];
     const startingWeapon: OwnedWeapon = {
-      weaponType: STARTING_WEAPON_TYPE,
-      reserveAmmo: startingWeaponCatalog.startingReserve,
+      weaponType: startingWeaponType,
+      reserveAmmo: startingCatalog.infiniteReserve
+        ? startingCatalog.startingReserve
+        : startingCatalog.magazineSize,
     };
     const inventory = new WeaponInventory();
     inventory.owned.push(startingWeapon);
-    inventory.leftWeaponType = STARTING_WEAPON_TYPE;
-    inventory.leftState = {
-      magazineAmmo: startingWeaponCatalog.magazineSize,
+    inventory.equippedWeaponType = startingWeaponType;
+    inventory.state = {
+      magazineAmmo: startingCatalog.magazineSize,
       state: "idle",
       reloadRemaining: 0,
       cooldownRemaining: 0,
     };
     registry.addComponent(player, inventory);
     registry.addComponent(player, new ShootInput());
+    registry.addComponent(player, new ReviveInput());
     playersInformation.push({
       id: client.entityId,
       username: client.username,
       skin: client.skin,
       position: PLAYERS_SPAWNERS[index],
-      health: { current: PLAYER_MAX_HEALTH, max: PLAYER_MAX_HEALTH },
+      health: { current: maxHealth, max: maxHealth },
       weapons: [{ weaponType: startingWeapon.weaponType, reserveAmmo: startingWeapon.reserveAmmo }],
-      leftWeaponType: inventory.leftWeaponType,
-      rightWeaponType: inventory.rightWeaponType,
-      leftMagazineAmmo: inventory.leftState.magazineAmmo,
-      rightMagazineAmmo: inventory.rightState?.magazineAmmo ?? 0,
+      weaponType: inventory.equippedWeaponType,
+      magazineAmmo: inventory.state.magazineAmmo,
     });
   });
 

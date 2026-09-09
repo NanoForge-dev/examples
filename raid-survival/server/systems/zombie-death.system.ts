@@ -7,7 +7,17 @@ import { Health } from "../components/health.component";
 import { Money } from "../components/money.component";
 import { Position } from "../components/position.component";
 import { Velocity } from "../components/velocity.component";
+import { LootBox, type LootType } from "../components/loot-box.component";
+import { Hitbox } from "../components/hitbox.component";
 import { sendToInGamePlayers } from "../network-utils";
+
+// 1/20 per zombie kill, per the request - split evenly between the three box types.
+const LOOT_BOX_DROP_CHANCE = 1 / 20;
+const LOOT_TYPES: LootType[] = ["heal", "gold", "ammo"];
+// Matches the box's rendered sprite (objects.png's 15x12 loot icons) - loot-box-pickup.system.ts
+// adds its own forgiving pickup range on top of this via distanceBetweenHitboxes, same as
+// tower-interact.system.ts does for TOWER_INTERACT_RANGE.
+const LOOT_BOX_HITBOX: [number, number] = [15, 12];
 
 // ~7 frames at the zombie sprite's existing frameRate of 7 (see sprite.system.ts) - long enough
 // for the death animation (zombie-animations.txt's "death" key) to actually play out client-side
@@ -78,6 +88,25 @@ export function zombieDeathSystem(registry: Registry, ctx: Context) {
       position: { x: zombie.Position.x, y: zombie.Position.y },
       amount: zombie.Zombie.coinValue,
     });
+
+    // A 1/20 chance per kill to also drop a physical loot box (heal/gold/ammo, picked uniformly)
+    // at the death spot - separate from the coin reward above, which always happens.
+    if (Math.random() < LOOT_BOX_DROP_CHANCE) {
+      // Always in-bounds (index < LOOT_TYPES.length by construction) - the fallback only
+      // satisfies noUncheckedIndexedAccess, never actually reached.
+      const lootType = LOOT_TYPES[Math.floor(Math.random() * LOOT_TYPES.length)] ?? "gold";
+      const lootBox = registry.spawnEntity();
+      registry.addComponent(lootBox, new Position(zombie.Position.x, zombie.Position.y));
+      registry.addComponent(lootBox, new Hitbox(...LOOT_BOX_HITBOX));
+      registry.addComponent(lootBox, new LootBox(lootType));
+      sendToInGamePlayers(network, {
+        type: "spawn",
+        entityType: "lootBox",
+        id: lootBox.getId(),
+        lootType,
+        position: { x: zombie.Position.x, y: zombie.Position.y },
+      });
+    }
   }
 
   for (const zombie of readyToRemove) {

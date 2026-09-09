@@ -58,11 +58,13 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
 
     if (inAttackRange.length > 0) {
       const target =
-        inAttackRange.find((e) => e.entityId === zombie.lastAttackedTargetId) ?? nearest(inAttackRange);
+        inAttackRange.find((e) => e.entityId === zombie.lastAttackedTargetId) ??
+        nearest(inAttackRange);
 
       // Switching who we're hitting (a fresh attack, or the in-range target changed while still
       // mid-animation) resets the frame timer so the new target doesn't inherit a stale cycle.
-      const switched = zombie.animationState !== "attack" || target.entityId !== zombie.lastAttackedTargetId;
+      const switched =
+        zombie.animationState !== "attack" || target.entityId !== zombie.lastAttackedTargetId;
       zombie.lastAttackedTargetId = target.entityId;
 
       if (switched) {
@@ -83,13 +85,18 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
       }
 
       zombie.attackElapsed += delta;
-      const frame = Math.floor(zombie.attackElapsed * ZOMBIE_ATTACK_FRAME_RATE) % ZOMBIE_ATTACK_FRAME_COUNT;
+      const frame =
+        Math.floor(zombie.attackElapsed * ZOMBIE_ATTACK_FRAME_RATE) % ZOMBIE_ATTACK_FRAME_COUNT;
 
       if (frame === ZOMBIE_ATTACK_DAMAGE_FRAME) {
         if (!zombie.hasDealtDamageThisCycle && target.health.current > 0) {
           target.health.current = Math.max(0, target.health.current - ZOMBIE_ATTACK_DAMAGE);
           zombie.hasDealtDamageThisCycle = true;
-          sendToInGamePlayers(network, { type: "hit", id: target.entityId, damage: ZOMBIE_ATTACK_DAMAGE });
+          sendToInGamePlayers(network, {
+            type: "hit",
+            id: target.entityId,
+            damage: ZOMBIE_ATTACK_DAMAGE,
+          });
         }
       } else {
         zombie.hasDealtDamageThisCycle = false;
@@ -99,7 +106,9 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
 
     // Priority 2: nothing attackable right now - move to the closest thing worth attacking. The
     // lobby is always a candidate; a player or building only counts within the aggro range.
-    const reachable = attackable.filter((e) => e.alwaysReachable || e.distance <= ZOMBIE_AGGRO_RANGE);
+    const reachable = attackable.filter(
+      (e) => e.alwaysReachable || e.distance <= ZOMBIE_AGGRO_RANGE,
+    );
     const target = reachable.length > 0 ? nearest(reachable) : null;
 
     if (!target) {
@@ -122,7 +131,8 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
     // keeps changing even with the same target). The lobby is stationary, so once a straight-line
     // chase toward it starts, no further correction is needed until something changes.
     const targetChanged = target.entityId !== zombie.lastMoveTargetId;
-    const needsBroadcast = zombie.animationState !== "idle" || targetChanged || !target.alwaysReachable;
+    const needsBroadcast =
+      zombie.animationState !== "idle" || targetChanged || !target.alwaysReachable;
     zombie.lastMoveTargetId = target.entityId;
     zombie.animationState = "idle";
     if (needsBroadcast) {
@@ -161,12 +171,8 @@ function gatherAttackable(
     });
   }
 
-  const players: { id: number; Position: Position; Hitbox: Hitbox; Health: Health }[] = registry.getIndexedZipper([
-    Position,
-    Hitbox,
-    Health,
-    Login,
-  ]);
+  const players: { id: number; Position: Position; Hitbox: Hitbox; Health: Health }[] =
+    registry.getIndexedZipper([Position, Hitbox, Health, Login]);
 
   for (const player of players) {
     if (player.Health.current <= 0) continue;
@@ -176,16 +182,17 @@ function gatherAttackable(
       position: player.Position,
       hitbox: player.Hitbox,
       health: player.Health,
-      distance: distanceBetweenHitboxes(zombiePosition, zombieHitbox, player.Position, player.Hitbox),
+      distance: distanceBetweenHitboxes(
+        zombiePosition,
+        zombieHitbox,
+        player.Position,
+        player.Hitbox,
+      ),
     });
   }
 
-  const buildings: { id: number; Position: Position; Hitbox: Hitbox; Health: Health }[] = registry.getIndexedZipper([
-    Position,
-    Hitbox,
-    Health,
-    Building,
-  ]);
+  const buildings: { id: number; Position: Position; Hitbox: Hitbox; Health: Health }[] =
+    registry.getIndexedZipper([Position, Hitbox, Health, Building]);
 
   for (const building of buildings) {
     if (building.Health.current <= 0) continue;
@@ -195,7 +202,12 @@ function gatherAttackable(
       position: building.Position,
       hitbox: building.Hitbox,
       health: building.Health,
-      distance: distanceBetweenHitboxes(zombiePosition, zombieHitbox, building.Position, building.Hitbox),
+      distance: distanceBetweenHitboxes(
+        zombiePosition,
+        zombieHitbox,
+        building.Position,
+        building.Hitbox,
+      ),
     });
   }
 
@@ -203,14 +215,22 @@ function gatherAttackable(
 }
 
 function nearest(entities: Attackable[]): Attackable {
-  return entities.reduce((closest, entity) => (entity.distance < closest.distance ? entity : closest));
+  return entities.reduce((closest, entity) =>
+    entity.distance < closest.distance ? entity : closest,
+  );
 }
 
 // Minimum distance between two axis-aligned boxes (0 when they overlap) - the gap between
 // whichever pair of edges/corners is closest. This is what "8 pixels of the hitbox" actually
 // means for a zombie that has its own footprint, not just a point: a zero-size box reduces this
-// to plain point-to-box distance.
-function distanceBetweenHitboxes(aPosition: Position, aHitbox: Hitbox, bPosition: Position, bHitbox: Hitbox): number {
+// to plain point-to-box distance. Exported so revive.system.ts can reuse the exact same
+// edge-to-edge metric for its own reviver-to-downed-teammate range check.
+export function distanceBetweenHitboxes(
+  aPosition: Position,
+  aHitbox: Hitbox,
+  bPosition: Position,
+  bHitbox: Hitbox,
+): number {
   const aLeft = aPosition.x + aHitbox.offsetX;
   const aTop = aPosition.y + aHitbox.offsetY;
   const aRight = aLeft + aHitbox.width;

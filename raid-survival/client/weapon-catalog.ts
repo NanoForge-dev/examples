@@ -64,14 +64,14 @@ export const WEAPON_CATALOG = {
     pivot: { x: 7, y: 21 },
     // A pivot alone only fixes ROTATION, not POSITION: sprite.system.ts places a sprite's pivot at
     // exactly TransformComponent + pivot (see its own comment for the derivation), and the weapon
-    // entity shares the exact same TransformComponent (HAND_LOCAL_OFFSETS[hand], via ChildrenComponent)
+    // entity shares the exact same TransformComponent (WEAPON_LOCAL_OFFSET, via ChildrenComponent)
     // as the hand.png entity it's meant to sit on top of. So unless this weapon's pivot happens to
     // numerically equal hand.png's own default pivot - its frame center (8,8), since hand.png is an
     // uncropped 16x16 image - the two entities' pivots (and everything drawn around them) land at
     // different world points even sharing the same base offset. smallGun's 16x16 crop needs no
     // correction (its default center pivot already IS (8,8) - the two coincide by construction);
     // this weapon's pivot above (7,21) very much isn't, so start-game-packet.handler.ts's
-    // weaponLocalOffset() adds this on top of HAND_LOCAL_OFFSETS[hand] for the weapon entity (and
+    // weaponLocalOffset() adds this on top of WEAPON_LOCAL_OFFSET for the weapon entity (and
     // its reload overlay, same asset) specifically - never for the hand entity itself - to land
     // back on (8,8): (8,8) - (7,21) = (1,-13). Retune alongside `pivot` if the gun still isn't
     // sitting on the hand - the two values only need to keep satisfying that equation together.
@@ -124,6 +124,55 @@ export const WEAPON_CATALOG = {
     // only skip more of them, not make the recoil read any snappier).
     shootFrameCount: 37,
     shootSeconds: 0.5,
+  },
+  // Uzi-Shot.png/Uzi-Reload.png - unused assets already in client/static, added alongside this
+  // weapon. 48x32 frames (6 shoot, 16 reload) - see uzi-shot/-reload-animations.txt. No pivot
+  // override: the grip sits close enough to the frame's own geometric center that the default
+  // (same treatment as smallGun) reads fine - retune if it visibly doesn't once seen in-engine.
+  uzi: {
+    label: "Uzi",
+    spriteKey: "Uzi-Shot.png",
+    animationsKey: "uzi-shot-animations.txt",
+    iconAnimation: "idle",
+    iconSize: { width: 48, height: 32 },
+    scale: 0.5,
+    rotationOffset: 0,
+    alwaysOwned: false,
+    cost: 200,
+    ammoRefillCost: 20,
+    reloadSpriteKey: "Uzi-Reload.png",
+    reloadAnimationsKey: "uzi-reload-animations.txt",
+    reloadFrameCount: 16,
+    reloadSeconds: 2,
+    shootFrameCount: 6,
+    // Fast fire rate (server: 12/sec) needs a snappy recoil loop, well under the ~0.083s fire
+    // interval so a rapid burst always gets a clean per-shot restart - see shotgun's own comment
+    // on why this just needs to stay comfortably under that interval, not match it exactly.
+    shootSeconds: 0.2,
+  },
+  // No dedicated sniper rifle asset exists yet - AK-Shot.png/AK-Reload.png (also unused, already
+  // in client/static) stand in for it: closer to a "precision rifle" silhouette than the pistol/
+  // shotgun/uzi art, and happens to share the shotgun's exact 52x32 frame size. Swap spriteKey/
+  // animationsKey here first if dedicated sniper art ever gets added.
+  sniper: {
+    label: "Sniper",
+    spriteKey: "AK-Shot.png",
+    animationsKey: "ak-shot-animations.txt",
+    iconAnimation: "idle",
+    iconSize: { width: 52, height: 32 },
+    scale: 0.5,
+    rotationOffset: 0,
+    alwaysOwned: false,
+    cost: 300,
+    ammoRefillCost: 40,
+    reloadSpriteKey: "AK-Reload.png",
+    reloadAnimationsKey: "ak-reload-animations.txt",
+    reloadFrameCount: 19,
+    reloadSeconds: 3,
+    shootFrameCount: 14,
+    // Slow fire rate (server: 0.8/sec, ~1.25s between shots) gives plenty of room for a full,
+    // unhurried recoil animation before the next shot could possibly restart it.
+    shootSeconds: 0.6,
   },
 } as const;
 

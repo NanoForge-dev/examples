@@ -1,7 +1,3 @@
 allowBuilds:
   bun: true
   wrtc: true
-
-overrides:
-  "@nanoforge-dev/loader-website": "link:/home/harper/Documents/Nanoforge/Loader/apps/website"
-  "@nanoforge-dev/loader-client": "link:/home/harper/Documents/Nanoforge/Loader/apps/client"

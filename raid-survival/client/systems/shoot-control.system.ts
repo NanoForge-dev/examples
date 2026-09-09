@@ -24,7 +24,8 @@ export function shootControl(registry: Registry, ctx: Context) {
   ]);
   const buildModeActive = buildModeEntities[0]?.BuildModeComponent.active ?? false;
 
-  const pointerPosition: Vector2d | null = sceneManager.getScene()?.layer?.getRelativePointerPosition() || null;
+  const pointerPosition: Vector2d | null =
+    sceneManager.getScene()?.layer?.getRelativePointerPosition() || null;
 
   entities.forEach(({ ShootController, Direction, TransformComponent }) => {
     if (buildModeActive) {
@@ -33,8 +34,7 @@ export function shootControl(registry: Registry, ctx: Context) {
       // the visual half of this). Checked before the pointerPosition guard below (not after) so
       // that a fire button held down when the pointer briefly leaves the canvas doesn't get stuck
       // "on" forever if build mode opens while that's happening - this branch must always run.
-      ShootController.mainWeaponShooting = false;
-      ShootController.secondWeaponShooting = false;
+      ShootController.shooting = false;
       ShootController.wasReloadKeyPressed = false;
       ShootController.reloadRequested = false;
       return;
@@ -44,12 +44,7 @@ export function shootControl(registry: Registry, ctx: Context) {
     // build-mode branch above, which must run every tick regardless.
     if (!pointerPosition) return;
 
-    ShootController.mainWeaponShooting = <boolean>(
-      input.isKeyPressed(ShootController.keyShootMainWeapon)
-    );
-    ShootController.secondWeaponShooting = <boolean>(
-      input.isKeyPressed(ShootController.keyShootSecondWeapon)
-    );
+    ShootController.shooting = <boolean>input.isKeyPressed(ShootController.keyShoot);
 
     // Edge-detected: isKeyPressed reports "held", but a reload request is a one-shot action, not
     // a continuous state - without this, holding R would queue a fresh reload request every

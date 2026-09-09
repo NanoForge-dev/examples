@@ -8,39 +8,28 @@ import { Direction } from "../../components/direction.component";
 import { Vector2d } from "@nanoforge-dev/graphics-2d";
 
 export function sendShootControl(registry: Registry, ctx: Context) {
-  const entities: { ShootController: ShootController, Velocity: Vector2d, Direction: Direction }[] = registry.getZipper([
-    ShootController,
-    Velocity,
-    Direction,
-  ]);
-  const network = ctx.libs.getNetwork<NetworkClientLibrary>()
+  const entities: { ShootController: ShootController; Velocity: Vector2d; Direction: Direction }[] =
+    registry.getZipper([ShootController, Velocity, Direction]);
+  const network = ctx.libs.getNetwork<NetworkClientLibrary>();
 
   entities.forEach(({ ShootController, Direction }) => {
     // Only send "shooting" when it actually changes - weapon.system.ts (server) recomputes
     // firing/cooldown every tick from the persisted state regardless of packet frequency, so
     // sending this every single frame the button is held (the old behavior) was pure waste, the
     // same inefficiency move-control.senders.system.ts already avoids for move keys.
-    if (ShootController.mainWeaponShooting !== ShootController.lastSentMainWeaponShooting) {
-      network.tcp.sendData(
-        new TextEncoder().encode(JSON.stringify({ type: "input", shooting: ShootController.mainWeaponShooting })),
-      );
-      ShootController.lastSentMainWeaponShooting = ShootController.mainWeaponShooting;
-    }
-
-    // Same dedup as mainWeaponShooting above - this is the one missing piece that makes the
-    // already-wired right-click input (ShootController.secondWeaponShooting,
-    // shoot-control.system.ts) actually reach the server.
-    if (ShootController.secondWeaponShooting !== ShootController.lastSentSecondWeaponShooting) {
+    if (ShootController.shooting !== ShootController.lastSentShooting) {
       network.tcp.sendData(
         new TextEncoder().encode(
-          JSON.stringify({ type: "input", rightShooting: ShootController.secondWeaponShooting }),
+          JSON.stringify({ type: "input", shooting: ShootController.shooting }),
         ),
       );
-      ShootController.lastSentSecondWeaponShooting = ShootController.secondWeaponShooting;
+      ShootController.lastSentShooting = ShootController.shooting;
     }
 
     if (ShootController.reloadRequested) {
-      network.tcp.sendData(new TextEncoder().encode(JSON.stringify({ type: "input", reload: true })));
+      network.tcp.sendData(
+        new TextEncoder().encode(JSON.stringify({ type: "input", reload: true })),
+      );
       ShootController.reloadRequested = false;
     }
 

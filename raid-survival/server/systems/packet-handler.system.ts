@@ -9,6 +9,7 @@ import { buildPacketHandler } from "./packet-handlers/build-packet.handler";
 import { buyWeaponPacketHandler } from "./packet-handlers/buy-weapon-packet.handler";
 import { buyAmmoPacketHandler } from "./packet-handlers/buy-ammo-packet.handler";
 import { equipWeaponPacketHandler } from "./packet-handlers/equip-weapon-packet.handler";
+import { destroyBuildingPacketHandler } from "./packet-handlers/destroy-building-packet.handler";
 
 export type PacketHandler = (
   client: number,
@@ -25,6 +26,7 @@ export const packetHandlers: Map<string, PacketHandler> = new Map([
   ["buyWeapon", buyWeaponPacketHandler],
   ["buyAmmo", buyAmmoPacketHandler],
   ["equipWeapon", equipWeaponPacketHandler],
+  ["destroyBuilding", destroyBuildingPacketHandler],
 ]);
 
 export function packetHandler(registry: Registry, ctx: Context) {
