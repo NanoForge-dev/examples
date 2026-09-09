@@ -1177,11 +1177,13 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
 
 // One column, one entry per catalog weapon, right-anchored - shown/hidden alongside the build bar
 // (both gated on BuildModeComponent.active, checked in build-mode.system.ts, which also owns this
-// panel's per-tick button-state refresh and the shopBounds click-guard). Clicking a weapon's icon
-// buys it if unowned, buys an ammo refill if already owned (smallGun is `alwaysOwned` - no click
-// handler is ever attached to it, so it's never clickable, matching "you can't click it"). Two
-// small L/R buttons under every entry, including smallGun, assign/unassign that weapon to that
-// hand - clicking a hand button that's already assigned to this weapon unassigns it.
+// panel's per-tick button-state refresh and the shopBounds click-guard). Clicking a weapon's top
+// row buys it if unowned, buys an ammo refill if already owned (build-mode.system.ts's
+// pendingBuyType handling) - the hint caption below the column spells this out for the player.
+// The row underneath is a single equip/unequip toggle - its label flips between "Buy" (not owned
+// yet - clicking it buys instead of trying to equip something you don't have), "Select"/"Selected"
+// (owned) - see build-mode.system.ts, which also owns switching it to a different owned weapon
+// (server-authoritative unequip-then-equip, equip-weapon-packet.handler.ts).
 function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) {
   const catalogEntries = Object.entries(WEAPON_CATALOG) as [
     WeaponType,
@@ -1191,12 +1193,33 @@ function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) 
   const totalHeight =
     catalogEntries.length * SHOP_ENTRY_HEIGHT + (catalogEntries.length - 1) * SHOP_ENTRY_GAP;
 
-  const weaponShop = new WeaponShopComponent([], {
+  // One caption for the whole column rather than repeating it on every entry (SHOP_ENTRY_WIDTH is
+  // only 100px - a per-entry hint would either be unreadable or crowd out the price/ammo count
+  // already there). Sits just below the last entry, out of the way of the buy/select rows above it.
+  const hintTextComponent = new TextComponent(hudLayer, {
+    text: "Click a weapon to buy it or refill its ammo",
     x: panelX,
-    y: SHOP_TOP_MARGIN,
+    y: SHOP_TOP_MARGIN + totalHeight + SHOP_ENTRY_GAP,
     width: SHOP_ENTRY_WIDTH,
-    height: totalHeight,
+    align: "center",
+    fontSize: 10,
+    fontStyle: "italic",
+    fill: "#9CB89C",
+    visible: false,
+    listening: false,
   });
+  registry.addComponent(registry.spawnEntity(), hintTextComponent);
+
+  const weaponShop = new WeaponShopComponent(
+    [],
+    {
+      x: panelX,
+      y: SHOP_TOP_MARGIN,
+      width: SHOP_ENTRY_WIDTH,
+      height: totalHeight,
+    },
+    hintTextComponent.text,
+  );
   // Seeded from the local player's starting loadout - nothing broadcasts a weaponInventory/ammo
   // packet at spawn (only buy/refill/equip events do), so without this the shop would show
   // smallGun as unowned and unselected until the first purchase.
@@ -1276,8 +1299,9 @@ function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) 
       });
     }
 
-    // One button per entry now (dual wielding removed) - toggles this weapon equipped/unequipped;
-    // its label flips between "Select" and "Selected" (build-mode.system.ts owns that per tick).
+    // One button per entry now (dual wielding removed) - toggles this weapon equipped/unequipped
+    // when owned; its label flips between "Select"/"Selected"/"Buy" (build-mode.system.ts owns
+    // that per tick, since it's the one that knows both ownership and equip state every frame).
     const selectButtonComponent = new RectComponent(hudLayer, {
       x: panelX,
       y: entryY + SHOP_BUY_HEIGHT + SHOP_SELECT_BUTTON_GAP,
@@ -1305,6 +1329,12 @@ function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) 
     });
     registry.addComponent(registry.spawnEntity(), selectLabelComponent);
     selectButtonComponent.rect.on("click", () => {
+      // Not owned yet - this button reads "Buy" (build-mode.system.ts), so clicking it should buy
+      // the weapon, not fire off an equip request the server can only reject ("not owned").
+      if (!weaponShop.owned.has(weaponType)) {
+        weaponShop.pendingBuyType = weaponType;
+        return;
+      }
       weaponShop.pendingEquip = {
         weaponType: weaponShop.equippedWeaponType === weaponType ? null : weaponType,
       };

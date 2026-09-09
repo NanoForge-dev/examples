@@ -407,7 +407,7 @@ export class MenuScene implements Scene {
     registry.addComponent(
       registry.spawnEntity(),
       new TextComponent(group, {
-        text: "CHOOSE YOUR SKIN",
+        text: "CHOOSE YOUR CLASS",
         x: 0,
         y: 126,
         width: panelWidth,
@@ -430,7 +430,9 @@ export class MenuScene implements Scene {
       new TextComponent(group, {
         text: "YOUR NAME",
         x: fieldX,
-        y: 294,
+        // Pushed down from 294 to clear the class caption above it (now ends at 292+34=326) with a
+        // 10px gap, instead of sitting right on top of it.
+        y: 336,
         width: fieldWidth,
         height: 14,
         fontSize: 12,
@@ -441,7 +443,9 @@ export class MenuScene implements Scene {
     );
 
     const pseudoTextSize = { width: fieldWidth, height: 42 };
-    const pseudoTextY = 314;
+    // 356, not the old 314 - shifted down by the same 42px the "YOUR NAME" label above moved,
+    // keeping the same 6px gap between that label and this box.
+    const pseudoTextY = 356;
     registry.addComponent(
       registry.spawnEntity(),
       new RectComponent(group, {
@@ -639,10 +643,13 @@ export class MenuScene implements Scene {
       );
     };
 
-    buildArrow("<", panelWidth / 2 - 150 - arrowSize / 2, () =>
+    // 180px out from center (was 150) - further toward the panel's edges, away from the carousel
+    // sprites they sit alongside.
+    const arrowOffset = 180;
+    buildArrow("<", panelWidth / 2 - arrowOffset - arrowSize / 2, () =>
       selectSkin(this.selectedSkinIndex - 1),
     );
-    buildArrow(">", panelWidth / 2 + 150 - arrowSize / 2, () =>
+    buildArrow(">", panelWidth / 2 + arrowOffset - arrowSize / 2, () =>
       selectSkin(this.selectedSkinIndex + 1),
     );
 
@@ -687,13 +694,15 @@ export class MenuScene implements Scene {
     }
 
     // Below the dots - each skin IS a class pick (server/player-class-catalog.ts), so this is
-    // what actually tells a player what they're choosing, not just cosmetics.
+    // what actually tells a player what they're choosing, not just cosmetics. Extra breathing
+    // room above (dots end at 274, this starts at 292) and below (see the "YOUR NAME" label's own
+    // y, pushed down to clear this box) - it used to sit right on top of both neighbors.
     this.classCaption = new TextComponent(group, {
       text: "",
       x: 0,
-      y: 284,
+      y: 292,
       width: panelWidth,
-      height: 30,
+      height: 34,
       fontSize: 11,
       align: "center",
       fill: PANEL_TEXT,
@@ -704,7 +713,7 @@ export class MenuScene implements Scene {
     const selectSkin = (index: number) => {
       this.selectedSkinIndex = ((index % SKIN_COUNT) + SKIN_COUNT) % SKIN_COUNT;
       if (this.lobbyStatusComponent) this.lobbyStatusComponent.skin = this.selectedSkinIndex + 1;
-      this.skinCaption?.text.text(`Skin ${this.selectedSkinIndex + 1} / ${SKIN_COUNT}`);
+      this.skinCaption?.text.text(`Class ${this.selectedSkinIndex + 1} / ${SKIN_COUNT}`);
       this.skinDots.forEach((dot, i) => {
         dot.rect.fill(i === this.selectedSkinIndex ? skinColor(i) : BUTTON_BORDER);
       });
@@ -804,8 +813,14 @@ export class MenuScene implements Scene {
       });
       registry.addComponent(registry.spawnEntity(), frameComponent);
 
+      // TransformComponent.x/y is top-left anchored, not center - localTopY already accounts for
+      // that (frameX/Y + half the leftover space once the sprite's own size is subtracted out).
+      // localCenterX used to skip that subtraction entirely (frameX + frameSize/2, missing the
+      // "- spriteSize/2" term), landing the sprite's top-left corner at the frame's center instead
+      // of at the point that puts the sprite's OWN center there - visibly shifted right/up by half
+      // the sprite size (30px) instead of sitting centered in the circular frame.
       const spriteSize = SPRITE_NATIVE_SIZE * LOBBY_PREVIEW_SCALE;
-      const localCenterX = frameX + frameSize / 2;
+      const localCenterX = frameX + (frameSize - spriteSize) / 2;
       const localTopY = frameY + (frameSize - spriteSize) / 2;
 
       const previews: SpriteComponent[] = [];

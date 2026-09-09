@@ -55,7 +55,13 @@ export function buyWeaponPacketHandler(
   // ownership alone doesn't equip it (equipWeaponPacketHandler does that separately), and it's
   // equipping that actually pulls a magazine out of reserve (see there). Seeding it this way
   // means the first equip nets exactly today's "N in mag, starting reserve in reserve" feel.
-  inventory.owned.push({ weaponType, reserveAmmo: catalog.startingReserve + catalog.magazineSize });
+  // infiniteReserve (smallGun) keeps the catalog's -1 sentinel instead - adding magazineSize to it
+  // would turn "infinite" into a real, finite-looking 7 - same guard start-game-packet.handler.ts's
+  // spawn code and equipWeaponPacketHandler's claimWeapon already use.
+  const startingReserve = catalog.infiniteReserve
+    ? catalog.startingReserve
+    : catalog.startingReserve + catalog.magazineSize;
+  inventory.owned.push({ weaponType, reserveAmmo: startingReserve });
 
   sendToInGamePlayers(network, {
     type: "weaponInventory",

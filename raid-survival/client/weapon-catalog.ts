@@ -31,8 +31,12 @@ export const WEAPON_CATALOG = {
     // full gun shape, including the grip's mass hanging below the barrel, biases the principal
     // axis away from the true bore line). offset = -localBarrelAngle, so ~0.
     rotationOffset: 0,
-    alwaysOwned: true,
-    cost: 0,
+    // Used to be granted to every class unconditionally, so there was never anything to buy - now
+    // a fighter starts with a shotgun instead (see server/player-class-catalog.ts) and can buy
+    // smallGun as a cheap backup sidearm. infiniteReserve (server-side) means there's still never
+    // an ammo refill to buy once owned - only the one-time purchase.
+    alwaysOwned: false,
+    cost: 40,
     ammoRefillCost: 0,
   },
   shotgun: {

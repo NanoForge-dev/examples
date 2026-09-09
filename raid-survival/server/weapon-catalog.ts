@@ -1,13 +1,16 @@
-// What a player can own and how each behaves. `alwaysOwned` weapons (smallGun) are granted at
-// spawn, never buyable/refillable, and the shop panel never attaches a click handler to them -
-// every other field still applies to them uniformly so nothing needs to special-case them beyond
-// that one flag. Adding a new weapon is just a new key here plus a client-side entry in
-// client/weapon-catalog.ts (kept in sync manually - client and server are separate bundles, same
-// reasoning as building-catalog.ts).
+// What a player can own and how each behaves. An `alwaysOwned` weapon would be granted at spawn,
+// never buyable/refillable, and the shop panel would never attach a click handler to it - no
+// weapon currently uses this (smallGun is buyable now, see below), but the flag/handling stays in
+// case a future one needs it. Adding a new weapon is just a new key here plus a client-side entry
+// in client/weapon-catalog.ts (kept in sync manually - client and server are separate bundles,
+// same reasoning as building-catalog.ts).
 export const WEAPON_CATALOG = {
   smallGun: {
-    alwaysOwned: true,
-    cost: 0,
+    // Granted for free at spawn to every class except fighter (start-game-packet.handler.ts's
+    // startingWeaponType), but NOT alwaysOwned any more - a fighter (who starts with a shotgun
+    // instead) can buy it as a cheap backup sidearm for `cost` below.
+    alwaysOwned: false,
+    cost: 40,
     magazineSize: 8,
     infiniteReserve: true,
     startingReserve: -1,

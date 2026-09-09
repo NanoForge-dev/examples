@@ -74,6 +74,9 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
     MoneyHudComponent,
   ]);
   moneyHudEntities[0]?.MoneyHudComponent.coinIcon.moveToTop();
+  // Pulled up here (used both by the weapon shop below, which runs regardless of build-mode
+  // placement state, and by the building-placement afford check further down).
+  const money = moneyHudEntities[0]?.MoneyHudComponent.amount ?? 0;
 
   const input = ctx.libs.getInput<InputLibrary>();
   const network = ctx.libs.getNetwork<NetworkClientLibrary>();
@@ -247,19 +250,31 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
           : catalogEntry.label,
       );
 
-      if (!catalogEntry.alwaysOwned) {
-        entry.costText.visible(buildMode.active);
-        entry.costIcon?.visible(buildMode.active);
+      // Whichever price actually applies right now - buying outright if unowned, refilling if
+      // owned. 0 means nothing is actually purchasable here (e.g. smallGun's infiniteReserve has
+      // no refill cost once owned) - hide the row entirely rather than show a meaningless "0".
+      const price = owned ? catalogEntry.ammoRefillCost : catalogEntry.cost;
+      const canAfford = money >= price;
+      entry.costText.visible(buildMode.active && price > 0);
+      entry.costIcon?.visible(buildMode.active && price > 0);
+      if (price > 0) {
         entry.costIcon?.moveToTop(); // same raw-Konva z-order trap as gridShape/previewRect above
-        entry.costText.text(owned ? `${catalogEntry.ammoRefillCost}` : `${catalogEntry.cost}`);
+        entry.costText.text(`${price}`);
+        entry.costText.fill(canAfford ? "#F5F2E9" : "#E05C5C");
       }
 
       const isEquipped = weaponShop.equippedWeaponType === entry.weaponType;
       entry.selectButton.visible(buildMode.active);
       entry.selectLabel.visible(buildMode.active);
       entry.selectButton.stroke(isEquipped ? "#F5F2E9" : "#5E8C61");
-      entry.selectLabel.text(isEquipped ? "Selected" : "Select");
+      // Not owned yet - this button buys instead of equipping (see its click handler,
+      // start-game-packet.handler.ts), so it reads "Buy" rather than an equip state it can't reach.
+      entry.selectLabel.text(!owned ? "Buy" : isEquipped ? "Selected" : "Select");
     }
+
+    // Explained once for the whole column rather than per entry - see buildWeaponShop.
+    weaponShop.hintText.visible(buildMode.active);
+    weaponShop.hintText.moveToTop(); // same raw-Konva z-order trap as gridShape/previewRect above
 
     if (weaponShop.pendingBuyType) {
       const weaponType = weaponShop.pendingBuyType;
@@ -362,8 +377,6 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
     buildMode.wasPlaceClickPressed = clickPressed;
     return;
   }
-
-  const money = moneyHudEntities[0]?.MoneyHudComponent.amount ?? 0;
 
   const lobbies: { TransformComponent: TransformComponent }[] = registry.getZipper([
     Lobby,

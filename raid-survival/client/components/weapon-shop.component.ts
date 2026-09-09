@@ -7,7 +7,9 @@ export interface WeaponShopEntry {
   buyRect: Rect;
   buyText: Text;
   costText: Text;
-  // Only present for non-alwaysOwned entries (smallGun never shows a cost at all).
+  // Only present for non-alwaysOwned entries (none currently) - build-mode.system.ts also hides
+  // costText/costIcon per-tick whenever there's nothing to spend on this entry right now (owned
+  // with no refill cost, e.g. smallGun's infinite reserve).
   costIcon: Circle | undefined;
   // One button per entry now (dual wielding removed) - toggles this weapon equipped/unequipped;
   // its label flips between "Select" and "Selected" (build-mode.system.ts).
@@ -50,6 +52,8 @@ export class WeaponShopComponent {
   constructor(
     public entries: WeaponShopEntry[],
     public shopBounds: ScreenBox,
+    // One-time caption under the column explaining the buy/refill click - see buildWeaponShop.
+    public hintText: Text,
   ) {}
 }
 
