@@ -12,6 +12,7 @@ This repository contains the examples for NanoForge.
 
 ## Examples in the repository
 
+- flappy-bird
 - pong-network
 - tic-tac-toe
 
