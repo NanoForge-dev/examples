@@ -1,0 +1,16 @@
+{
+  "name": "flappy-bird",
+  "language": "ts",
+  "initFunctions": false,
+  "client": {
+    "enable": true,
+    "build": {
+      "entry": "client/main.ts",
+      "staticDir": "client/static"
+    },
+    "outDir": ".nanoforge/client"
+  },
+  "server": {
+    "enable": false
+  }
+}
