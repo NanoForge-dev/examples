@@ -39,7 +39,6 @@ async function withRetry<T>(load: () => Promise<T>): Promise<T> {
 
 const imageCache = new Map<string, HTMLImageElement>();
 const imageLoading = new Map<string, Promise<HTMLImageElement>>();
-const failedSpriteKeys = new Set<string>();
 
 function loadImageOnce(path: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -129,7 +128,7 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
     if (
       !entity.SpriteComponent.sprite &&
       !entity.SpriteComponent.loading &&
-      !failedSpriteKeys.has(entity.SpriteComponent.spriteKey)
+      !entity.SpriteComponent.failed
     ) {
       entity.SpriteComponent.loading = true;
       let imageFile: NfFile | undefined;
@@ -208,9 +207,14 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
       } catch (err) {
         // No auto-reload here on purpose - a page reload mid-game throws away the whole session
         // for everyone in it over one asset hiccup, which is far worse than one sprite staying
-        // invisible. Just log it and move on; this spriteKey won't be retried (see
-        // failedSpriteKeys above).
-        failedSpriteKeys.add(entity.SpriteComponent.spriteKey);
+        // invisible. Just log it and move on; this ENTITY won't be retried (see
+        // SpriteComponent.failed) - but a different entity sharing the same spriteKey (e.g. a
+        // bullet and a tower's decorative gun icon both source "weapons.png") gets its own
+        // independent attempt, since withRetry's 3 tries already cover the transient blob-URL
+        // hiccup this is really guarding against (see its own comment) and a permanently-broken
+        // asset failing every entity individually is still far better than one bad load
+        // blacklisting every future entity that happens to share its spriteKey.
+        entity.SpriteComponent.failed = true;
         console.error(
           `spriteSystem: giving up on sprite "${entity.SpriteComponent.spriteKey}" after a load failure ` +
             `(this entity will stay invisible; it will not be retried).`,

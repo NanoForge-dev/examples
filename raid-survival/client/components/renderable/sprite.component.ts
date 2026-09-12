@@ -24,6 +24,14 @@ export class SpriteComponent {
   animationsKey?: string | undefined;
   layer: Layer | undefined;
   loading: boolean = false;
+  // Set by spriteSystem once THIS entity's load has exhausted its retries - scoped to the entity,
+  // not the asset (spriteSystem used to gate on a spriteKey-keyed Set shared by every entity, so
+  // one entity's bad luck on a flaky blob URL - see spriteSystem's own comment on that - permanently
+  // blacklisted the asset for every OTHER entity using it too; a bullet and a tower's decorative
+  // gun icon both source "weapons.png", so one failed tower sprite was silently taking every
+  // future bullet down with it). Reset on setSpriteKey below, same as `loading`, so a fresh key
+  // (or a deliberate retry via the same key) always gets its own fresh attempt.
+  failed: boolean = false;
   // Read by spriteSystem at Sprite-construction time only (like width/height/animations) - not
   // reactive on its own; changing it takes effect on the next setSpriteKey-triggered rebuild, not
   // on an already-live sprite. Defaults to 7, matching every sprite before this field existed.
@@ -70,6 +78,7 @@ export class SpriteComponent {
     this.sprite?.destroy();
     this.sprite = undefined;
     this.loading = false;
+    this.failed = false;
   }
 
   getAnimation(): string {
