@@ -18,10 +18,7 @@ import { Building } from "../../components/building.component";
 import { TowerLevelComponent } from "../../components/tower-level.component";
 import { TILE_SIZE } from "../../map-data";
 
-// Wall's native crop (wall-animations.txt) is an 18x27 barrel - close to square already, just
-// scaled down slightly to land near the tile's own 16px width. The barrel standing a bit taller
-// than the tile it sits on reads fine (same visual-vs-footprint gap already accepted for the
-// lobby and zombies), unlike the old wide barricade sprite which spilled sideways into neighbors.
+// Scales wall-animations.txt's 18x27 crop down slightly to fit the tile's 16px width.
 const BUILDING_SPRITE_SCALE = { x: 0.85, y: 0.85 };
 
 // Native crop size (zombie-animations.txt, unscaled).
@@ -31,28 +28,16 @@ const ZOMBIE_SPRITE_SIZE = { width: 30, height: 30 };
 // hit; below the held weapon (21).
 const BULLET_Z_INDEX = 15;
 
-// Native crop size (bullet-animations.txt, unscaled) - see the "bullet" spawn case below for why
-// this matters beyond just documentation.
-const BULLET_SPRITE_SIZE = { width: 16, height: 16 };
+const BULLET_SPRITE_SIZE = { width: 16, height: 16 }; // native crop size, unscaled
 
 // Native crop size shared by all 6 tower-animations.txt levels (uniform on purpose - see that
 // file - so this stays correct across upgrades without needing to change with Tower.level).
 const TOWER_SPRITE_SIZE = { width: 39, height: 43 };
 // Native crop size (npc-animations.txt's single "idle" frame: "15,4,17,19").
 const NPC_SPRITE_SIZE = { width: 17, height: 19 };
-// Purely decorative garrison standing on top of a freshly-built tower (npc-animations.txt's
-// single idle frame, plus a small held gun from weapons.png) - no gameplay effect, never updated
-// again after spawn (a tower's level/HP changes don't touch this). Local to the tower's own
-// TransformComponent (its top-left, same origin the tower sprite itself renders from) - centered
-// horizontally on the sprite, near its roof. Offsets are an approximate guess, easy to retune
-// visually.
-//
-// x is TOWER_SPRITE_SIZE.width / 2 minus half the NPC's OWN width, not just half the tower's
-// width: transformChildrenToParentSystem sets this child's TransformComponent to
-// parent.x + LocalTransform.x, and spriteSystem renders every TransformComponent as a top-left
-// corner (see its offsetX/offsetY comment) - so a LocalTransform.x of just towerWidth/2 lines up
-// the NPC's own top-left corner with the tower's horizontal center, not the NPC's center, leaving
-// it rendered half the NPC's width too far right instead of actually centered on the tower.
+// Purely decorative garrison standing on the tower's roof, centered horizontally. x subtracts
+// half the NPC's own width (not just half the tower's) because both render as top-left-anchored
+// - using towerWidth/2 alone would align the NPC's corner, not its center, with the tower's.
 const TOWER_NPC_LOCAL_OFFSET = {
   x: TOWER_SPRITE_SIZE.width / 2 - NPC_SPRITE_SIZE.width / 2,
   y: 8,
@@ -86,12 +71,10 @@ function buildPlayer(newEnt: Entity, packet: any, registry: Registry) {
 
   registry.addComponent(newEnt, new Direction(packet.direction.x, packet.direction.y));
   registry.addComponent(newEnt, new Velocity(packet.velocity.x, packet.velocity.y));
-  // "player.png" doesn't exist as a static asset (only player1.png..player3.png do) - this path
-  // is currently unreachable (nothing server-side ever sends a "spawn" packet with
-  // entityType:"player", see spawnPacketHandler below; every player is built via
-  // start-game-packet.handler.ts's own buildPlayer instead), but fixed to the player's actual
-  // chosen skin (see start-game-packet.handler.ts's buildPlayer) rather than left pointing at a
-  // file that can't load.
+  // Currently unreachable - nothing server-side sends a "spawn" packet with entityType:"player"
+  // (players are built via start-game-packet.handler.ts's own buildPlayer instead) - but resolved
+  // to the player's real skin rather than a "player.png" file that doesn't exist, in case that
+  // ever changes.
   const skin =
     Number.isInteger(packet.skin) && packet.skin >= 1 && packet.skin <= 3 ? packet.skin : 1;
   registry.addComponent(
@@ -119,16 +102,8 @@ export function spawnPacketHandler(packet: any, registry: Registry): void {
     return NetworkId.id === packet.id;
   });
   if (it) {
-    // Was `packet.networkId` (doesn't exist on a spawn packet - always logged undefined) and fell
-    // through to spawn a second entity sharing the same NetworkId anyway. A stale entity left
-    // behind (its own kill packet lost, delayed, or never sent) sharing an id with a freshly
-    // spawned one means every later id-routed packet (hit/kill/state) is ambiguous - .find() picks
-    // whichever entity happens to come first, which can silently be the stale, already-dead one:
-    // a zombie that LOOKS freshly spawned but never registers a hit and whose health bar reads
-    // whatever the stale corpse's was (often empty). Refusing the duplicate spawn outright is the
-    // conservative fix - better to drop one spawn than let two entities answer to one id - but if
-    // this fires at all, the actual bug is upstream (something isn't cleaning up before reusing
-    // the id) and is worth knowing about.
+    // A duplicate NetworkId means something upstream didn't clean up before reusing an id - refuse
+    // the second spawn rather than let two entities answer to one id.
     console.error(
       `spawnPacketHandler: entity with NetworkId ${packet.id} (${packet.entityType}) already exists - refusing duplicate spawn`,
     );
@@ -146,11 +121,8 @@ export function spawnPacketHandler(packet: any, registry: Registry): void {
       break;
     case "zombie":
       registry.addComponent(newEnt, new Velocity(packet.velocity.x, packet.velocity.y));
-      // No Direction component here on purpose: sprite-animator.system.ts zips
-      // [Direction, SpriteComponent, Velocity] to drive walk/idle + flip for players, and
-      // zombie-animations.txt has no "walk" key - it would crash Konva's Sprite and fight
-      // zombie-state-packet.handler's own idle/attack switching. zombieState packets are the
-      // sole owner of this sprite's animation.
+      // No Direction component: sprite-animator.system.ts would try to play a "walk" animation
+      // zombie-animations.txt doesn't have. zombieState packets own this sprite's animation.
       registry.addComponent(newEnt, new Health(packet.health.current, packet.health.max));
       registry.addComponent(newEnt, new ZIndexComponent(10));
       registry.addComponent(
@@ -169,16 +141,11 @@ export function spawnPacketHandler(packet: any, registry: Registry): void {
       );
       break;
     case "building": {
-      // ZIndexComponent is required, not optional polish: zOrderSystem only reorders entities
-      // with both ZIndexComponent and SpriteComponent, so without it a building would fall into
-      // the same "never reordered, stuck below whatever's z-indexed" trap the grid/preview hit
-      // (see build-mode.system.ts).
+      // zOrderSystem only reorders entities with both ZIndexComponent and SpriteComponent.
       registry.addComponent(newEnt, new ZIndexComponent(10));
       const layer = sceneManager.getScene()?.layer || new Layer();
       if (packet.buildingType === "tower") {
-        // tower-animations.txt's "idle" key IS level 1's crop, so a freshly-built tower renders
-        // correctly with no extra setAnimation call - tower-update-packet.handler.ts only needs
-        // to touch it again on an actual level-up/heal, later.
+        // "idle" IS level 1's crop, so this renders correctly without an extra setAnimation call.
         registry.addComponent(
           newEnt,
           new SpriteComponent("buildings.png", { layer, animationsKey: "tower-animations.txt" }),
@@ -194,23 +161,13 @@ export function spawnPacketHandler(packet: any, registry: Registry): void {
           npc,
           new ChildrenComponent(newEnt.getId(), { LocalTransform: TOWER_NPC_LOCAL_OFFSET }),
         );
-        // Direction only, no Velocity - transformChildrenToParentSystem needs Direction to
-        // position this every tick, but adding Velocity too would pull this into
-        // spriteAnimator's [Direction, SpriteComponent, Velocity] zip, which would try to play
-        // a "walk" animation npc-animations.txt doesn't have (crashes Konva's Sprite - see the
-        // "zombie" case above for the same trap).
+        // Direction only, no Velocity - spriteAnimator would otherwise try to play a "walk"
+        // animation npc-animations.txt doesn't have.
         registry.addComponent(npc, new Direction(0, 0));
-        // Required, not optional polish: zOrderSystem only reorders entities carrying BOTH
-        // ZIndexComponent and SpriteComponent - without this, the moment any z-indexed sprite set
-        // changes elsewhere (the first zombie spawns), the NPC gets swept permanently below every
-        // z-indexed sprite instead of staying above the tower it's standing on (same trap
-        // build-mode.system.ts's gridShape/previewRect comment describes).
         registry.addComponent(npc, new ZIndexComponent(TOWER_NPC_Z_INDEX));
 
-        // A small held gun (weapons.png's smallGun icon) - purely decorative, parented directly
-        // to the tower (a sibling of the NPC, not a child of it) the same way a player's hand and
-        // weapon are siblings under the player rather than nested - avoids a one-tick position lag
-        // that chaining child-of-a-child would introduce.
+        // A small held gun, decorative - a sibling of the NPC (not its child) to avoid the extra
+        // tick of position lag a child-of-a-child would add.
         const gun = registry.spawnEntity();
         registry.addComponent(gun, new TransformComponent(0, 0));
         registry.addComponent(
@@ -264,27 +221,9 @@ export function spawnPacketHandler(packet: any, registry: Registry): void {
       );
       break;
     case "bullet":
-      // Position+Velocity is all move.system.ts needs to dead-reckon it in a straight line,
-      // exactly matching the server's own physics (a bullet never changes velocity after firing,
-      // so there's no drift to correct with follow-up packets, unlike a steering zombie).
-      // bullet-animations.txt's crop is an elongated pill, not a round dot, so it needs to be
-      // rotated to match its flight direction, same as any other sprite - rotation is set once
-      // here (not via DirectionRotatorComponent/a Direction component - overkill for something
-      // whose direction never changes after spawn) since spriteSystem already applies
-      // TransformComponent.rotation to every sprite unconditionally, every tick.
-      //
-      // packet.position here is unlike every other entity type's spawn position: weapon.system.ts
-      // (server) computes and sends the bullet's actual muzzle CENTER point directly (it's treated
-      // as a dimensionless point server-side - "a bullet is a point, not a box", bullet.system.ts),
-      // not a top-left corner of some known box the way a player/zombie/building's position is.
-      // But spriteSystem renders EVERY TransformComponent as a top-left, adding half the sprite's
-      // own width/height to find where to actually center it on screen (needed so rotation pivots
-      // around the sprite's true center, not a corner - see sprite.system.ts's offsetX/offsetY).
-      // Without correcting for that here, a bullet would render half its own sprite size away
-      // from the exact point the server computed (down-right, since spriteSystem always adds
-      // rather than subtracts) - the muzzle-center fix and the offsetY pivot fix each did their
-      // own job correctly, but together they exposed this: a bullet consistently rendering below
-      // and right of where it was actually aimed.
+      // packet.position is the server's muzzle CENTER point (a bullet is a point, not a box - see
+      // bullet.system.ts), but spriteSystem renders every TransformComponent as a top-left corner
+      // - offset here or the bullet renders half its sprite size down-right of where it should be.
       transform.x -= BULLET_SPRITE_SIZE.width / 2;
       transform.y -= BULLET_SPRITE_SIZE.height / 2;
       registry.addComponent(newEnt, new Velocity(packet.velocity.x, packet.velocity.y));

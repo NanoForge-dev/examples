@@ -38,14 +38,8 @@ import { cursorSystem } from "./systems/cursor.system";
 import { floatingTextSystem } from "./systems/floating-text.system";
 import { zOrderSystem } from "./systems/essentials/z-order.system";
 
-// The engine's own per-tick system runner (@nanoforge-dev/ecs-lib's WASM Registry.run_systems,
-// invoked from @nanoforge-dev/core's Core.runExecute) has no try/catch anywhere in the chain - an
-// uncaught exception in ANY one system silently aborts that tick's run_systems call entirely,
-// taking every system registered AFTER it down with it (they simply never run again, forever,
-// with no visible error), and can stop the engine's own re-scheduling of the next tick outright.
-// Wrapping every system in this before it ever reaches registry.addSystem means one system's bug
-// can only ever break that system - not everything registered after it - and any exception (now
-// or in the future) gets logged with the system's name instead of vanishing silently.
+// The engine's system runner has no error isolation between systems - wrapping each one here
+// means a throwing system only breaks itself, not every system registered after it.
 function safeSystem<Fn extends (...args: never[]) => unknown>(system: Fn): Fn {
   return ((...args: never[]) => {
     try {
@@ -103,21 +97,10 @@ export async function main(options: IRunOptions) {
   registry.addSystem(safeSystem(textareaSystem));
   registry.addSystem(safeSystem(shootControl));
   registry.addSystem(safeSystem(reviveControlSystem));
-  // Before buildModeSystem/floatingTextSystem (both below): those two re-assert their own raw
-  // Konva nodes (build grid/preview rect/bar icons, floating damage text - none carry a
-  // SpriteComponent, so zOrderSystem itself never manages them) to the very top of the layer
-  // every tick they're visible. zOrderSystem re-sorts and re-stacks every ZIndexComponent+
-  // SpriteComponent entity (buildings, zombies, bullets, ...) whenever that set's order changes
-  // - which happens constantly during play (a bullet spawning/dying is enough). With zOrderSystem
-  // registered LAST (its old position, after floatingTextSystem), any such reorder on a given
-  // tick would win the layer's top spot back out from under the build grid/floating text placed
-  // there earlier THAT SAME tick, and the next tick's re-assertion would put it back on top again
-  // - a same-tick top-spot race that reads as the build grid blinking/flickering under buildings.
-  // Running zOrderSystem first instead means the "always on top" re-assertions below always have
-  // the last word for the tick, every tick, not just on however many ticks zOrderSystem happens
-  // not to reorder anything. The only cost is a brand-new sprite (spriteSystem, below, creates the
-  // underlying Konva node lazily) not being folded into zOrderSystem's own stacking until the
-  // following tick instead of the same one - a one-frame, self-correcting, imperceptible delay.
+  // Must run before buildModeSystem/floatingTextSystem: those two re-assert their own raw Konva
+  // nodes (no SpriteComponent, so zOrderSystem itself never manages them) to the top of the layer
+  // every tick. Running zOrderSystem first means their "always on top" reassertion always has the
+  // last word for the tick, instead of a same-tick sprite reorder winning the top spot back.
   registry.addSystem(safeSystem(zOrderSystem));
   registry.addSystem(safeSystem(buildModeSystem));
   registry.addSystem(safeSystem(playerDeathSystem));
@@ -133,10 +116,7 @@ export async function main(options: IRunOptions) {
   registry.addSystem(safeSystem(weaponVisibilitySystem));
   registry.addSystem(safeSystem(cursorSystem));
   registry.addSystem(safeSystem(floatingTextSystem));
-  // After buildModeSystem/weaponVisibilitySystem (above), before rotateToDirectionSystem (below) -
-  // it forces the main weapon sprite hidden while a dedicated reload animation overlay is playing
-  // instead, and that write needs to be the last one standing for the tick; it also sets
-  // DirectionRotatorComponent.offset, which rotateToDirectionSystem must still consume afterward.
+  // Before rotateToDirectionSystem, which must still consume the offset this sets.
   registry.addSystem(safeSystem(weaponReloadAnimationSystem));
   registry.addSystem(safeSystem(rotateToDirectionSystem));
 

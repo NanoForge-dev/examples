@@ -4,11 +4,9 @@ import { Health } from "../../components/health.component";
 import { ChildrenComponent } from "../../components/children.component";
 import { ReviveIndicatorComponent } from "../../components/revive-indicator.component";
 
-// Mirrors hit-packet.handler.ts's shape: server (revive.system.ts) is authoritative, this just
-// applies its events - showing/hiding the target's revive ring (see buildReviveIndicator,
-// start-game-packet.handler.ts) and, on "completed", the direct Health assignment that also flips
-// player-death.system.ts's branch back to "idle" and restarts the sprite, since Health.current is
-// now > 0.
+// Server (revive.system.ts) is authoritative - this just applies its events: show/hide the
+// target's revive ring, and on "completed" set Health directly (which also flips
+// player-death.system.ts back to "idle").
 export function revivePacketHandler(packet: any, registry: Registry): void {
   const targets: { id: number; NetworkId: NetworkId; Health: Health }[] = registry.getIndexedZipper(
     [NetworkId, Health],

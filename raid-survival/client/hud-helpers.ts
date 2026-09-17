@@ -1,9 +1,6 @@
 import { Circle, Layer } from "@nanoforge-dev/graphics-2d";
 
-// A small gold coin icon - no coin/currency sprite exists anywhere in this game's art (checked
-// ui.png/objects.png/weapons.png exhaustively), so this is drawn directly instead of cropped.
-// Plain function, not a component - nothing needs to look this node up later, same category as
-// build-mode.system.ts's gridShape/previewRect.
+// No coin/currency sprite exists in this game's art, so it's drawn directly instead of cropped.
 const COIN_FILL = "#F4C74C";
 const COIN_STROKE = "#8A6A1E";
 

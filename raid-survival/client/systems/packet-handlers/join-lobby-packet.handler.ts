@@ -27,6 +27,8 @@ export function joinLobbyPacketHandler(packet: any, registry: Registry): void {
     firstLobbyStatus.LobbyStatusComponent.error = "Lobby is full.";
   } else if (packet.result === "in game") {
     firstLobbyStatus.LobbyStatusComponent.error = "A game is already in progress - please wait for it to end.";
+  } else if (packet.result === "username taken") {
+    firstLobbyStatus.LobbyStatusComponent.error = "That username is already taken - pick another one.";
   } else {
     console.log(packet);
   }

@@ -8,15 +8,8 @@ import { AssetManagerLibrary } from "@nanoforge-dev/asset-manager";
 
 type Animations = Record<string, number[]>;
 
-// A path here is a blob: URL (see AssetManagerLibrary.getAsset/NfFile - assets are pre-fetched
-// into blobs once, up front, during the initial "Download: X.png" loading screen; this code never
-// sees a real HTTP path to retry against). Blob URLs are locally-resolved, no network round trip,
-// but browsers - WebKit/Safari especially - can intermittently fail to resolve one under load or
-// memory pressure (observed: Image.onerror with no detail, and separately a bare
-// "NetworkError when attempting to fetch resource" from the fetch() inside loadAnimations' NfFile
-// - that exact wording is Safari's, Chrome says "Failed to fetch"). Retrying the SAME blob URL a
-// couple of times recovers the transient case; it can't help a permanently-revoked blob (the asset
-// manager gives us nothing else to fall back to), which is still a real, separate limitation.
+// Blob URLs (pre-fetched assets) can intermittently fail to resolve under memory pressure,
+// especially in Safari - retrying the same URL a couple of times recovers the transient case.
 const ASSET_LOAD_MAX_ATTEMPTS = 3;
 const ASSET_LOAD_RETRY_DELAY_MS = 300;
 
@@ -54,18 +47,14 @@ function loadImage(path: string): Promise<HTMLImageElement | undefined> {
   if (imageLoading.has(path)) return Promise.resolve(imageLoading.get(path));
 
   const promise = withRetry(() => loadImageOnce(path));
-  // A single .then(onFulfilled, onRejected) rather than separate .then()/.finally() calls -
-  // each one hangs its own derived promise off `promise`, and an unused derived promise that
-  // rejects (.finally() mirrors the original's outcome) trips an "unhandled rejection" warning
-  // of its own, on top of whatever spriteSystem's own await/catch already reports for `promise`
-  // itself. This one settles (never rejects) regardless of which branch runs, so nothing else
-  // needs to observe it.
+  // Single .then(onFulfilled, onRejected), not .finally() - avoids a second derived promise that
+  // could trip its own "unhandled rejection" warning independent of spriteSystem's own catch.
   promise.then(
     (image) => {
       imageCache.set(path, image);
       imageLoading.delete(path);
     },
-    () => imageLoading.delete(path), // give up path already logs/handles this in spriteSystem
+    () => imageLoading.delete(path),
   );
 
   imageLoading.set(path, promise);
@@ -101,11 +90,8 @@ function loadAnimations(file: NfFile): Promise<Animations | undefined> {
     animationsCache.set(file.path, result);
     return result;
   });
-  // Same single-handler reasoning as loadImage above - avoids a second derived promise (from a
-  // separate .finally()) that could trip its own "unhandled rejection" warning. This also fixes a
-  // latent gap the original code had: on failure it never removed the rejected promise from
-  // animationsLoading at all, leaving every future call for the same file permanently stuck
-  // replaying that one rejection instead of ever being eligible to load again.
+  // Same single-handler reasoning as loadImage above; also ensures a failed load is removed from
+  // animationsLoading so a later call can retry instead of replaying the same rejection forever.
   promise.then(
     () => animationsLoading.delete(file.path),
     () => animationsLoading.delete(file.path),
@@ -147,19 +133,12 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
         const [, , frameWidth, frameHeight] =
           animations && animations["idle"] ? animations["idle"] : [0, 0, image.width, image.height];
 
-        // This function is async and both awaits above can genuinely take a frame or more (a
-        // first-ever load for this spriteKey/animationsKey; a cached one resolves on a microtask,
-        // still after this synchronous pass through entities has moved on) - long enough for a
-        // "kill" packet to reach and process registry.killEntity() on this exact entity before
-        // this continuation resumes. registry.killEntity() only removes the entity from the ECS
-        // registry; it cannot reach into (let alone null out) this already-captured JS closure's
-        // `entity.SpriteComponent` reference (same WASM-core boundary destroySprite exists to work
-        // around - see kill-packet.handler.ts). Left unguarded, a short-lived bullet that's hit
-        // almost immediately (shotgun pellets at point-blank range) resurrects: its sprite gets
-        // created and added to the layer *after* the kill that was supposed to prevent it,  and
-        // nothing ever destroys it again - a permanently visible, entityless sprite. Re-fetching
-        // the live component and comparing identity catches both a killed entity (nothing found)
-        // and a killed-then-ID-recycled one (found, but a different SpriteComponent instance).
+        // The awaits above can outlive this entity: a "kill" packet can call registry.killEntity()
+        // on it before this continuation resumes, but that can't null out this closure's already-
+        // captured `entity.SpriteComponent` reference. Without this re-check, a bullet killed
+        // almost immediately (e.g. point-blank shotgun pellets) would get its sprite created and
+        // added to the layer after the kill that was supposed to prevent it - a permanently visible
+        // orphan sprite. Comparing identity also catches a killed-then-ID-recycled entity.
         const stillAlive = registry.getEntityComponent(
           registry.entityFromIndex(entity.id),
           SpriteComponent,
@@ -181,21 +160,10 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
           },
         });
 
-        // Both axes, not just X - offsetY was never set here, so it defaulted to 0 (the crop's
-        // TOP edge). position() below compensates exactly for a sprite at rest (rotation 0, no
-        // flip), so this was invisible for every non-rotating sprite - but rotation()/flipY()
-        // pivot around whatever point offset marks, and a sprite pivoting around its top edge
-        // instead of its true center visibly swings/displaces as it rotates (worse the taller the
-        // crop) instead of spinning cleanly in place. Concretely: bullets logically spawn at the
-        // exact player center (position + hitbox center - the math already matched), but rendered
-        // off that center by roughly half the bullet sprite's height once rotated to its flight
-        // angle; the held weapon/hand similarly visibly drooped off their true rest angle. Fixing
-        // the pivot doesn't change any previously-measured rotation-offset angle (that's about
-        // which way the art faces, independent of which point it spins around).
-        // Defaults to the crop's own geometric center - correct for art drawn centered in its
-        // frame - but overridable per SpriteComponent (see its `pivot` option) for art that isn't,
-        // like a held weapon whose grip sits off-center in a frame with empty space reserved for a
-        // muzzle-flash/recoil animation.
+        // offsetX/offsetY mark the point rotation()/flipY() pivot around - both axes need it, not
+        // just X, or a rotating sprite swings/displaces around its top edge instead of spinning in
+        // place. Defaults to the crop's own center; overridable via SpriteComponent's `pivot` for
+        // art whose visual center isn't the frame's geometric center (e.g. a held weapon's grip).
         const pivot = entity.SpriteComponent.getPivot();
         newSprite.offsetX(pivot?.x ?? newSprite.width() / 2);
         newSprite.offsetY(pivot?.y ?? newSprite.height() / 2);
@@ -205,15 +173,9 @@ export const spriteSystem = async (registry: Registry, ctx: Context) => {
         newSprite.start();
         entity.SpriteComponent.layer?.add(newSprite);
       } catch (err) {
-        // No auto-reload here on purpose - a page reload mid-game throws away the whole session
-        // for everyone in it over one asset hiccup, which is far worse than one sprite staying
-        // invisible. Just log it and move on; this ENTITY won't be retried (see
-        // SpriteComponent.failed) - but a different entity sharing the same spriteKey (e.g. a
-        // bullet and a tower's decorative gun icon both source "weapons.png") gets its own
-        // independent attempt, since withRetry's 3 tries already cover the transient blob-URL
-        // hiccup this is really guarding against (see its own comment) and a permanently-broken
-        // asset failing every entity individually is still far better than one bad load
-        // blacklisting every future entity that happens to share its spriteKey.
+        // No auto-reload - that would throw away the whole session over one asset hiccup. Just
+        // log and give up on this entity; other entities sharing the same spriteKey still get
+        // their own independent attempt.
         entity.SpriteComponent.failed = true;
         console.error(
           `spriteSystem: giving up on sprite "${entity.SpriteComponent.spriteKey}" after a load failure ` +

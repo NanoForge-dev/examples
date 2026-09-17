@@ -8,8 +8,7 @@ export class ShootController {
   public aimingMode: "mouse" | "arrows" | "joystick";
   public keyShoot: InputEnum;
   public shooting: boolean = false;
-  // Last value actually sent to the server - lets sendShootControl only send on change, same
-  // dedup move-control.senders.system.ts already does for move keys.
+  // Last value sent to the server - lets sendShootControl only send on change.
   public lastSentShooting: boolean = false;
   // Edge-detected "R" state (isKeyPressed is level/held, not "just pressed").
   public wasReloadKeyPressed: boolean = false;

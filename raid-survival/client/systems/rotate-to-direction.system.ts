@@ -23,9 +23,8 @@ export function rotateToDirectionSystem(registry: Registry) {
     if (mirrorWhenFacingLeft) {
       const sprite = registry.getEntityComponent(registry.entityFromIndex(entity.id), SpriteComponent);
       if (sprite) {
-        // Direction.x === 0 leaves the current flip state alone (avoids flicker aiming exactly
-        // up/down) - matches sprite-animator.system.ts's established hysteresis for the player
-        // body's own left/right flip.
+        // Direction.x === 0 leaves the current flip state alone, avoiding flicker aiming exactly
+        // up/down.
         if (entity.Direction.x < 0 && !sprite.isFlippedY()) {
           sprite.flipY();
         } else if (entity.Direction.x > 0 && sprite.isFlippedY()) {
@@ -33,18 +32,15 @@ export function rotateToDirectionSystem(registry: Registry) {
         }
         flipped = sprite.isFlippedY();
       } else {
-        // spriteSystem creates the Konva node lazily, so isFlippedY() isn't meaningful yet on the
-        // first few ticks - fall back to the intended flip state directly so rotation still comes
-        // out right the instant the sprite does appear, instead of lagging a tick behind it.
+        // spriteSystem creates the Konva node lazily - fall back to the intended flip state
+        // directly so rotation is still correct the instant the sprite appears.
         flipped = entity.Direction.x < 0;
       }
     }
 
-    // Vertical mirroring (scaleY, applied by flipY() above) negates the local y component BEFORE
-    // rotation is applied (Konva scales, then rotates), which flips the sign of the resulting
-    // visual angle - so the rotation has to be solved for separately in that case, or the barrel
-    // ends up pointing roughly 2*offset degrees away from the actual aim direction instead of at
-    // it.
+    // Konva applies scale (flipY) before rotation, which flips the sign of the resulting visual
+    // angle when flipped - rotation must be solved separately in that case, or the sprite ends up
+    // pointing roughly 2*offset degrees away from the actual aim direction.
     entity.TransformComponent.rotation = flipped ? aimAngle - offset : aimAngle + offset;
   }
 }

@@ -10,25 +10,17 @@ import { WEAPON_CATALOG } from "../weapon-catalog";
 import { WEAPON_LOCAL_OFFSET } from "./packet-handlers/start-game-packet.handler";
 
 // Procedural fallback for any weapon with no dedicated reload animation asset (currently
-// smallGun) - an oscillating tilt on top of the normal aim-tracking rotation, since weapons.png
-// has no reload frames for it (a single static icon, not a filmstrip).
+// smallGun): an oscillating tilt on top of the normal aim-tracking rotation.
 const RELOAD_TILT_SPEED = 10; // radians/sec of the oscillation clock
 const RELOAD_TILT_AMPLITUDE = 25; // degrees
 
-// Owns the held-weapon animation state for every player's single equipped weapon: the resting
-// "idle" pose, the reload overlay (unchanged from its original name/purpose), and now also a
-// one-shot "shoot"
-// recoil/muzzle-flash pulse played on the MAIN sprite itself whenever weapon-fired-packet.handler.ts
-// flags weapon.firing (see below) - there's no separate overlay for it the way reload has one,
-// since "shoot" is just another named animation living in the exact same spriteKey/animationsKey
-// as "idle", not a different image to swap to.
+// Owns the held weapon's animation state: idle pose, the reload overlay, and a one-shot "shoot"
+// recoil pulse triggered by weapon-fired-packet.handler.ts setting weapon.firing.
 //
-// Runs after build-mode.system.ts/weapon-visibility.system.ts (main.ts's registration order) so
-// this system's own visibility write - forcing the main weapon sprite hidden while a dedicated
-// reload animation is playing instead - is the last word for that one tick, not clobbered by
-// those systems re-asserting "equipped, so visible" the same tick. It only ever forces *hidden*;
-// when NOT reloading it leaves the sprite's visibility alone entirely, so whatever those systems
-// decided (equipped/build-mode/etc.) simply stands.
+// Must run after build-mode.system.ts/weapon-visibility.system.ts (main.ts's registration order):
+// this system only ever forces the main sprite *hidden* while a reload overlay plays instead, so
+// that write needs to be the last word for the tick, not clobbered by those systems re-asserting
+// visibility the same tick.
 export function weaponReloadAnimationSystem(registry: Registry, ctx: Context) {
   const weapons: {
     Weapon: Weapon;
@@ -52,16 +44,12 @@ export function weaponReloadAnimationSystem(registry: Registry, ctx: Context) {
     DirectionRotatorComponent: rotator,
     SpriteComponent: sprite,
   } of weapons) {
-    // Every player gets a reload-overlay entity built up front (buildHandAndWeapon,
-    // start-game-packet.handler.ts) regardless of what's equipped, and a freshly-built Konva
-    // Sprite defaults to visible - so it must be explicitly hidden here whenever the currently
-    // equipped weapon has no reload asset to play, not just left alone. Found before the
-    // early-return below so a stale overlay (e.g. after unequipping a shotgun) gets hidden too.
+    // Every player has a reload-overlay entity built up front regardless of what's equipped, and
+    // a freshly-built Konva Sprite defaults to visible - so it must be explicitly hidden whenever
+    // the equipped weapon has no reload asset, not just left alone.
     const overlay = overlays.find((o) => o.ChildrenComponent.parentId === weaponChild.parentId);
 
     if (!weapon.weaponType) {
-      // nothing equipped - main sprite hidden, and the overlay must be forced hidden too (see
-      // comment above).
       overlay?.SpriteComponent.sprite?.visible(false);
       continue;
     }
@@ -70,43 +58,18 @@ export function weaponReloadAnimationSystem(registry: Registry, ctx: Context) {
     const reloadAsset = "reloadSpriteKey" in catalog ? catalog : undefined;
     const shootAsset = "shootSeconds" in catalog ? catalog : undefined;
 
-    // Idempotent every tick, not edge-triggered. Two separate corrections, both needed because
-    // the equipped weaponType can change (an equip event, or just this loop moving from one
-    // weapon's catalog entry to another as weaponType flips) without anything else ever poking
-    // this sprite directly - see weapon-inventory-packet.handler.ts, which deliberately leaves the
-    // held sprite alone and relies on this pass to catch up next tick instead:
-    //
-    // 1. spriteKey: each weapon can live on its own source image now (client/weapon-catalog.ts's
-    //    spriteKey/animationsKey), not just a shared weapons.png - equipping a different
-    //    weapon type needs a real setSpriteKey (destroy + rebuild the Konva node), not
-    //    just a different animation name within the same image. setSpriteKey doesn't touch
-    //    scale/pivot/frameRate, so the catalog's own values are re-applied right after it - the
-    //    new spriteKey's art isn't necessarily drawn at the same physical size, gripped at the
-    //    same point within its frame, or meant to play its "shoot" animation at the same speed, as
-    //    the old one's (see weapon-catalog.ts's header comment). frameRate in particular is easy
-    //    to miss here since, unlike scale/pivot, a mismatch is invisible until the NEXT weapon
-    //    that actually has a multi-frame animation to play - a single-frame "idle" pose doesn't
-    //    care what frameRate says. LocalTransform (this entity's OWN position relative to the
-    //    player, not read by spriteSystem at all) also needs the same re-derivation - see
-    //    weapon-catalog.ts's handOffsetDelta comment for why a pivot change alone can't be
-    //    positionally correct without it.
-    // 2. animation key: spriteSystem always constructs a fresh Konva Sprite hardcoded on "idle"
-    //    regardless of what's requested (see SpriteComponent.setSpriteKey's own comment), so
-    //    anything that ever asked for a DIFFERENT animation key before the live sprite existed
-    //    (buildHandAndWeapon at spawn, an equip event, or the setSpriteKey call just above) would
-    //    otherwise have its wrapper-tracked _currentAnimation already matching the desired key,
-    //    silently blocking setAnimation()'s dedup guard from ever actually applying it to the real
-    //    object. This is what was rendering an equipped shotgun as smallGun's icon: smallGun's
-    //    iconAnimation IS "idle", so the same bug was invisible for it and only visible for
-    //    anything else. Computed once as `desiredAnimation` (idle, or "shoot" while a firing pulse
-    //    is live - see below) and applied once here, rather than writing it in two places that
-    //    could otherwise race and stomp each other within the same tick.
+    // Idempotent every tick, not edge-triggered - the equipped weaponType can change without
+    // anything else poking this sprite directly. Each weapon can live on its own source image
+    // (spriteKey/animationsKey), so switching requires a real setSpriteKey (destroy + rebuild the
+    // Konva node); that call doesn't touch scale/pivot/frameRate, so they're re-applied here too.
+    // desiredAnimation is computed once below rather than written in two places, since
+    // SpriteComponent.setSpriteKey always rebuilds hardcoded on "idle" - setting a different
+    // target animation before that rebuild would leave the wrapper's tracked animation already
+    // matching it, silently blocking setAnimation()'s dedup guard from applying it for real.
     if (sprite.spriteKey !== catalog.spriteKey) {
       sprite.setSpriteKey(catalog.spriteKey, catalog.animationsKey);
       sprite.setScale({ x: catalog.scale, y: catalog.scale });
       sprite.setPivot("pivot" in catalog ? catalog.pivot : undefined);
-      // Plain public field, not a setXxx (matches SpriteComponent's own frameRate declaration) -
-      // read fresh at the next Sprite-construction only, same as scale/pivot above.
       sprite.frameRate =
         "shootFrameCount" in catalog ? catalog.shootFrameCount / catalog.shootSeconds : 7;
       const handOffsetDelta = "handOffsetDelta" in catalog ? catalog.handOffsetDelta : undefined;
@@ -118,14 +81,10 @@ export function weaponReloadAnimationSystem(registry: Registry, ctx: Context) {
         : WEAPON_LOCAL_OFFSET;
     }
 
-    // A one-shot recoil/muzzle-flash pulse - weapon-fired-packet.handler.ts sets weapon.firing
-    // true (and firingElapsed back to 0) the instant this player's weaponFired broadcast arrives;
-    // this is what counts that clock up and expires the pulse again once catalog.shootSeconds has
-    // elapsed. A weapon with no shoot animation (shootAsset undefined, e.g. smallGun) can still
-    // have `firing` set true (the server broadcasts weaponFired for every weapon type, not just
-    // ones the client happens to have art for) - immediately clearing it below is what makes that
-    // a harmless no-op instead of a pulse that (with no shootSeconds to compare against) would
-    // otherwise never expire.
+    // weapon-fired-packet.handler.ts sets weapon.firing/firingElapsed on each shot; this counts
+    // the pulse down and expires it after shootSeconds. A weapon with no shoot animation still
+    // gets `firing` set (the server broadcasts weaponFired for every type), so clear it
+    // immediately here rather than let it never expire with no shootSeconds to compare against.
     if (weapon.firing) {
       weapon.firingElapsed += delta;
       if (!shootAsset || weapon.firingElapsed >= shootAsset.shootSeconds) weapon.firing = false;
@@ -137,9 +96,7 @@ export function weaponReloadAnimationSystem(registry: Registry, ctx: Context) {
     }
 
     if (reloadAsset) {
-      // Has a dedicated reload animation - a separate overlay sprite (built once in
-      // buildHandAndWeapon, never swapped) plays it; this weapon's own rotation stays exactly at
-      // the normal aim-tracking offset throughout, no added tilt.
+      // Dedicated reload animation - a separate overlay sprite plays it; no added tilt here.
       rotator.offset = weapon.baseRotationOffset;
 
       overlay?.SpriteComponent.sprite?.visible(weapon.reloading);
@@ -156,9 +113,8 @@ export function weaponReloadAnimationSystem(registry: Registry, ctx: Context) {
       continue;
     }
 
-    // No dedicated asset for this weapon (e.g. smallGun) - force the overlay hidden (it can be
-    // stale-visible from spawn, or left over from previously holding the shotgun), then
-    // the original procedural tilt, unchanged.
+    // No dedicated asset for this weapon - force the overlay hidden (it can be stale-visible from
+    // a previously held weapon), then fall back to the procedural tilt.
     overlay?.SpriteComponent.sprite?.visible(false);
     if (!weapon.reloading) {
       rotator.offset = weapon.baseRotationOffset;

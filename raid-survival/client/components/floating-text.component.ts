@@ -1,7 +1,5 @@
-// Marks a free-standing (no ChildrenComponent - it must outlive whatever it's about, so it must
-// NOT be swept by kill-packet.handler.ts's child cascade) Text entity as self-timed: rises and
-// fades over `duration` seconds, then floating-text.system.ts destroys and kills it itself. Never
-// touched by a server "kill" packet - this is purely client-local and ephemeral.
+// Marks a free-standing (no ChildrenComponent) Text entity that rises/fades over `duration`
+// seconds - not swept by a server "kill" packet's child cascade, purely client-local/ephemeral.
 export class FloatingTextComponent {
   name = this.constructor.name;
 

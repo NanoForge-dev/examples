@@ -9,7 +9,6 @@ import { Context } from "@nanoforge-dev/common";
 import { NetworkServerLibrary } from "@nanoforge-dev/network-server";
 import { sendToInGamePlayers } from "../../network-utils";
 import { Direction } from "../../components/direction.component";
-import { Login } from "../../components/login.component";
 
 export function inputPacketHandler(
   clientId: number,
@@ -18,69 +17,61 @@ export function inputPacketHandler(
   ctx: Context,
 ): void {
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
-  const zipper = registry.getIndexedZipper([
-    Login,
-    Velocity,
-    Position,
-    Direction,
-    MoveInput,
-    ShootInput,
-    ReviveInput,
-  ]);
-  const log = clients.find((client) => client.clientId === clientId)?.username;
-  const it = zipper.find(({ Login }) => {
-    return Login.id === log;
-  });
-  if (!it) return;
+
+  // Resolved by clientId -> entityId, not by matching a username - usernames aren't unique, so
+  // matching by name previously let one player's input packets drive another player's character.
+  const client = clients.find((c) => c.clientId === clientId);
+  if (!client) return;
+
+  const entity = registry.entityFromIndex(client.entityId);
+  const velocity = registry.getEntityComponent(entity, Velocity);
+  const position = registry.getEntityComponent(entity, Position);
+  const direction = registry.getEntityComponent(entity, Direction);
+  const moveInput = registry.getEntityComponent(entity, MoveInput);
+  const shootInput = registry.getEntityComponent(entity, ShootInput);
+  const reviveInput = registry.getEntityComponent(entity, ReviveInput);
+  // A client still in the lobby (not yet spawned into a game) has none of these components.
+  if (!velocity || !position || !direction || !moveInput || !shootInput || !reviveInput) return;
 
   if (packet.direction) {
-    it.Direction.x = packet.direction.x;
-    it.Direction.y = packet.direction.y;
+    direction.x = packet.direction.x;
+    direction.y = packet.direction.y;
     sendToInGamePlayers(network, {
       type: "direction",
-      id: it.id,
-      direction: { x: it.Direction.x, y: it.Direction.y },
+      id: client.entityId,
+      direction: { x: direction.x, y: direction.y },
     });
   }
 
-  // Just records held-key intent - move-input.system.ts recomputes actual Velocity from this
-  // every tick (not only when a packet like this one arrives), so a wall collision zeroing an
-  // axis (collision-resolve.ts) is never left stuck once the player is no longer blocked, even
-  // though the client only sends a fresh packet when the *set* of held keys changes.
+  // Just records held-key intent - move-input.system.ts recomputes Velocity from this every tick.
   if (packet.moveKeys) {
-    it.MoveInput.up = packet.moveKeys.includes("up");
-    it.MoveInput.down = packet.moveKeys.includes("down");
-    it.MoveInput.left = packet.moveKeys.includes("left");
-    it.MoveInput.right = packet.moveKeys.includes("right");
+    moveInput.up = packet.moveKeys.includes("up");
+    moveInput.down = packet.moveKeys.includes("down");
+    moveInput.left = packet.moveKeys.includes("left");
+    moveInput.right = packet.moveKeys.includes("right");
   }
 
-  // Same idea as MoveInput - weapon.system.ts recomputes firing every tick from this, not from
-  // packet frequency.
   if (typeof packet.shooting === "boolean") {
-    it.ShootInput.shooting = packet.shooting;
+    shootInput.shooting = packet.shooting;
   }
   if (
     packet.mousePosition &&
     typeof packet.mousePosition.x === "number" &&
     typeof packet.mousePosition.y === "number"
   ) {
-    it.ShootInput.mousePosition = { x: packet.mousePosition.x, y: packet.mousePosition.y };
+    shootInput.mousePosition = { x: packet.mousePosition.x, y: packet.mousePosition.y };
   }
-  // reload is one-shot (a fresh "R" press, not a held state) - weapon.system.ts consumes and
-  // clears this the next time it runs.
+  // One-shot: a fresh "R" press, not a held state.
   if (packet.reload) {
-    it.ShootInput.reloadRequested = true;
+    shootInput.reloadRequested = true;
   }
 
-  // Held-key intent for the revive channel, same "recomputed every tick, not on packet
-  // frequency" idea as MoveInput/ShootInput - revive.system.ts owns range/timing.
   if (typeof packet.reviveKeyHeld === "boolean") {
-    it.ReviveInput.held = packet.reviveKeyHeld;
+    reviveInput.held = packet.reviveKeyHeld;
   }
 
-  // One-shot, same "R"-style semantics as ShootInput.reloadRequested above - a fresh E press,
-  // not a held state. tower-interact.system.ts consumes and clears it.
+  // One-shot: a fresh E press, not a held state.
   if (packet.interactRequested) {
-    it.ReviveInput.interactRequested = true;
+    reviveInput.interactRequested = true;
   }
 }

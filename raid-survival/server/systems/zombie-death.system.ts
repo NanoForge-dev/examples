@@ -11,24 +11,16 @@ import { LootBox, type LootType } from "../components/loot-box.component";
 import { Hitbox } from "../components/hitbox.component";
 import { sendToInGamePlayers } from "../network-utils";
 
-// 1/20 per zombie kill, per the request - split evenly between the three box types.
 const LOOT_BOX_DROP_CHANCE = 1 / 20;
 const LOOT_TYPES: LootType[] = ["heal", "gold", "ammo"];
-// Matches the box's rendered sprite (objects.png's 15x12 loot icons) - loot-box-pickup.system.ts
-// adds its own forgiving pickup range on top of this via distanceBetweenHitboxes, same as
-// tower-interact.system.ts does for TOWER_INTERACT_RANGE.
+// Matches the box's rendered sprite (objects.png's 15x12 loot icons).
 const LOOT_BOX_HITBOX: [number, number] = [15, 12];
 
-// ~7 frames at the zombie sprite's existing frameRate of 7 (see sprite.system.ts) - long enough
-// for the death animation (zombie-animations.txt's "death" key) to actually play out client-side
-// before the entity is removed.
+// Long enough for the "death" animation to play out client-side before the entity is removed.
 const DEATH_ANIM_SECONDS = 1;
 
-// Splits a zombie's death into two moments: the instant its Health hits 0 (coins awarded, loot
-// text + "dying" animation triggered - see zombie-state-packet.handler.ts) and, DEATH_ANIM_SECONDS
-// later, the actual removal (killEntity + "kill" broadcast) - exactly like Weapon.reloadRemaining
-// already delays a reload finishing. A zombie that dies from any future damage source (not just
-// bullets) is picked up here automatically.
+// Splits a zombie's death into two moments: the instant its Health hits 0 (coins/loot awarded,
+// "dying" animation triggered) and, DEATH_ANIM_SECONDS later, the actual removal.
 export function zombieDeathSystem(registry: Registry, ctx: Context) {
   const zombies: {
     id: number;
@@ -63,9 +55,7 @@ export function zombieDeathSystem(registry: Registry, ctx: Context) {
     zombie.Zombie.dying = true;
     zombie.Zombie.dyingRemaining = DEATH_ANIM_SECONDS;
 
-    // Zeroed before broadcasting, same reasoning zombie-ai.ts's own attack transition documents -
-    // a nonzero velocity left on a "dying" zombie keeps getting dead-reckoned by moveSystem and
-    // the client for the whole animation, dragging the corpse across the map.
+    // A nonzero velocity left on a "dying" zombie would keep dragging the corpse across the map.
     zombie.Velocity.x = 0;
     zombie.Velocity.y = 0;
 
@@ -81,19 +71,14 @@ export function zombieDeathSystem(registry: Registry, ctx: Context) {
       money.amount += zombie.Zombie.coinValue;
       moneyChanged = true;
     }
-    // Sent now, at the killing blow, not after the corpse finishes falling - the reward should
-    // appear the instant the player earns it.
     sendToInGamePlayers(network, {
       type: "loot",
       position: { x: zombie.Position.x, y: zombie.Position.y },
       amount: zombie.Zombie.coinValue,
     });
 
-    // A 1/20 chance per kill to also drop a physical loot box (heal/gold/ammo, picked uniformly)
-    // at the death spot - separate from the coin reward above, which always happens.
+    // A chance per kill to also drop a physical loot box, separate from the coin reward above.
     if (Math.random() < LOOT_BOX_DROP_CHANCE) {
-      // Always in-bounds (index < LOOT_TYPES.length by construction) - the fallback only
-      // satisfies noUncheckedIndexedAccess, never actually reached.
       const lootType = LOOT_TYPES[Math.floor(Math.random() * LOOT_TYPES.length)] ?? "gold";
       const lootBox = registry.spawnEntity();
       registry.addComponent(lootBox, new Position(zombie.Position.x, zombie.Position.y));

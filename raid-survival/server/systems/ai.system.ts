@@ -3,9 +3,7 @@ import { type Registry } from "@nanoforge-dev/ecs-client";
 
 import { IAComponent } from "../components/ia.component";
 
-// Generic: has no idea what a zombie is. Any entity with an IAComponent gets its behavior
-// lambda called once per tick - whatever that entity should do lives entirely in the lambda
-// itself (see zombie-ai.ts for the zombie one).
+// Generic dispatcher: calls each entity's own behavior lambda (see zombie-ai.ts).
 export function aiSystem(registry: Registry, ctx: Context) {
   const entities: { id: number; IAComponent: IAComponent }[] = registry.getIndexedZipper([IAComponent]);
 

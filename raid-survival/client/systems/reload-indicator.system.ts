@@ -10,19 +10,10 @@ import { WEAPON_CATALOG } from "../weapon-catalog";
 import { AMMO_ICON_SIZE } from "./packet-handlers/start-game-packet.handler";
 import { playerId } from "../main";
 
-// Two related concerns, both driven off the same weapon-by-parent lookup:
-//
-// 1. The world-space "Reloading..." label above EVERY player's health bar (visible to everyone,
-//    not just a local HUD) - shown only while that exact player's own equipped weapon is
-//    reloading, and repositioned every tick from TransformComponent (Text isn't a Sprite, so
-//    spriteSystem never moves it - same reasoning revive-indicator.system.ts documents for its
-//    Arc/Ring).
-// 2. The ammo-HUD row's visibility (LOCAL player only - it's a personal readout) - hidden
-//    whenever nothing is equipped at all, same look the HUD had before dual wielding existed.
-//
-// Driven every tick, not just on the equip/reload-state-change event - spriteSystem creates the
-// underlying Konva node lazily, so a one-shot visible() call made before it exists would silently
-// no-op forever.
+// Two concerns off the same weapon-by-parent lookup: the world-space "Reloading..." label above
+// every player's health bar (Text isn't a Sprite, so spriteSystem never repositions it - done
+// here instead), and the local ammo-HUD row's visibility. Driven every tick, not just on state
+// change, since spriteSystem creates the underlying Konva node lazily.
 export function reloadIndicatorSystem(registry: Registry) {
   const weapons: { Weapon: Weapon; ChildrenComponent: ChildrenComponent }[] = registry.getZipper([
     Weapon,
@@ -57,12 +48,9 @@ export function reloadIndicatorSystem(registry: Registry) {
     hud.text.visible(equipped);
     hud.icon.sprite?.visible(equipped);
 
-    // Same idempotent-every-tick correction as weapon-reload-animation.system.ts applies to the
-    // held weapon, and the same reason: buildAmmoHud calls setAnimation() once at construction,
-    // before the icon's Konva sprite exists - spriteSystem always builds it hardcoded on "idle"
-    // regardless, so that call's effect was silently swallowed the first time the sprite actually
-    // loaded (masked for smallGun, whose iconAnimation IS "idle" - visible for anything else,
-    // until the first equip change happened to re-trigger it).
+    // spriteSystem always builds a fresh Konva sprite hardcoded on "idle", so an initial
+    // setAnimation() call made before the sprite exists gets silently swallowed - correct it here
+    // every tick instead, same as weapon-reload-animation.system.ts does for the held weapon.
     if (localWeapon?.Weapon.weaponType && hud.icon.sprite) {
       const iconCatalog = WEAPON_CATALOG[localWeapon.Weapon.weaponType];
       if (hud.icon.getAnimation() !== iconCatalog.iconAnimation) {

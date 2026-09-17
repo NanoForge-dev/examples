@@ -15,10 +15,8 @@ function reject(network: NetworkServerLibrary, clientId: number, reason: string)
 }
 
 // Clears the equipped weapon's fire state, returning whatever's left in its magazine to that
-// weapon's shared reserve (skipped for infiniteReserve weapons, whose reserve is a -1 sentinel,
-// not a real count). Makes every equip/unequip round-trip ammo-neutral - nothing is gained by
-// switching weapons back and forth, unlike a naive "always hand out a fresh full magazine for
-// free" implementation would.
+// weapon's shared reserve (skipped for infiniteReserve weapons). Makes equip/unequip
+// ammo-neutral - nothing is gained by switching weapons back and forth.
 function releaseEquipped(inventory: WeaponInventory): void {
   if (inventory.equippedWeaponType && inventory.state) {
     const catalog = WEAPON_CATALOG[inventory.equippedWeaponType];
@@ -31,10 +29,8 @@ function releaseEquipped(inventory: WeaponInventory): void {
   inventory.state = null;
 }
 
-// Equips weaponType, pulling a fresh magazine out of its shared reserve (clamped to whatever's
-// actually available - a type whose reserve is running low can and should start with a partial
-// or empty magazine, not a free full one). Caller must releaseEquipped first if something else
-// was already equipped.
+// Equips weaponType, pulling a fresh magazine out of its shared reserve (clamped to what's
+// actually available). Caller must releaseEquipped first if something else was already equipped.
 function claimWeapon(inventory: WeaponInventory, weaponType: WeaponType): void {
   const catalog = WEAPON_CATALOG[weaponType];
   const owned = inventory.owned.find((w) => w.weaponType === weaponType);
@@ -52,10 +48,8 @@ function claimWeapon(inventory: WeaponInventory, weaponType: WeaponType): void {
   };
 }
 
-// Equips (or, with weaponType:null, unequips) an OWNED weapon - only one at a time (dual wielding
-// was removed; holding one weapon at a time is better, per design). Broadcast to everyone, not
-// just the requester - every client needs to know what to render in every player's hands, not
-// just their own.
+// Equips (or, with weaponType:null, unequips) an owned weapon - only one at a time. Broadcast to
+// everyone, since every client needs to render every player's hands, not just their own.
 export function equipWeaponPacketHandler(
   clientId: number,
   packet: any,
@@ -82,10 +76,6 @@ export function equipWeaponPacketHandler(
     return reject(network, clientId, "not owned");
   }
 
-  // Always release whatever's currently equipped first - its magazine returns to that weapon's
-  // own reserve before (if a new type was requested) a fresh magazine is pulled from the new
-  // type's reserve. Ammo-neutral either way: unequip alone returns it and stops there; switching
-  // to a different type returns then re-draws.
   releaseEquipped(inventory);
 
   if (weaponType !== null) claimWeapon(inventory, weaponType);
@@ -97,10 +87,8 @@ export function equipWeaponPacketHandler(
     weapons: inventory.owned.map((w) => ({ weaponType: w.weaponType, reserveAmmo: w.reserveAmmo })),
   });
 
-  // The ammo HUD (client) needs to know the fresh magazine immediately, not wait for the next
-  // shot/reload - weaponInventory doesn't carry magazine state (see weapon-inventory.component.ts),
-  // only the `ammo` broadcast does. Skipped on unequip (weaponType null): the ammo HUD is hidden
-  // client-side the instant nothing's equipped, so there's no live value to update.
+  // weaponInventory doesn't carry magazine state - send an ammo packet too so the HUD updates
+  // immediately instead of waiting for the next shot/reload. Skipped on unequip.
   if (weaponType !== null) {
     const newState: WeaponFireState | null = inventory.state;
     const ownedForType = inventory.owned.find((w) => w.weaponType === weaponType);

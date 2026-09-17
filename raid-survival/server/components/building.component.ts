@@ -1,7 +1,6 @@
 import { type BuildingType } from "../building-catalog";
 
-// Position/CollisionBox/Hitbox/Health carry all the actual physics/combat behavior generically
-// (see build-packet.handler.ts) - this is just the marker + which catalog entry it came from.
+// Marker + catalog key; physics/combat/health live on CollisionBox/Hitbox/Health instead.
 export class Building {
   name = this.constructor.name;
 

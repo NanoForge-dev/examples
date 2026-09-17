@@ -23,10 +23,8 @@ export const ZOMBIE_ATTACK_DAMAGE_FRAME = 4; // 0-indexed - the "fifth" frame
 
 interface Attackable {
   entityId: number;
-  // True only for the lobby - a valid move-toward target regardless of distance (priority 2
-  // below). Players and buildings only count as a move target within ZOMBIE_AGGRO_RANGE; they're
-  // still attackable at any distance once actually in range (priority 1), same as the lobby -
-  // this only gates whether a zombie will *travel* toward one from far away.
+  // True only for the lobby - a valid move-toward target regardless of distance. Players and
+  // buildings only count as a move target within ZOMBIE_AGGRO_RANGE.
   alwaysReachable: boolean;
   position: Position;
   hitbox: Hitbox;
@@ -43,8 +41,7 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
     const zombie = registry.getEntityComponent(zombieEntity, Zombie);
     if (!position || !velocity || !hitbox || !zombie) return;
 
-    // A dying zombie (zombie-death.system.ts has already zeroed its Health and started the death
-    // animation timer) is inert - no movement, no attack - until it's actually removed.
+    // A dying zombie is inert until it's actually removed.
     if (zombie.dying) return;
 
     const network = ctx.libs.getNetwork<NetworkServerLibrary>();
@@ -52,8 +49,7 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
 
     const attackable = gatherAttackable(registry, lobbyEntityId, position, hitbox);
 
-    // Priority 1: attack whatever's already within range, right now - no distance beats being
-    // attackable this instant.
+    // Priority 1: attack whatever's already within range, right now.
     const inAttackRange = attackable.filter((e) => e.distance <= ZOMBIE_ATTACK_RANGE);
 
     if (inAttackRange.length > 0) {
@@ -61,8 +57,7 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
         inAttackRange.find((e) => e.entityId === zombie.lastAttackedTargetId) ??
         nearest(inAttackRange);
 
-      // Switching who we're hitting (a fresh attack, or the in-range target changed while still
-      // mid-animation) resets the frame timer so the new target doesn't inherit a stale cycle.
+      // Switching targets resets the frame timer so the new target doesn't inherit a stale cycle.
       const switched =
         zombie.animationState !== "attack" || target.entityId !== zombie.lastAttackedTargetId;
       zombie.lastAttackedTargetId = target.entityId;
@@ -72,10 +67,8 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
         zombie.hasDealtDamageThisCycle = false;
       }
 
-      // Zero the velocity before broadcasting the transition, not after - otherwise the packet
-      // still carries the old chase velocity, and since nothing corrects it again while the
-      // attack continues, the client keeps dead-reckoning the zombie sliding forward until some
-      // later transition snaps it back (looks like a teleport when it stops).
+      // Zero velocity before broadcasting the transition - otherwise the client keeps
+      // dead-reckoning the old chase velocity while the attack animation plays.
       velocity.x = 0;
       velocity.y = 0;
 
@@ -104,8 +97,7 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
       return;
     }
 
-    // Priority 2: nothing attackable right now - move to the closest thing worth attacking. The
-    // lobby is always a candidate; a player or building only counts within the aggro range.
+    // Priority 2: nothing attackable right now - move toward the closest thing worth attacking.
     const reachable = attackable.filter(
       (e) => e.alwaysReachable || e.distance <= ZOMBIE_AGGRO_RANGE,
     );
@@ -125,11 +117,8 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
     velocity.x = (dx / length) * ZOMBIE_SPEED;
     velocity.y = (dy / length) * ZOMBIE_SPEED;
 
-    // Broadcast whenever the client's dead-reckoning would otherwise drift: on the idle
-    // transition itself, whenever the chase target changes (velocity direction jumps
-    // discretely), or every tick while chasing a player (its center moves, so the steering curve
-    // keeps changing even with the same target). The lobby is stationary, so once a straight-line
-    // chase toward it starts, no further correction is needed until something changes.
+    // Broadcast whenever dead-reckoning would otherwise drift: on the idle transition, when the
+    // target changes, or every tick while chasing a moving player.
     const targetChanged = target.entityId !== zombie.lastMoveTargetId;
     const needsBroadcast =
       zombie.animationState !== "idle" || targetChanged || !target.alwaysReachable;
@@ -142,12 +131,9 @@ export function createZombieBehavior(lobbyEntityId: number): AIBehavior {
 }
 
 // Every living/standing entity a zombie could target: the lobby, every logged-in player, and
-// every building (walls today), each with its edge-distance to the zombie's own hitbox
-// precomputed. A building blocking a zombie's path gets engaged the same way the lobby does -
-// entirely through this attack-range check, well before the zombie's own box could ever
-// physically reach it (see zombie-ai.ts's ZOMBIE_ATTACK_RANGE), which is what actually satisfies
-// "a zombie can't cross a building": it's stopped and fighting it long before overlap, not
-// blocked by a separate physics system.
+// every building, each with its edge-distance to the zombie's own hitbox precomputed. A building
+// in a zombie's path gets engaged via this attack-range check alone, well before the zombie's
+// box would physically overlap it - there's no separate "can't cross a building" physics system.
 function gatherAttackable(
   registry: Registry,
   lobbyEntityId: number,
@@ -220,11 +206,9 @@ function nearest(entities: Attackable[]): Attackable {
   );
 }
 
-// Minimum distance between two axis-aligned boxes (0 when they overlap) - the gap between
-// whichever pair of edges/corners is closest. This is what "8 pixels of the hitbox" actually
-// means for a zombie that has its own footprint, not just a point: a zero-size box reduces this
-// to plain point-to-box distance. Exported so revive.system.ts can reuse the exact same
-// edge-to-edge metric for its own reviver-to-downed-teammate range check.
+// Minimum edge-to-edge distance between two axis-aligned boxes (0 when they overlap). A zero-size
+// box reduces this to plain point-to-box distance. Reused by revive.system.ts and others for the
+// same range checks.
 export function distanceBetweenHitboxes(
   aPosition: Position,
   aHitbox: Hitbox,

@@ -9,10 +9,8 @@ import { WEAPON_CATALOG, type WeaponType } from "../../weapon-catalog";
 import { AMMO_ICON_SIZE } from "./start-game-packet.handler";
 import { playerId } from "../../main";
 
-// Handles a buy/ammo-refill/equip result for ANY player, not just local - every client needs to
-// know what to render in every player's hands. Re-points the weapon sprite (animation, visibility
-// comes from weapon-visibility.system.ts/build-mode.system.ts reacting to Weapon.weaponType next
-// tick) to match the broadcast state.
+// Handles a buy/ammo-refill/equip result for any player - every client renders every player's
+// weapon, not just its own.
 export function weaponInventoryPacketHandler(packet: any, registry: Registry): void {
   const players: { id: number; NetworkId: NetworkId }[] = registry.getIndexedZipper([NetworkId]);
   const player = players.find((p) => p.NetworkId.id === packet.id);
@@ -30,15 +28,11 @@ export function weaponInventoryPacketHandler(packet: any, registry: Registry): v
     if (weaponEntry.Weapon.weaponType !== newType) {
       weaponEntry.Weapon.weaponType = newType;
       weaponEntry.Weapon.baseRotationOffset = newType ? WEAPON_CATALOG[newType].rotationOffset : 0;
-      // Not mid-reload any more - a fresh weaponState packet will re-set this correctly if the
-      // newly-equipped weapon actually is reloading.
+      // A fresh weaponState packet will re-set this if the new weapon actually is reloading.
       weaponEntry.Weapon.reloading = false;
       weaponEntry.Weapon.reloadElapsed = 0;
-      // No explicit sprite update here - weapon-reload-animation.system.ts's own per-tick pass
-      // already re-asserts the correct spriteKey/animationsKey/scale/animation for whatever
-      // weapon.weaponType now is, idempotently, every tick (each weapon can live on its own source
-      // image - client/weapon-catalog.ts's spriteKey/animationsKey - so a re-equip can mean a real
-      // image swap, not just a different animation name within the same image).
+      // No sprite update here - weapon-reload-animation.system.ts's per-tick pass already
+      // re-asserts the correct sprite for whatever weaponType is now set.
     }
   }
 
@@ -56,11 +50,8 @@ export function weaponInventoryPacketHandler(packet: any, registry: Registry): v
     shop.owned.set(w.weaponType, { reserveAmmo: w.reserveAmmo });
   }
 
-  // Re-point the ammo-HUD icon (animation + fit-scale) to whatever weapon is now equipped - built
-  // once at spawn time in start-game-packet.handler.ts and otherwise never touched again, so
-  // switching weapons would otherwise leave the row showing the OLD weapon's icon (wrong crop,
-  // wrong scale) while ammo-packet.handler.ts's text update correctly reflects the new one.
-  // Visibility is handled separately, every tick, by reload-indicator.system.ts.
+  // Re-point the ammo-HUD icon to whatever weapon is now equipped - it's built once at spawn and
+  // otherwise never touched, so a weapon switch would leave the row showing the old icon.
   const huds: { AmmoHudComponent: AmmoHudComponent }[] = registry.getZipper([AmmoHudComponent]);
   for (const { AmmoHudComponent: hud } of huds) {
     const newType = shop.equippedWeaponType;
@@ -70,10 +61,8 @@ export function weaponInventoryPacketHandler(packet: any, registry: Registry): v
       AMMO_ICON_SIZE.width / catalog.iconSize.width,
       AMMO_ICON_SIZE.height / catalog.iconSize.height,
     );
-    // Each weapon can live on its own source image now (spriteKey/animationsKey) - switching to a
-    // different weapon type can mean a real image swap, not just a different animation name
-    // within the same image, so setAnimation alone isn't enough here the way it used to be when
-    // every weapon shared weapons.png.
+    // Each weapon can live on its own source image, so a switch can mean a real image swap, not
+    // just a different animation name - setAnimation alone isn't always enough.
     if (hud.icon.spriteKey !== catalog.spriteKey) {
       hud.icon.setSpriteKey(catalog.spriteKey, catalog.animationsKey);
     }

@@ -1,10 +1,7 @@
 import { Text } from "@nanoforge-dev/graphics-2d";
 
-// World-space "press E to..." hint shown above a tower/wall/the lobby's health bar, one per
-// interactable entity, visible only to a player standing close enough for the E-press to
-// actually do something (building-interact-indicator.system.ts owns the proximity check,
-// approximated client-side since Hitbox is server-only - see there). Text alone (no background)
-// with a dark stroke for legibility against any tile behind it.
+// "Press E to..." hint shown above an interactable building's health bar. The proximity check is
+// approximated client-side since Hitbox is server-only - see building-interact-indicator.system.ts.
 export class BuildingInteractIndicatorComponent {
   name = this.constructor.name;
 

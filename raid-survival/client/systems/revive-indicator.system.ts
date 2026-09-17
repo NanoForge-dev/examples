@@ -4,11 +4,10 @@ import { type Registry } from "@nanoforge-dev/ecs-client";
 import { TransformComponent } from "../components/essentials/transform.component";
 import { ReviveIndicatorComponent } from "../components/revive-indicator.component";
 
-// Positions each revive-ring pair from its own (already parent-relative - see
-// transform-children-to-parent.system.ts, which this must run after) TransformComponent, and
-// fills the green Arc in from the grey Ring underneath as `elapsed` counts up toward
-// `durationSeconds`. Arc/Ring aren't Sprites, so spriteSystem's own position-sync never touches
-// them - this is that same job, just for these two shapes.
+// Positions each revive ring pair and fills the green Arc in from the grey Ring underneath as
+// `elapsed` counts toward `durationSeconds`. Arc/Ring aren't Sprites, so spriteSystem never
+// positions them - this does that job for these two shapes. Must run after
+// transform-children-to-parent.system.ts.
 export function reviveIndicatorSystem(registry: Registry, ctx: Context) {
   const entities: {
     TransformComponent: TransformComponent;
@@ -24,13 +23,8 @@ export function reviveIndicatorSystem(registry: Registry, ctx: Context) {
 
     if (!indicator.active) continue;
 
-    // Neither shape carries a SpriteComponent, so zOrderSystem never manages them - the moment
-    // any z-indexed sprite set changes (a zombie spawning/dying, a bullet firing - constant during
-    // play, and near-guaranteed right around a downed body with zombies nearby), every actual
-    // sprite gets swept above these two, permanently, even though `active`/position/animation stay
-    // fully correct underneath. Same fix build-mode.system.ts already applies to gridShape/
-    // previewRect/towerRangeCircles for the exact same reason - re-assert on top every tick this
-    // is meant to be visible.
+    // Neither shape carries a SpriteComponent, so zOrderSystem never manages them and they'd get
+    // permanently buried under z-indexed sprites without this re-assertion every tick.
     indicator.background.moveToTop();
     indicator.fill.moveToTop();
 

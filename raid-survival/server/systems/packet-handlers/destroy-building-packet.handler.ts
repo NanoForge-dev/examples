@@ -13,18 +13,15 @@ import { TOWER_UPGRADE_COST } from "../tower.system";
 
 const REFUND_FRACTION = 0.5;
 
-// A tower's value grows with every upgrade paid for (build-packet.handler.ts's cost, plus one
-// TOWER_UPGRADE_COST per level above 1) - a wall never levels up, so its value is just its build
-// cost.
+// A tower's value grows with every upgrade paid for; a wall's value is just its build cost.
 function buildingValue(building: Building, tower: Tower | undefined): number {
   const baseCost = BUILDING_CATALOG[building.buildingType].cost;
   if (!tower) return baseCost;
   return baseCost + TOWER_UPGRADE_COST * (tower.level - 1);
 }
 
-// Removes a player-built wall/tower, refunding half its value (build cost, plus upgrades paid
-// for a tower) - not ownership-gated, same as every other building action today (buildings are a
-// shared team asset, not owned by whoever placed them).
+// Removes a player-built wall/tower, refunding half its value. Not ownership-gated - buildings
+// are a shared team asset.
 export function destroyBuildingPacketHandler(
   _clientId: number,
   packet: any,
@@ -36,25 +33,11 @@ export function destroyBuildingPacketHandler(
   const id = packet.id;
   if (typeof id !== "number") return;
 
-  // `id` is client-supplied and can be stale by the time this packet is actually processed - the
-  // building it named can have already died to zombies (building-death.system.ts, which runs
-  // every tick, after this handler in main.ts's system order - see below) or been destroyed by
-  // another player's click a moment earlier, in either case possibly before this packet arrived.
-  // Resolving that stale id via registry.entityFromIndex()/getEntityComponent() directly (as this
-  // used to) is what crashed the whole server (see the crash report this fixes:
-  // "UnhandledPromiseRejection ... rejected with the reason '2010936'" - a building's own entity
-  // id): the exact WASM-boundary mechanics aren't proven, but this is the one call site in the
-  // whole codebase that resolves a client-supplied id with no liveness check first, and every
-  // other packet handler here already avoids doing that. Confirming `id` against this tick's own
-  // building zipper - the same safe pattern those other handlers use - closes that gap.
-  //
-  // Also excluding a building already at/below 0 HP: buildingDeathSystem is registered AFTER this
-  // handler (main.ts), so it hasn't swept this tick's zombie-killed buildings yet when this runs -
-  // meaning a building that died to zombies THIS SAME tick would still show up as "live" here. If
-  // getIndexedZipper/killEntity turn out to defer removal even by one more tick than expected,
-  // this keeps the two handlers from ever both trying to kill the same entity: buildingDeathSystem
-  // stays the sole killer of HP-depleted buildings, this handler the sole killer of a
-  // player-requested destroy on a still-healthy one - no overlap either way.
+  // `id` is client-supplied and can be stale (the building may have already died to zombies or
+  // been destroyed by another player). Resolving a stale id directly, with no liveness check,
+  // previously crashed the server - always validate against the current tick's live entities
+  // first. Also excludes a building already at/below 0 HP so this never races
+  // buildingDeathSystem, which runs later in the tick and owns removing HP-depleted buildings.
   const buildings: { id: number; Building: Building; Health: Health }[] = registry.getIndexedZipper(
     [Building, Health],
   );

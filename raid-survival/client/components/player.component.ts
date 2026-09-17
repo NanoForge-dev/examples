@@ -1,5 +1,4 @@
-// Marker - identifies a player entity for systems that need to single players out (e.g.
-// player-death.system.ts), the same way Zombie/Lobby mark their own entities.
+// Marker identifying a player entity (e.g. for player-death.system.ts).
 export class Player {
   name = this.constructor.name;
 }

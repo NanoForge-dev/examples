@@ -8,19 +8,14 @@ import { BuildModeComponent } from "../components/build-mode.component";
 import { ReviveHintIndicatorComponent } from "../components/revive-hint-indicator.component";
 import { playerId } from "../main";
 
-// Native player sprite size (see start-game-packet.handler.ts's own copy) - just enough to
-// approximate the local player's center for the proximity check below.
+// Approximates the local player's center for the proximity check below.
 const LOCAL_PLAYER_SIZE = { width: 24, height: 24 };
-// The real gate is server-authoritative (revive.system.ts's edge-to-edge Hitbox check,
-// REVIVE_RANGE=20) - Hitbox is server-only, so this is a generous center-distance stand-in
-// purely for deciding when to SHOW the hint, not for whether holding E actually works. Same idea
-// (and same value) as building-interact-indicator.system.ts's DISPLAY_INTERACT_RANGE.
+// The real gate is server-authoritative (revive.system.ts's Hitbox check) - Hitbox is
+// server-only, so this is a generous stand-in purely for deciding when to show the hint.
 const DISPLAY_REVIVE_RANGE = 46;
 
-// Drives every player's "Hold E to revive" hint: visible only to the LOCAL player, only above a
-// TEAMMATE who is actually downed (Health.current <= 0) and close enough, and only while the
-// local player is themselves alive (a downed player can't revive anyone - revive.system.ts,
-// server) and not in build mode (reviveControlSystem zeroes the E-hold there too).
+// Shows "Hold E to revive" above a downed teammate, to the local player only, while they're alive
+// and not in build mode.
 export function reviveHintIndicatorSystem(registry: Registry) {
   const indicators: {
     ReviveHintIndicatorComponent: ReviveHintIndicatorComponent;
@@ -72,9 +67,8 @@ export function reviveHintIndicatorSystem(registry: Registry) {
     const distance = Math.hypot(transform.x - playerCenter.x, transform.y - playerCenter.y);
     const visible = distance <= DISPLAY_REVIVE_RANGE;
     indicator.text.visible(visible);
-    // Same z-order burial fix as revive-indicator.system.ts's ring/arc (see there for the full
-    // explanation) - this Text has no SpriteComponent either, so zOrderSystem never manages it and
-    // it would otherwise sink beneath every zombie/player sprite the instant any of them reorder.
+    // No SpriteComponent, so zOrderSystem never manages this Text - same burial fix as
+    // revive-indicator.system.ts's ring/arc.
     if (visible) indicator.text.moveToTop();
   }
 }

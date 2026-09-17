@@ -12,21 +12,15 @@ import { WEAPON_CATALOG } from "../weapon-catalog";
 import { firePellets } from "./weapon.system";
 import { distanceBetweenHitboxes } from "./zombie-ai";
 
-// How far a tower can see/shoot a zombie - generous on purpose (stationary defense, no aim-assist
-// needed the way a player's mouse gives them one). Invented for this feature, easy to retune.
 export const TOWER_RANGE = 120;
 export const TOWER_MAX_LEVEL = 6;
 export const TOWER_HP_PER_LEVEL = 50;
 export const TOWER_UPGRADE_COST = 50;
 // Flat repair-to-full cost, same as one upgrade - a per-missing-HP rate would make repairing a
-// heavily-damaged level-6 tower (up to 350 HP) cost far more than upgrading it ever did. Invented
-// for this feature, easy to retune.
+// heavily-damaged level-6 tower cost far more than upgrading it ever did.
 export const TOWER_HEAL_COST = 50;
 
-// level 1 fires at exactly smallGun's own stats ("shoot continuously using the small gun" - the
-// user's spec); each upgrade adds +1 shot/sec and +1 damage on top of that baseline. Both curves
-// are invented (the request only said "faster and harder"), easy to retune - level 6 ends up at
-// 10 shots/sec for 7 damage vs. level 1's 5/sec for 2.
+// Level 1 fires at smallGun's own stats; each upgrade adds +1 shot/sec and +1 damage.
 export function towerFireRatePerSecond(level: number): number {
   return WEAPON_CATALOG.smallGun.fireRatePerSecond + (level - 1);
 }
@@ -42,11 +36,9 @@ interface TowerEntity {
   Health: Health;
 }
 
-// Autonomous turret: every alive tower fires at the nearest alive zombie within TOWER_RANGE,
-// on its own level-derived cooldown - no player input involved (that's tower-interact.system.ts,
-// the E-press heal/upgrade). Reuses weapon.system.ts's exact bullet-spawn pipeline
-// (firePellets/Bullet/bullet.system.ts) so a tower's shots behave identically to a player's
-// smallGun shots in every way that matters (collision, damage application, client rendering).
+// Autonomous turret: every alive tower fires at the nearest alive zombie within TOWER_RANGE on
+// its own level-derived cooldown, reusing weapon.system.ts's firePellets pipeline so a tower's
+// shots behave identically to a player's smallGun shots.
 export function towerSystem(registry: Registry, ctx: Context) {
   const towers: TowerEntity[] = registry.getIndexedZipper([
     Building,

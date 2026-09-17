@@ -21,43 +21,30 @@ import { SpriteComponent } from "../components/renderable/sprite.component";
 import { WeaponShopComponent } from "../components/weapon-shop.component";
 import { WEAPON_CATALOG } from "../weapon-catalog";
 
-// Native size of the truck+house crop (objects-animations.txt's "idle" frame), rounded up to
-// whole tiles - must match server/systems/packet-handlers/start-game-packet.handler.ts's
-// LOBBY_COLLISION_BOX exactly. The lobby's footprint isn't tile-aligned by position (verified
-// against that file's constants), so this is a real box, not a tile-index check.
+// Must match server/systems/packet-handlers/start-game-packet.handler.ts's LOBBY_COLLISION_BOX
+// exactly - a real box, not a tile-index check, since the lobby's footprint isn't tile-aligned.
 const LOBBY_SPRITE_SIZE = { width: 187, height: 143 };
 const tilesFor = (size: number) => Math.ceil(size / TILE_SIZE) * TILE_SIZE;
 const LOBBY_COLLISION_BOX = {
   width: tilesFor(LOBBY_SPRITE_SIZE.width),
   height: tilesFor(LOBBY_SPRITE_SIZE.height),
 };
-// Must match server/systems/packet-handlers/start-game-packet.handler.ts's own PLAYER_COLLISION_BOX
-// exactly - the placement preview needs to agree with build-packet.handler.ts's real obstacle
-// check (which now blocks on every player's CollisionBox too), or a tile the preview shows as
-// placeable could still get rejected server-side.
+// Must match server's own PLAYER_COLLISION_BOX exactly, or the placement preview could show a
+// tile as placeable that the server then rejects.
 const PLAYER_COLLISION_BOX = { width: 24, height: 24 };
 
-// GameScene.ts's own initial `this.layer.scale({x: 3, y: 3})` - the game's default, un-zoomed
-// view. BuildModeComponent.zoomLevel is a MULTIPLIER on top of this base, not a replacement for
-// it (applied below as BASE_WORLD_SCALE * zoomLevel) - so the default zoomLevel of 1 reproduces
-// today's normal view exactly, rather than snapping the whole game to 1x the instant this system
-// starts writing the layer's scale every tick.
+// GameScene's default un-zoomed world scale. zoomLevel is a multiplier on top of this, applied
+// below as BASE_WORLD_SCALE * zoomLevel.
 const BASE_WORLD_SCALE = 3;
 
-// Clamp for BuildModeComponent.targetZoomLevel - exported so the zoom buttons' own click handlers
-// (start-game-packet.handler.ts, no access to this system's per-tick pass) can clamp identically
-// rather than duplicating the bounds. 0.5 (zoomed out, see more map) to 2 (zoomed in further)
-// around the 1:1 default, +/-0.1 per click - arbitrary, easy to retune.
+// Clamp for BuildModeComponent.targetZoomLevel - exported so the zoom buttons' click handlers can
+// clamp identically without duplicating the bounds.
 export const MIN_ZOOM = 0.5;
 export const MAX_ZOOM = 2;
 export const ZOOM_STEP = 0.1;
 
-// How much of the remaining gap between the live zoomLevel and targetZoomLevel closes per tick -
-// same exponential-ease shape as CAMERA_SMOOTHING (camera-follow.system.ts), and deliberately
-// similar in magnitude: cameraFollowSystem recomputes its own target fresh every tick from the
-// CURRENT live scale, so a zoom that eases in no faster than the camera itself already eases
-// toward the player never gets ahead of it - both glide into place together instead of the scale
-// snapping instantly and the camera visibly lurching to catch up (the "shake" this replaces).
+// How much of the remaining gap between zoomLevel and targetZoomLevel closes per tick - matches
+// CAMERA_SMOOTHING's ease shape so the zoom and the camera glide into place together.
 const ZOOM_SMOOTHING = 0.1;
 
 export function buildModeSystem(registry: Registry, ctx: Context) {
@@ -67,15 +54,12 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
   const buildMode = entities[0]?.BuildModeComponent;
   if (!buildMode) return;
 
-  // Same raw-Konva-node z-order trap as gridShape/previewRect below, and unconditional (unlike
-  // those two) since the money HUD is visible outside build mode too - re-assert on top every
-  // tick regardless of what else got swept above it by zOrderSystem.
+  // No SpriteComponent, so zOrderSystem never manages it - re-assert on top every tick.
   const moneyHudEntities: { MoneyHudComponent: MoneyHudComponent }[] = registry.getZipper([
     MoneyHudComponent,
   ]);
   moneyHudEntities[0]?.MoneyHudComponent.coinIcon.moveToTop();
-  // Pulled up here (used both by the weapon shop below, which runs regardless of build-mode
-  // placement state, and by the building-placement afford check further down).
+  // Used by both the weapon shop and the building-placement afford check below.
   const money = moneyHudEntities[0]?.MoneyHudComponent.amount ?? 0;
 
   const input = ctx.libs.getInput<InputLibrary>();
@@ -95,23 +79,14 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
   }
   buildMode.wasTogglePressed = togglePressed;
 
-  // The weapon(s) shouldn't be drawn/aimed while placing buildings - a click meant to select a
-  // build-bar/shop button or place a wall must not read as "holding up a gun" either (see
-  // shoot-control.system.ts, which stops it from actually firing for the same reason). This is
-  // also the sole owner of the local player's weapon-sprite visibility overall (folding in
-  // "is anything even equipped" too) - weapon-visibility.system.ts owns the same concern, minus
-  // the build-mode factor, for every other player. Asserted every tick, not just on the toggle
-  // edge - spriteSystem creates the underlying Konva node lazily, so a one-shot visible() call
-  // made before it exists would silently no-op forever.
+  // The local player's weapon sprite shouldn't be visible while placing buildings -
+  // weapon-visibility.system.ts owns the same concern for every other player. Asserted every
+  // tick since spriteSystem creates the underlying Konva node lazily.
   const localPlayers: { id: number; NetworkId: NetworkId }[] = registry.getIndexedZipper([
     NetworkId,
   ]);
   const localPlayer = localPlayers.find((p) => p.NetworkId.id === playerId);
   if (localPlayer) {
-    // Same zip shape as reload-indicator.system.ts's identical lookup (weapon resolved via
-    // ChildrenComponent.parentId, SpriteComponent fetched separately) - if the weapon entity ever
-    // doesn't carry a SpriteComponent, this fails on "sprite missing", not silently on "weapon not
-    // found" the way requiring SpriteComponent in the zip itself would.
     const weapons: { id: number; Weapon: Weapon; ChildrenComponent: ChildrenComponent }[] =
       registry.getIndexedZipper([Weapon, ChildrenComponent]);
     const localWeapons = weapons.filter((w) => w.ChildrenComponent.parentId === localPlayer.id);
@@ -124,20 +99,13 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
   buildMode.gridShape.visible(buildMode.active);
   buildMode.towerRangeCircles.visible(buildMode.active);
   if (buildMode.active) {
-    // Neither node carries a SpriteComponent, so zOrderSystem never touches them - the moment
-    // any z-indexed sprite set changes (the first zombie spawns within seconds of game start),
-    // every z-indexed sprite gets swept above whatever isn't in that system's zipper, including
-    // these two, permanently. Re-asserting "on top" every tick here is independent of that sweep
-    // and keeps them visible regardless of what else moved around them.
+    // No SpriteComponent, so zOrderSystem never manages these - re-assert on top every tick.
     buildMode.gridShape.moveToTop();
     buildMode.previewRect.moveToTop();
     buildMode.towerRangeCircles.moveToTop();
 
-    // Refills the SAME array towerRangeCircles' own sceneFunc closure reads (see
-    // start-game-packet.handler.ts) - done here, not inside that sceneFunc, because Konva can
-    // invoke sceneFunc from its own render loop, off this system's tick, where a live
-    // registry.getZipper() call wouldn't be safe. Only recomputed while visible - a hidden
-    // Shape's stale contents from the last time build mode was active can never be drawn.
+    // Refills the array towerRangeCircles' sceneFunc closure reads - done here, not inside that
+    // sceneFunc, since Konva can invoke it off-tick where a live registry call isn't safe.
     const towers: { Building: Building; TransformComponent: TransformComponent }[] =
       registry.getZipper([Building, TransformComponent]);
     buildMode.towerRangeCenters.length = 0;
@@ -151,43 +119,24 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
     }
   }
 
-  // Ease the LIVE zoomLevel toward targetZoomLevel a little every tick, then apply IT (never
-  // targetZoomLevel directly) to the world scale - a "+"/"-" click only moves the target, so the
-  // actual on-screen zoom always glides rather than snapping. Applied unconditionally (not gated
-  // on buildMode.active) - the buttons that move targetZoomLevel only show up in build mode, but
-  // the zoom itself is a camera setting, not a build-mode-only visual, so it keeps easing toward
-  // wherever it was left even after build mode toggles back off. cameraFollowSystem reads this
-  // same world layer's scale back out every tick for its own centering/clamping math, so writing
-  // it here is the entire feature - nothing else needs to know about it.
+  // Eases the live zoomLevel toward targetZoomLevel and applies it to the world scale, so a
+  // zoom-button click glides rather than snaps.
   //
-  // Gated on the current scene actually BEING GameScene (not just having a `layer`, which every
-  // Scene does - see Scene.ts) because nothing kills this entity/system on game-over: after a
-  // return to MenuScene, buildModeSystem keeps running against the surviving BuildModeComponent,
-  // and MenuScene has its own unrelated (unscaled) `layer` for its lobby UI. Without this check,
-  // the very next tick after a game ends would stamp GameScene's 3x world scale onto the menu.
+  // Gated on the scene actually being GameScene, not just having a `layer` - nothing kills this
+  // system on game-over, and MenuScene has its own unrelated unscaled layer.
   buildMode.zoomLevel += (buildMode.targetZoomLevel - buildMode.zoomLevel) * ZOOM_SMOOTHING;
   const scene = sceneManager.getScene();
   if (scene?.name === "GameScene" && scene.layer) {
     const worldScale = BASE_WORLD_SCALE * buildMode.zoomLevel;
     const oldScale = scene.layer.scaleX();
 
-    // Only while the scale is actually changing - this correction exists to cancel the leap a
-    // scale change itself would otherwise cause (see below), not to run every idle tick. Left
-    // unconditional, this floating-point round trip (divide by oldScale, multiply by worldScale)
-    // would keep nudging position by sub-pixel drift forever even once zoomLevel has settled,
-    // fighting cameraFollowSystem's own map-edge clamp (clampCameraAxis) at the moment it matters
-    // most - near a border, holding position dead still. Two writers touching that value every
-    // frame there is exactly what reads as jitter.
+    // Only while the scale is actually changing, so this doesn't keep nudging position by
+    // sub-pixel drift once zoomLevel has settled, fighting cameraFollowSystem's edge clamp.
     if (oldScale !== worldScale) {
-      // Konva scales a layer's CONTENT around its own local (0,0), which is NOT the viewport
-      // center - left alone, changing scale without touching position makes every world point
-      // except local (0,0) itself visibly leap toward/away from that corner (the player included,
-      // by `player.x * (newScale - oldScale)` pixels - hundreds of pixels for a player far from
-      // world origin). Re-solving position so the SAME world point that was centered on screen a
-      // moment ago is still centered after the new scale removes that leap entirely, rather than
-      // merely easing it out over time: cameraFollowSystem runs right after this (main.ts), reads
-      // back an already-correctly-centered position as its "current", and only has its own normal
-      // small per-tick catch-up toward the player left to do - not a scale-sized jump to absorb.
+      // Konva scales a layer's content around its own local (0,0), not the viewport center -
+      // changing scale without correcting position would make every world point leap toward/away
+      // from that corner. Re-solving position keeps the same world point centered across the
+      // scale change instead.
       const viewWidth = scene.layer.width();
       const viewHeight = scene.layer.height();
       const pos = scene.layer.position();
@@ -225,10 +174,8 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
   buildMode.destroyButton.text.visible(buildMode.active);
   buildMode.destroyButton.rect.stroke(buildMode.destroyMode ? "#F5F2E9" : "#8C5E5E");
 
-  // Weapon shop panel - visibility/button state refresh, then send whatever a click queued up
-  // last tick (start-game-packet.handler.ts's click handlers have no access to the network
-  // client, so they just set intent here - same split buildBuildMode/this file already use for
-  // building placement).
+  // Weapon shop panel - refresh visibility/button state, then send whatever a click queued up
+  // last tick (click handlers have no access to the network client, so they just set intent).
   const weaponShops: { WeaponShopComponent: WeaponShopComponent }[] = registry.getZipper([
     WeaponShopComponent,
   ]);
@@ -240,25 +187,21 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
 
       entry.buyRect.visible(buildMode.active);
       entry.buyText.visible(buildMode.active);
-      // Reserve only, not magazine - a weapon's magazine lives on the single equipped weapon's
-      // own fire state now (see weapon-inventory.component.ts, server), so a per-type shop entry
-      // has no single "the" magazine number to show for a type that isn't currently equipped. The
-      // ammo HUD (bottom-left) is where the equipped weapon's live magazine content actually lives.
+      // Reserve only, not magazine - the equipped weapon's live magazine shows in the ammo HUD.
       entry.buyText.text(
         owned
           ? `${catalogEntry.label}\n${owned.reserveAmmo === -1 ? "∞" : owned.reserveAmmo}`
           : catalogEntry.label,
       );
 
-      // Whichever price actually applies right now - buying outright if unowned, refilling if
-      // owned. 0 means nothing is actually purchasable here (e.g. smallGun's infiniteReserve has
-      // no refill cost once owned) - hide the row entirely rather than show a meaningless "0".
+      // Buying outright if unowned, refilling if owned; 0 means nothing purchasable (e.g.
+      // smallGun's infiniteReserve has no refill cost) - hide the row rather than show "0".
       const price = owned ? catalogEntry.ammoRefillCost : catalogEntry.cost;
       const canAfford = money >= price;
       entry.costText.visible(buildMode.active && price > 0);
       entry.costIcon?.visible(buildMode.active && price > 0);
       if (price > 0) {
-        entry.costIcon?.moveToTop(); // same raw-Konva z-order trap as gridShape/previewRect above
+        entry.costIcon?.moveToTop();
         entry.costText.text(`${price}`);
         entry.costText.fill(canAfford ? "#F5F2E9" : "#E05C5C");
       }
@@ -267,14 +210,11 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
       entry.selectButton.visible(buildMode.active);
       entry.selectLabel.visible(buildMode.active);
       entry.selectButton.stroke(isEquipped ? "#F5F2E9" : "#5E8C61");
-      // Not owned yet - this button buys instead of equipping (see its click handler,
-      // start-game-packet.handler.ts), so it reads "Buy" rather than an equip state it can't reach.
       entry.selectLabel.text(!owned ? "Buy" : isEquipped ? "Selected" : "Select");
     }
 
-    // Explained once for the whole column rather than per entry - see buildWeaponShop.
     weaponShop.hintText.visible(buildMode.active);
-    weaponShop.hintText.moveToTop(); // same raw-Konva z-order trap as gridShape/previewRect above
+    weaponShop.hintText.moveToTop();
 
     if (weaponShop.pendingBuyType) {
       const weaponType = weaponShop.pendingBuyType;
@@ -316,10 +256,8 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
 
   const pointerPosition = sceneManager.getScene()?.layer?.getRelativePointerPosition();
 
-  // Over the build bar, the weapon shop, or the zoom buttons, or the cursor isn't over the map at
-  // all - no preview, and a click here is for one of those panels' own button handlers to deal
-  // with, not a placement attempt (without the zoom-buttons check, clicking "+"/"-" up in the
-  // top-right corner would also place/destroy whatever tile happens to sit behind them).
+  // Over any HUD panel, or the cursor isn't over the map - no preview, a click here belongs to
+  // that panel's own button handler, not a placement attempt.
   if (overBar || overShop || overZoomButtons || !pointerPosition) {
     buildMode.previewRect.visible(false);
     buildMode.rangeCircle.visible(false);
@@ -384,9 +322,7 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
   ]);
   const existingBuildings: { Building: Building; TransformComponent: TransformComponent }[] =
     registry.getZipper([Building, TransformComponent]);
-  // Every player (dead or alive, local or not) - mirrors build-packet.handler.ts's server-side
-  // obstacle list, which now blocks on every player's CollisionBox too, so a wall/tower can never
-  // be dropped on top of one and trap them with no way to walk back out.
+  // Mirrors the server's obstacle list - a wall/tower can never be dropped on top of a player.
   const players: { TransformComponent: TransformComponent }[] = registry.getZipper([
     Player,
     TransformComponent,
@@ -399,8 +335,7 @@ export function buildModeSystem(registry: Registry, ctx: Context) {
       width: LOBBY_COLLISION_BOX.width,
       height: LOBBY_COLLISION_BOX.height,
     })),
-    // Each existing building's OWN footprint, not a hardcoded tile - a tower's 3x3 must block
-    // placement across all 9 of its tiles, not just its anchor one.
+    // Each building's own footprint - a tower's 3x3 must block all 9 tiles, not just its anchor.
     ...existingBuildings.map(({ Building: b, TransformComponent: t }) => {
       const footprint = BUILDING_CATALOG[b.buildingType].footprintTiles;
       return {

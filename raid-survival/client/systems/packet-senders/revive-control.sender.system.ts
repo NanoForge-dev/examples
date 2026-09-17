@@ -9,9 +9,7 @@ export function sendReviveControl(registry: Registry, ctx: Context) {
   const network = ctx.libs.getNetwork<NetworkClientLibrary>();
 
   entities.forEach(({ ReviveController }) => {
-    // Same on-change dedup as sendShootControl's shooting state - revive.system.ts (server)
-    // recomputes range/progress every tick from the persisted ReviveInput.held, not from packet
-    // frequency.
+    // Sent only on change - the server recomputes range/progress every tick regardless.
     if (ReviveController.held !== ReviveController.lastSentHeld) {
       network.tcp.sendData(
         new TextEncoder().encode(
@@ -21,8 +19,7 @@ export function sendReviveControl(registry: Registry, ctx: Context) {
       ReviveController.lastSentHeld = ReviveController.held;
     }
 
-    // One-shot, same idea as sendShootControl's `reload` field - sent exactly once per fresh E
-    // press, then cleared, regardless of what (if anything) tower-interact.system.ts does with it.
+    // One-shot: sent once per fresh E press, then cleared.
     if (ReviveController.interactRequested) {
       network.tcp.sendData(
         new TextEncoder().encode(JSON.stringify({ type: "input", interactRequested: true })),

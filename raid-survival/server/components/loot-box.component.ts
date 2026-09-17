@@ -1,7 +1,7 @@
 export type LootType = "heal" | "gold" | "ammo";
 
-// Marker + which effect it grants on pickup - see zombie-death.system.ts (spawns these) and
-// loot-box-pickup.system.ts (applies the effect and removes it).
+// Marker + effect granted on pickup; spawned by zombie-death.system.ts, applied by
+// loot-box-pickup.system.ts.
 export class LootBox {
   name = this.constructor.name;
 

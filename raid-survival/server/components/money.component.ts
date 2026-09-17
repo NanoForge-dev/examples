@@ -1,6 +1,4 @@
-// Singleton - one entity holds this for the whole game (spawned alongside the lobby in
-// start-game-packet.handler.ts). Shared across every player, not per-player: there's exactly
-// one pool, read and written by zombie-death.system.ts.
+// Singleton shared money pool (spawned in start-game-packet.handler.ts) - not per-player.
 export class Money {
   name = this.constructor.name;
 

@@ -15,15 +15,13 @@ export function ammoPacketHandler(packet: any, registry: Registry): void {
   ]);
   const shop = shops[0]?.WeaponShopComponent;
 
-  // One ammo HUD now (dual wielding removed) - just update it, no per-hand routing needed.
   const huds: { AmmoHudComponent: AmmoHudComponent }[] = registry.getZipper([AmmoHudComponent]);
   for (const { AmmoHudComponent: hud } of huds) {
     hud.text.text(`${packet.magazineAmmo} / ${reserve}`);
   }
 
-  // This is the single source of truth for the shop panel's "current reserve" display too -
-  // without writing here, it would only ever reflect the last buy/refill/equip
-  // (weaponInventory broadcast), going stale the instant the weapon is actually fired or reloaded.
+  // Also the source of truth for the shop panel's reserve display, so it doesn't go stale between
+  // buy/refill/equip broadcasts.
   if (shop) {
     shop.owned.set(packet.weaponType, { reserveAmmo: packet.reserveAmmo });
   }

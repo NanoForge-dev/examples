@@ -5,8 +5,7 @@ import { sceneManager } from "../main";
 
 const CAMERA_SMOOTHING = 0.1;
 
-// Map bounds in world space - map.png is placed at TransformComponent(0, 0) (see
-// GameScene.load), and the actual play area is 1600x1600 (matches the collision grid).
+// Map bounds in world space, matching the collision grid.
 const MAP_BOUNDS = { x: 0, y: 0, width: 1600, height: 1600 };
 
 // Clamps a camera target so the viewport never scrolls past the map's edge on this axis. If the

@@ -15,8 +15,8 @@ function reject(network: NetworkServerLibrary, clientId: number, reason: string)
   );
 }
 
-// Buying a reserve-ammo refill for an ALREADY-owned weapon - same request target as buyWeapon
-// (clicking a weapon's shop entry), server decides which flow applies based on ownership.
+// Buys a reserve-ammo refill for an already-owned weapon - the server decides buyAmmo vs
+// buyWeapon based on ownership.
 export function buyAmmoPacketHandler(
   clientId: number,
   packet: any,
@@ -64,13 +64,8 @@ export function buyAmmoPacketHandler(
   });
   sendToInGamePlayers(network, { type: "money", amount: money.amount });
 
-  // weaponInventory above keeps the shop panel's owned/reserve numbers correct, but the
-  // bottom-left ammo HUD is driven exclusively by "ammo" packets (ammo-packet.handler.ts is the
-  // only writer of that Text) - weaponInventory never touches it. Without this, refilling reserve
-  // on the weapon currently in hand leaves the HUD showing its stale pre-refill number (e.g. still
-  // "0 / 0") until the next shot/reload happens to broadcast one. Only when the refilled weapon is
-  // the equipped one - a refill for some other owned-but-holstered weapon has no live magazine
-  // value to report, and would otherwise stomp the HUD with the wrong weapon's numbers.
+  // The ammo HUD is driven only by "ammo" packets, not weaponInventory - send one too, but only
+  // when the refilled weapon is the one currently equipped.
   if (inventory.equippedWeaponType === weaponType && inventory.state) {
     sendToInGamePlayers(network, {
       type: "ammo",

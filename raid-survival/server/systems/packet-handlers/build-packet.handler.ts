@@ -27,14 +27,9 @@ function reject(network: NetworkServerLibrary, clientId: number, reason: string)
   );
 }
 
-// A tower's combat Hitbox (what zombies actually reach out and attack, zombie-ai.ts's
-// ZOMBIE_ATTACK_RANGE) is deliberately smaller than its full 3x3 CollisionBox/placement
-// footprint, centered within it - the same "Hitbox is a different, usually smaller, concept than
-// CollisionBox" convention start-game-packet.handler.ts already uses for players
-// (PLAYER_HITBOX_SIZE vs PLAYER_COLLISION_BOX). Using the full 48x48 footprint as the Hitbox too
-// would let a zombie standing anywhere along that much bigger box's edge start attacking, making
-// a freshly-built tower a much easier target than intended - a wall stays exempt (its Hitbox
-// already equals its single-tile footprint, unchanged from before towers existed).
+// A tower's combat Hitbox (what zombies attack) is deliberately smaller than its full 3x3
+// CollisionBox/placement footprint, centered within it - otherwise a zombie anywhere along the
+// bigger box's edge could attack it, making a fresh tower an easier target than intended.
 const TOWER_HITBOX_SIZE: Vector2d = { x: 24, y: 24 };
 
 function towerHitboxOffset(footprintWidth: number, footprintHeight: number): Vector2d {
@@ -52,8 +47,6 @@ export function buildPacketHandler(
 ): void {
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
 
-  // No mid-game-join-style leniency here: building only ever makes sense while a game is
-  // actually running.
   if (gameStatus.status !== GameStatusEnum.InGame) return;
 
   const buildingType = packet.buildingType;
@@ -75,11 +68,8 @@ export function buildPacketHandler(
 
   if (money.amount < catalogEntry.cost) return reject(network, clientId, "not enough money");
 
-  // CollisionBox is specifically the "physical blocking" footprint (as opposed to Hitbox, which
-  // is a combat range) - the lobby, every existing building, AND every player (dead or alive) all
-  // carry one, so one generic query blocks placement on all three at once. Players are included
-  // so a wall/tower can never be dropped on top of one - without this, a trapped player would
-  // have no way to walk back out.
+  // The lobby, every building, and every player all carry a CollisionBox, so one generic query
+  // blocks placement on all three - players are included so a wall/tower can't trap one in place.
   const obstacleEntities: { Position: Position; CollisionBox: CollisionBox }[] = registry.getZipper(
     [Position, CollisionBox],
   );
@@ -111,9 +101,8 @@ export function buildPacketHandler(
   const building = registry.spawnEntity();
   registry.addComponent(building, new Position(position.x, position.y));
   registry.addComponent(building, new CollisionBox(footprintWidth, footprintHeight));
-  // A tower's Hitbox is smaller than its full footprint (see TOWER_HITBOX_SIZE above); every
-  // other building's (just "wall" today) stays equal to its own footprint, unchanged from
-  // before towers existed.
+  // A tower's Hitbox is smaller than its full footprint (see TOWER_HITBOX_SIZE); a wall's equals
+  // its own footprint.
   if (buildingType === "tower") {
     const offset = towerHitboxOffset(footprintWidth, footprintHeight);
     registry.addComponent(
@@ -125,8 +114,6 @@ export function buildPacketHandler(
   }
   registry.addComponent(building, new Health(catalogEntry.maxHealth, catalogEntry.maxHealth));
   registry.addComponent(building, new Building(buildingType));
-  // tower.system.ts/tower-interact.system.ts only ever act on entities carrying this - a wall
-  // never gets one, so it's forever unaffected by auto-fire/level-up.
   if (buildingType === "tower") {
     registry.addComponent(building, new Tower());
   }

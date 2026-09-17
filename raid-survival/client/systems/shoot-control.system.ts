@@ -29,11 +29,8 @@ export function shootControl(registry: Registry, ctx: Context) {
 
   entities.forEach(({ ShootController, Direction, TransformComponent }) => {
     if (buildModeActive) {
-      // A click meant to select a build-bar button or place a wall must not also register as a
-      // shot - build-mode.system.ts hides the weapon sprite for the same reason (see there for
-      // the visual half of this). Checked before the pointerPosition guard below (not after) so
-      // that a fire button held down when the pointer briefly leaves the canvas doesn't get stuck
-      // "on" forever if build mode opens while that's happening - this branch must always run.
+      // A build-bar click must not also register as a shot. Checked before the pointerPosition
+      // guard below so this branch always runs, even if the pointer is briefly off-canvas.
       ShootController.shooting = false;
       ShootController.wasReloadKeyPressed = false;
       ShootController.reloadRequested = false;
@@ -46,8 +43,7 @@ export function shootControl(registry: Registry, ctx: Context) {
 
     ShootController.shooting = <boolean>input.isKeyPressed(ShootController.keyShoot);
 
-    // Edge-detected: isKeyPressed reports "held", but a reload request is a one-shot action, not
-    // a continuous state - without this, holding R would queue a fresh reload request every
+    // Edge-detected - a reload request is one-shot, not held, or holding R would re-queue every
     // frame.
     const reloadKeyPressed = !!input.isKeyPressed(InputEnum.KeyR);
     if (reloadKeyPressed && !ShootController.wasReloadKeyPressed) {

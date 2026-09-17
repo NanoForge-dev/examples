@@ -41,21 +41,9 @@ import { CursorComponent } from "../../components/cursor.component";
 import { CURSOR_SCALE } from "../cursor.system";
 import { addCoinIcon } from "../../hud-helpers";
 
-// zOrderSystem only reorders entities that carry a ZIndexComponent - anything without one stays
-// wherever Konva's insertion order left it, permanently below every z-indexed sprite. Health bars
-// need to render above whatever's standing near their owner (zombies/players cluster right
-// around the lobby), so they get the highest tier - above hands (20).
-const HEALTH_BAR_Z_INDEX = 30;
-// One tier above the frame, not equal to it: zOrderSystem sorts ties by whatever order
-// getZipper() happens to enumerate same-z entities in, which follows underlying storage/slot
-// order, not necessarily "frame was built first" - slots get recycled as other entities die
-// (zombies, mainly), so that order isn't guaranteed to put the fill after (visually on top of)
-// the frame just because buildHealthBar() below always constructs it second. A spawn that
-// happens to land the fill in an earlier slot than its own frame renders with the frame's border
-// covering the green fill entirely - a bar that "looks empty" even at full health. Giving the
-// fill its own strictly-higher z-index makes the SORT itself guarantee it renders on top,
-// regardless of enumeration order - not the "which one built the sprite first" tie-break above,
-// which was never actually reliable.
+const HEALTH_BAR_Z_INDEX = 30; // above hands (20) - health bars must render above nearby sprites
+// Strictly higher than the frame, not equal - zOrderSystem sorts ties by enumeration order, not
+// construction order, so an equal z-index could render the frame's border over the fill.
 const HEALTH_BAR_FILL_Z_INDEX = HEALTH_BAR_Z_INDEX + 1;
 
 // Native player sprite size (player-animations.txt, unscaled).
@@ -67,85 +55,59 @@ const LOBBY_SPRITE_SIZE = { width: 187, height: 143 };
 // ui.png health bar sprites (see health-bar-frame-animations.txt / health-bar-fill-animations.txt).
 const HEALTH_BAR_FRAME_SIZE = { width: 23, height: 6 };
 const HEALTH_BAR_FILL_SIZE = { width: 12, height: 2 };
-// Where the fill sits inside the frame, in frame-local pixels (the frame's black/white border
-// leaves this gray cavity for the fill to sit in).
+// The gray cavity inside the frame's border, in frame-local pixels, where the fill sits.
 const HEALTH_BAR_FILL_CAVITY = { x: 2, y: 2, width: 19, height: 2 };
-// Scale needed to stretch the fill sprite's native width up to the cavity's width at 100% health.
 const HEALTH_BAR_FILL_MAX_SCALE_X = HEALTH_BAR_FILL_CAVITY.width / HEALTH_BAR_FILL_SIZE.width;
-// Vertical gap between the health bar and the top of whatever it's attached to.
 const HEALTH_BAR_GAP_ABOVE = 10;
 
-// "Hold E to revive" progress circle, built for every player (buildReviveIndicator) right above
-// their health bar - radius/thickness chosen so its bottom edge clears the health bar's own top
-// edge (frame sits HEALTH_BAR_GAP_ABOVE=10px up, 6px tall) with a few pixels of margin.
+// "Hold E to revive" progress circle above each player's health bar.
 const REVIVE_RING_RADIUS = 8;
 const REVIVE_RING_THICKNESS = 3;
 const REVIVE_RING_GAP_ABOVE = 20;
-// Above both the revive ring (20) and the "Reloading..." text (RELOAD_TEXT_GAP_ABOVE, 22) so a
-// downed player's hint never overlaps either.
+// Above both the revive ring and the "Reloading..." text so a downed player's hint never overlaps.
 const REVIVE_HINT_TEXT_GAP_ABOVE = 34;
 
-// "Press E to..." proximity hint - built for every tower/wall/the lobby (buildInteractIndicator),
-// above their health bar (further up than the revive ring's own gap, since a building has no
-// revive ring to share space with, but staying consistent with that spacing reads fine).
+// "Press E to..." proximity hint above a tower/wall/the lobby's own health bar.
 const INTERACT_INDICATOR_GAP_ABOVE = 22;
 
-// Wave HUD, laid out left-to-right and centered at the top of the screen: "Wave x/y", a
-// progress bar over the current wave's sub-waves, then the live zombie count.
+// Wave HUD: "Wave x/y", a sub-wave progress bar, the live zombie count.
 const WAVE_TEXT_SIZE = { width: 110, height: 24 };
 const WAVE_PROGRESS_BAR_SIZE = { width: 180, height: 14 };
 const ALIVE_TEXT_SIZE = { width: 100, height: 24 };
 const WAVE_HUD_GAP = 12;
 const WAVE_HUD_TOP_MARGIN = 14;
-// "Next round in Ns" - centered under the progress bar, only visible during the between-waves
-// cooldown (wave-info-packet.handler.ts owns showing/hiding it).
+// "Next round in Ns" - wave-info-packet.handler.ts owns showing/hiding it during cooldown.
 const WAVE_COUNTDOWN_TEXT_SIZE = { height: 18 };
 const WAVE_COUNTDOWN_GAP = 6;
 
-// Money HUD, top-left of the screen.
 const MONEY_TEXT_SIZE = { width: 140, height: 24 };
 const MONEY_HUD_LEFT_MARGIN = 14;
 const MONEY_HUD_TOP_MARGIN = 14;
 
-// Build bar, bottom-center of the screen - one button per catalog entry.
 const BUILD_BUTTON_SIZE = { width: 90, height: 70 };
 const BUILD_BAR_GAP = 10;
 const BUILD_BAR_BOTTOM_MARGIN = 20;
 const GRID_STROKE = "rgba(245, 242, 233, 0.25)";
-// Top-right "+"/"-" camera zoom controls, only visible/hittable in build mode alongside the build
-// bar (same idiom as every other bar element) - same bottom-left-corner-anchoring pattern the ammo
-// HUD uses, mirrored to the opposite corner.
 const ZOOM_BUTTON_SIZE = { width: 36, height: 36 };
 const ZOOM_BUTTON_GAP = 8;
 const ZOOM_BUTTON_MARGIN = 16;
 
-// Above bullets/zombies (BULLET_Z_INDEX, spawn-packet.handler.ts, is 15) so a bullet spawning at
-// the player's own center (weapon.system.ts fires from the player's exact center now) renders
-// tucked behind the player's body instead of floating on top of it. Zombies deliberately stay
-// below BULLET_Z_INDEX (unchanged) - a bullet should never be hidden behind what it's about to
-// hit, only behind the player that fired it.
+// Above bullets/zombies so a bullet fired from the player's own center renders tucked behind the
+// player's body instead of floating on top of it.
 const PLAYER_Z_INDEX = 16;
 
-// Held weapon sprite, just above the hand in z-order. Each weapon's own rest-angle rotation
-// offset lives in weapon-catalog.ts (client), since a shotgun's art doesn't rest at the same
-// angle as the pistol's.
+// Held weapon sprite, just above the hand in z-order. Each weapon's rest-angle rotation offset
+// lives in weapon-catalog.ts, since a shotgun's art doesn't rest at the same angle as the pistol's.
 const WEAPON_Z_INDEX = 21;
-// The one hand's original offset, preserved exactly from before dual wielding existed (and after
-// its removal). Exported so weapon-reload-animation.system.ts can rebuild a weapon's own
-// LocalTransform (this base offset plus that weapon's own catalog.handOffsetDelta, see there)
-// when the equipped type changes.
+// Exported so weapon-reload-animation.system.ts can rebuild a weapon's LocalTransform (this base
+// offset plus that weapon's own catalog.handOffsetDelta) when the equipped type changes.
 export const WEAPON_LOCAL_OFFSET: Vector2d = { x: 6, y: 12 };
 
-// A weapon entity's (or its reload overlay's) actual LocalTransform: WEAPON_LOCAL_OFFSET plus
-// this weapon's own catalog.handOffsetDelta, if it has one. Needed because the hand and its weapon
-// share the exact same LocalTransform, but each sprite's own `pivot` (see SpriteComponent) renders
-// at THIS ENTITY's own position plus ITS OWN pivot - so if a weapon's pivot isn't numerically equal
-// to hand.png's own default pivot (its frame center, since hand.png is an uncropped 16x16 image),
-// the two entities' pivots land at different world points even sharing the same LocalTransform. A
-// weapon whose pivot happens to coincide (smallGun's 16x16 crop, same size as hand.png, defaults to
-// the same (8,8) center) needs no delta; one that doesn't (the shotgun's grip sits well off its own
-// 52x32 frame's center) needs this correction or it renders visibly away from the hand - see
-// weapon-catalog.ts's handOffsetDelta comment for how it's derived.
+// A weapon's (or its reload overlay's) LocalTransform: WEAPON_LOCAL_OFFSET plus its own
+// handOffsetDelta, if it has one. The hand and its weapon share one LocalTransform, but each
+// sprite's own pivot renders at its own position plus its own pivot - so unless a weapon's pivot
+// numerically matches hand.png's default center pivot (8,8), the two land at different world
+// points; handOffsetDelta corrects that gap (see weapon-catalog.ts for the derivation).
 function weaponLocalOffset(catalog: { spriteKey: string; handOffsetDelta?: Vector2d }): Vector2d {
   const delta = catalog.handOffsetDelta;
   return delta
@@ -153,40 +115,32 @@ function weaponLocalOffset(catalog: { spriteKey: string; handOffsetDelta?: Vecto
     : WEAPON_LOCAL_OFFSET;
 }
 
-// Ammo HUD, bottom-left of the screen - a single row now (dual wielding removed). Hidden entirely
-// (icon+text) whenever nothing is equipped - see reload-indicator.system.ts.
+// Ammo HUD, bottom-left of the screen. Hidden entirely whenever nothing is equipped - see
+// reload-indicator.system.ts.
 const AMMO_HUD_LEFT_MARGIN = 14;
 const AMMO_HUD_BOTTOM_MARGIN = 14;
 // Exported so weapon-inventory-packet.handler.ts can re-fit-scale the ammo HUD icon when the
-// equipped weapon changes after construction (see there).
+// equipped weapon changes after construction.
 export const AMMO_ICON_SIZE = { width: 32, height: 32 };
 const AMMO_TEXT_SIZE = { width: 100, height: 32 };
 const AMMO_HUD_GAP = 10;
 
-// World-space "Reloading..." label, shown above every player's health bar while their equipped
-// weapon is mid-reload - visible to everyone nearby, not just a local HUD element (see
-// buildReloadIndicator/reload-indicator.system.ts). Sits above the health bar the same way
-// REVIVE_RING_GAP_ABOVE does, just further up so the two never overlap.
+// World-space "Reloading..." label above every player's health bar while their weapon reloads -
+// visible to everyone nearby, not just a local HUD element (reload-indicator.system.ts).
 const RELOAD_TEXT_GAP_ABOVE = 22;
 
-// Custom crosshair cursor - replaces the OS cursor while in GameScene (see GameScene.load and
-// this file's build-bar hover handlers, below). Size/scale shared with cursor.system.ts (which
-// positions it every tick), so they can't drift apart.
+// Custom crosshair cursor, replacing the OS cursor in GameScene. Size/scale shared with
+// cursor.system.ts (which positions it every tick), so they can't drift apart.
 const CURSOR_Z_INDEX = 100;
 
-// Coin icon, used everywhere a currency amount is shown (no coin sprite exists in this game's
-// art - see hud-helpers.ts).
+// No coin sprite exists in this game's art (see hud-helpers.ts), so currency is drawn as a circle.
 const COIN_ICON_RADIUS = 7;
 const COIN_ICON_GAP = 4; // between the coin and the number that follows it
 
-// Weapon shop panel, right edge of the screen, shown/hidden alongside the build bar (build mode
-// active). The first right-anchored UI element in this codebase - mirrors the build
-// bar/ammo HUD's bottom-anchoring idiom (window.innerHeight - size - margin) horizontally.
+// Weapon shop panel, right edge of the screen, shown/hidden alongside the build bar.
 const SHOP_PANEL_RIGHT_MARGIN = 20;
 const SHOP_ENTRY_WIDTH = 100;
 const SHOP_BUY_HEIGHT = 64;
-// One "Select"/"Selected" button spanning the full entry width, below the buy button - replaces
-// the old two-hand L/R buttons now that dual wielding is gone.
 const SHOP_SELECT_BUTTON_HEIGHT = 24;
 const SHOP_SELECT_BUTTON_GAP = 4;
 const SHOP_ENTRY_GAP = 14;
@@ -220,9 +174,8 @@ export function buildHealthBar(
 
   const fraction = health.max > 0 ? health.current / health.max : 0;
   const fillScaleX = HEALTH_BAR_FILL_MAX_SCALE_X * fraction;
-  // SpriteComponent scales around the sprite's own center, so shrinking it would eat into both
-  // edges symmetrically instead of draining from the right. Compensate the local X so the
-  // fill's left edge stays anchored to the cavity's left edge regardless of scale.
+  // A sprite scales around its own center, so shrinking it would eat into both edges symmetrically
+  // - compensate the local X so the fill's left edge stays anchored regardless of scale.
   const cavityLocalX = frameLocalX + HEALTH_BAR_FILL_CAVITY.x;
   const fillLocalX = cavityLocalX - (HEALTH_BAR_FILL_SIZE.width / 2) * (1 - fillScaleX);
   const fillLocalY = frameLocalY + HEALTH_BAR_FILL_CAVITY.y;
@@ -248,10 +201,8 @@ export function buildHealthBar(
   registry.addComponent(fill, new HealthBarFill(cavityLocalX));
 }
 
-// "Press E to..." hint text, built alongside a tower/wall/the lobby's own health bar (above it,
-// see INTERACT_INDICATOR_GAP_ABOVE) - starts empty/hidden; building-interact-indicator.system.ts
-// drives its text and visibility every tick off the local player's proximity and the target's own
-// Health (and Tower level, if it has one).
+// "Press E to..." hint text above a tower/wall/the lobby's own health bar - starts empty/hidden;
+// building-interact-indicator.system.ts drives its text/visibility every tick.
 export function buildInteractIndicator(
   layer: Layer,
   registry: Registry,
@@ -288,11 +239,10 @@ export function buildInteractIndicator(
   registry.addComponent(indicator, new BuildingInteractIndicatorComponent(textComponent.text));
 }
 
-// Grey->green "hold E to revive" progress circle, one per player, built alongside their health
-// bar (buildHealthBar, above) but sitting higher above them so the two never overlap. Starts
-// fully hidden; revive-packet.handler.ts drives visibility/progress from the server's
-// authoritative revive.system.ts events, revive-indicator.system.ts positions it every tick (it's
-// raw Konva shapes, not a SpriteComponent, so spriteSystem never touches it).
+// Grey->green "hold E to revive" progress circle, one per player, starting hidden.
+// revive-packet.handler.ts drives its visibility/progress from the server's revive.system.ts
+// events; revive-indicator.system.ts positions it every tick (raw Konva shapes, not a
+// SpriteComponent, so spriteSystem never touches it).
 function buildReviveIndicator(
   layer: Layer,
   registry: Registry,
@@ -331,10 +281,8 @@ function buildReviveIndicator(
   registry.addComponent(indicator, new ReviveIndicatorComponent(background, fill));
 }
 
-// "Hold E to revive" hint text, built alongside a player's own revive ring (above it, see
-// REVIVE_HINT_TEXT_GAP_ABOVE) - starts empty/hidden; revive-hint-indicator.system.ts drives its
-// visibility every tick off the local player's own proximity/aliveness and this player's Health,
-// same idiom as buildInteractIndicator's tower/wall hint above.
+// "Hold E to revive" hint text above a player's own revive ring, starting hidden -
+// revive-hint-indicator.system.ts drives its visibility every tick.
 function buildReviveHintIndicator(
   layer: Layer,
   registry: Registry,
@@ -371,12 +319,9 @@ function buildReviveHintIndicator(
   registry.addComponent(indicator, new ReviveHintIndicatorComponent(textComponent.text));
 }
 
-// World-space "Reloading..." label, one per player, sitting above the health bar (further up
-// than the revive ring - RELOAD_TEXT_GAP_ABOVE > REVIVE_RING_GAP_ABOVE - so the two never
-// overlap). Starts hidden; reload-indicator.system.ts drives visibility every tick off this
-// player's own Weapon.reloading and re-positions it every tick from TransformComponent, the same
-// way revive-indicator.system.ts positions the revive ring's Arc/Ring - Text isn't a Sprite, so
-// spriteSystem never touches it.
+// World-space "Reloading..." label above each player's health bar, starting hidden -
+// reload-indicator.system.ts drives visibility and repositions it every tick (Text isn't a
+// Sprite, so spriteSystem never touches it).
 function buildReloadIndicator(
   layer: Layer,
   registry: Registry,
@@ -410,12 +355,9 @@ function buildReloadIndicator(
   registry.addComponent(indicator, new ReloadIndicatorComponent(textComponent.text));
 }
 
-// The single hand + its held weapon for a player (buildPlayer, below). `weaponType` null means
-// the player starts unequipped: the weapon sprite still exists (so
-// weapon-inventory-packet.handler.ts has something to re-point later without needing to add
-// components dynamically), just hidden - see reload-indicator.system.ts, which owns visibility
-// for the local player's own HUD, and weapon-visibility.system.ts, which owns it for everyone
-// else's.
+// The single hand + its held weapon for a player. `weaponType` null means unequipped: the weapon
+// sprite still exists (so weapon-inventory-packet.handler.ts has something to re-point later),
+// just hidden - reload-indicator.system.ts/weapon-visibility.system.ts own that visibility.
 function buildHandAndWeapon(
   scene: Scene,
   registry: Registry,
@@ -434,22 +376,14 @@ function buildHandAndWeapon(
     new ChildrenComponent(playerEntity.getId(), { LocalTransform: localOffset }),
   );
   registry.addComponent(handEntity, new Direction(0, 0));
-  // mirrorWhenFacingLeft: true - matches the weapon's own DirectionRotatorComponent below. Without
-  // this the hand and its held weapon rotate by different formulas while aiming left (only the
-  // weapon flipped+re-signed its rotation), diverging by up to 2x the weapon's rest-angle offset -
-  // the hand pointing one way while the gun visibly points somewhere else entirely.
-  // Was -90 - reduced by the same -8 correction as the weapon offsets in weapon-catalog.ts (see
-  // there for why). Unconfirmed magnitude.
+  // mirrorWhenFacingLeft: true - must match the weapon's own DirectionRotatorComponent below, or
+  // the hand and gun rotate by different formulas while aiming left and visibly diverge.
   registry.addComponent(handEntity, new DirectionRotatorComponent(-98, true, true));
   registry.addComponent(handEntity, new ZIndexComponent(20));
 
-  // Each weapon type can live on its own source image now (e.g. shotgun's Shotgun-Shot.png), not
-  // just a shared weapons.png - an unequipped player has no weaponType to key off yet, so it
-  // starts out looking like smallGun's (its sprite is hidden regardless - weapon-visibility.
-  // system.ts/build-mode.system.ts - so the choice is arbitrary, just needs to be a valid,
-  // loadable pair).
-  // weapon-reload-animation.system.ts's per-tick pass re-points spriteKey/animationsKey/scale
-  // (and hides this in favor of the reload overlay below) once a real weaponType is equipped.
+  // An unequipped player has no weaponType to key off yet, so this defaults to smallGun's art
+  // (hidden regardless - see weapon-visibility.system.ts/build-mode.system.ts). Once a real
+  // weaponType is equipped, weapon-reload-animation.system.ts re-points spriteKey/animationsKey.
   const initialCatalog = weaponType ? WEAPON_CATALOG[weaponType] : WEAPON_CATALOG.smallGun;
   const rotationOffset = weaponType ? WEAPON_CATALOG[weaponType].rotationOffset : 0;
   const weaponEntity = registry.spawnEntity();
@@ -460,15 +394,10 @@ function buildHandAndWeapon(
       layer: scene.layer,
       animationsKey: initialCatalog.animationsKey,
       scale: { x: initialCatalog.scale, y: initialCatalog.scale },
-      // Where the hand actually grips this weapon's art, when that isn't just the frame's
-      // geometric center (see SpriteComponent's `pivot` option and weapon-catalog.ts's shotgun
-      // entry) - omitted (default centering, every sprite's original behavior) for weapons that
-      // don't override it.
+      // Where the hand actually grips this weapon's art, if not the frame's default center pivot.
       ...("pivot" in initialCatalog ? { pivot: initialCatalog.pivot } : {}),
-      // Only meaningful for a weapon with its own "shoot" animation (see catalog.shootSeconds) -
-      // otherwise irrelevant, since a weapon with no shoot animation only ever plays its single-
-      // frame "idle" pose, for which frame rate is moot. Set once at construction, like the
-      // reload overlay's frameRate below, since SpriteComponent.frameRate isn't reactive.
+      // Only meaningful for a weapon with its own "shoot" animation. Set once at construction,
+      // like the reload overlay's frameRate below, since SpriteComponent.frameRate isn't reactive.
       ...("shootFrameCount" in initialCatalog
         ? { frameRate: initialCatalog.shootFrameCount / initialCatalog.shootSeconds }
         : {}),
@@ -482,22 +411,17 @@ function buildHandAndWeapon(
   );
   registry.addComponent(weaponEntity, new Direction(0, 0));
   // mirrorWhenFacingLeft: true - the gun rotates through the full circle, so without this it
-  // reads upside-down for the whole left half of the arc (see rotate-to-direction.system.ts).
+  // reads upside-down for the whole left half of the arc.
   registry.addComponent(weaponEntity, new DirectionRotatorComponent(rotationOffset, true, true));
   registry.addComponent(weaponEntity, new ZIndexComponent(WEAPON_Z_INDEX));
   registry.addComponent(weaponEntity, new Weapon(weaponType, rotationOffset));
 
-  // Reload-animation overlay - built once, always (regardless of what's initially equipped),
-  // hidden by default. weapon-reload-animation.system.ts shows it (and hides the main weapon
-  // sprite above) only while the equipped weapon actually has a reloadSpriteKey AND is reloading.
-  // Hardcoded to the shotgun's reload asset for now - it's the only weapon with one; if a second
-  // weapon type gains its own reload animation, this needs to become per-equipped-type instead
-  // (rebuilt or re-keyed on equip, not just visibility-toggled).
-  // A completely separate, independently-loaded sprite entity rather than swapping the main
-  // weapon's own image at reload time on purpose: swapping destroys and recreates the Konva node
-  // (setSpriteKey), which is asynchronous and was visibly glitchy (the weapon flickering out for
-  // a frame or more on every reload) - toggling visibility between two sprites that already exist
-  // is instant.
+  // Reload-animation overlay - built once, hidden by default. weapon-reload-animation.system.ts
+  // shows it (hiding the main weapon sprite) only while the equipped weapon is reloading.
+  // Hardcoded to the shotgun's reload asset - the only weapon with one right now. A separate
+  // sprite entity rather than swapping the main weapon's image at reload time: swapping destroys
+  // and recreates the Konva node asynchronously, which visibly flickered; toggling visibility
+  // between two sprites that already exist is instant.
   const reloadOverlayCatalog = WEAPON_CATALOG.shotgun;
   const reloadOverlayEntity = registry.spawnEntity();
   registry.addComponent(
@@ -506,30 +430,23 @@ function buildHandAndWeapon(
   );
   registry.addComponent(
     reloadOverlayEntity,
-    // Not currentAnimation: "reload" here - spriteSystem always constructs its Konva node
-    // hardcoded on "idle" regardless of what's requested (see SpriteComponent.setSpriteKey's own
-    // comment for the full story), so that would just set the wrapper's tracked state without it
-    // ever reaching the real object. weapon-reload-animation.system.ts applies the real "reload"
-    // key once the sprite actually exists, the same idempotent-every-tick way it already does for
-    // the main weapon icon.
+    // Not currentAnimation: "reload" - spriteSystem always constructs its Konva node hardcoded on
+    // "idle", so weapon-reload-animation.system.ts applies the real "reload" key once the sprite
+    // actually exists.
     new SpriteComponent(reloadOverlayCatalog.reloadSpriteKey, {
       layer: scene.layer,
       animationsKey: reloadOverlayCatalog.reloadAnimationsKey,
       frameRate: reloadOverlayCatalog.reloadFrameCount / reloadOverlayCatalog.reloadSeconds,
-      // Same world-space scale AND pivot as the held sprite (reloadSpriteKey is the same
-      // 52x32-per-frame asset pack, same resting pose in frame 0, as the held Shotgun-Shot.png) -
-      // without scale this renders at its native size, roughly 2x too big next to the player;
-      // without pivot it's centered on the frame's empty space instead of on the hand.
+      // Same world-space scale and pivot as the held sprite - it's the same asset pack, same
+      // resting pose in frame 0.
       scale: { x: reloadOverlayCatalog.scale, y: reloadOverlayCatalog.scale },
       pivot: reloadOverlayCatalog.pivot,
     }),
   );
   registry.addComponent(
     reloadOverlayEntity,
-    // Same handOffsetDelta correction as the held sprite above, and for the same reason - never
-    // changes at runtime (this overlay always displays the shotgun's reload asset regardless of
-    // what's currently equipped - see the comment above), so it's fine to compute once here rather
-    // than needing weapon-reload-animation.system.ts to re-derive it every tick.
+    // This overlay always displays the shotgun's reload asset regardless of what's equipped, so
+    // its offset never changes at runtime - fine to compute once here.
     new ChildrenComponent(playerEntity.getId(), {
       LocalTransform: weaponLocalOffset(reloadOverlayCatalog),
     }),
@@ -622,18 +539,12 @@ function buildAmmoHud(
   weaponType: WeaponType | null,
   ammo: { magazineAmmo: number; reserveAmmo: number } | undefined,
 ) {
-  // A single row now (dual wielding removed) - same bottom-left corner the old single-weapon HUD
-  // used.
   const iconX = AMMO_HUD_LEFT_MARGIN;
   const iconY = window.innerHeight - AMMO_ICON_SIZE.height - AMMO_HUD_BOTTOM_MARGIN;
 
-  // Each weapon can live on its own source image now (see client/weapon-catalog.ts's
-  // spriteKey/animationsKey), so the icon isn't always weapons.png any more either. Fit-scale
-  // (uniform, aspect-preserving) each weapon's own native crop size into the fixed AMMO_ICON_SIZE
-  // box, rather than assuming every icon is the same size - Shotgun-Shot.png's crop is a much
-  // bigger 52x32, and scaling that by a 16-based factor on both axes would overflow the slot and
-  // run into the ammo text next to it. Nothing equipped yet has no weaponType; default to
-  // smallGun's image/icon size since the sprite is hidden in that state anyway.
+  // Each weapon can have a different native crop size (e.g. Shotgun-Shot.png's 52x32 vs. a 16x16
+  // pistol crop) - fit-scale uniformly into the fixed AMMO_ICON_SIZE box rather than assuming
+  // they're all the same size. Nothing equipped defaults to smallGun's icon (hidden regardless).
   const initialIconCatalog = weaponType ? WEAPON_CATALOG[weaponType] : WEAPON_CATALOG.smallGun;
   const iconFitScale = Math.min(
     AMMO_ICON_SIZE.width / initialIconCatalog.iconSize.width,
@@ -645,11 +556,8 @@ function buildAmmoHud(
     animationsKey: initialIconCatalog.animationsKey,
     scale: { x: iconFitScale, y: iconFitScale },
   });
-  // Not setAnimation() here - the sprite doesn't exist yet (spriteSystem builds it lazily,
-  // hardcoded on "idle" regardless of what's requested), so a call this early would only set the
-  // wrapper's tracked state without ever reaching the real Konva object once it's created, then
-  // silently block a later correction via setAnimation's own dedup guard. reload-indicator.system.ts
-  // asserts the real icon animation every tick once the sprite actually exists instead.
+  // Not setAnimation() here - spriteSystem builds the sprite lazily, hardcoded on "idle" -
+  // reload-indicator.system.ts asserts the real icon animation every tick once it actually exists.
   registry.addComponent(iconEntity, iconSprite);
   registry.addComponent(iconEntity, new TransformComponent(iconX, iconY));
 
@@ -851,9 +759,7 @@ function buildMoneyHud(layer: Layer, registry: Registry, amount: number) {
 }
 
 function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) {
-  // World-space, so it pans/scales with the camera and aligns to real tiles for free - only
-  // drawn (and only hit by build-mode.system.ts's placement math, which uses the same layer) once
-  // build mode is toggled on.
+  // World-space, so it pans/scales with the camera and aligns to real tiles for free.
   const gridShape = new Shape({
     stroke: GRID_STROKE,
     strokeWidth: 1,
@@ -865,9 +771,8 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
       const scale = layer.scaleX() || 1;
       const pos = layer.position();
 
-      // Same camera-relative math cameraFollowSystem uses to place the layer in the first place,
-      // inverted to find which world-space tile range is currently on screen - drawing the whole
-      // map's grid (100x100 tiles) regardless of zoom/pan would be thousands of unnecessary lines.
+      // Inverts cameraFollowSystem's own math to find which tile range is on screen - drawing the
+      // whole 100x100 map grid regardless of zoom/pan would be thousands of unnecessary lines.
       const minX = -pos.x / scale;
       const minY = -pos.y / scale;
       const maxX = (layer.width() - pos.x) / scale;
@@ -905,9 +810,8 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
   });
   worldLayer.add(previewRect);
 
-  // Shown only while the tower build-bar entry is selected, centered on the placement preview -
-  // lets a player see how much ground a tower would actually cover before committing to a spot.
-  // Radius is set every tick by build-mode.system.ts (TOWER_RANGE, client/building-economy.ts).
+  // Shown only while the tower build-bar entry is selected, previewing its range before placement.
+  // Radius is set every tick by build-mode.system.ts.
   const rangeCircle = new Circle({
     x: 0,
     y: 0,
@@ -921,17 +825,13 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
   });
   worldLayer.add(rangeCircle);
 
-  // Every ALREADY-BUILT tower's own range, all drawn by one Shape rather than a Circle per tower -
-  // a destroyed tower's circle then needs no cleanup of its own in kill-packet.handler.ts, it
-  // simply stops being drawn the next tick. Distinct from `rangeCircle` above, which only ever
-  // previews ONE not-yet-placed tower while its build-bar entry is selected.
+  // Every already-built tower's range, drawn by one Shape rather than a Circle per tower - a
+  // destroyed tower then needs no cleanup, it just stops being drawn. Distinct from `rangeCircle`
+  // above, which only previews one not-yet-placed tower.
   //
-  // The sceneFunc below deliberately reads ONLY this plain array, never the registry directly -
-  // Konva can call sceneFunc from its own render loop, off build-mode.system.ts's tick (e.g. a
-  // batched redraw after .visible()/.moveToTop()), and calling registry.getZipper() from an
-  // arbitrary point in the frame like that isn't safe. build-mode.system.ts refills THIS SAME
-  // array (by reference, via BuildModeComponent.towerRangeCenters) from live
-  // Building/TransformComponent state once per tick instead.
+  // sceneFunc reads only this plain array, never the registry directly - Konva can call it from
+  // its own render loop, off build-mode.system.ts's tick, where registry.getZipper() isn't safe.
+  // build-mode.system.ts refills this same array by reference once per tick instead.
   const towerRangeCenters: { x: number; y: number }[] = [];
   const towerRangeCircles = new Shape({
     stroke: "rgba(245, 242, 233, 0.35)",
@@ -989,10 +889,8 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
   });
   registry.addComponent(registry.spawnEntity(), destroyTextComponent);
 
-  // "-" / "+" zoom buttons, top-right corner (screen-space, hudLayer) - "+" rightmost (closest to
-  // the corner), "-" to its left, the conventional left-to-right zoom-out-to-zoom-in order. Clicks
-  // here only move BuildModeComponent.targetZoomLevel; build-mode.system.ts eases the live
-  // zoomLevel toward it every tick and applies that to the world layer's scale.
+  // "-" / "+" zoom buttons, top-right corner. Clicks only move targetZoomLevel; build-mode.system.ts
+  // eases the live zoomLevel toward it every tick.
   const zoomInX = window.innerWidth - ZOOM_BUTTON_MARGIN - ZOOM_BUTTON_SIZE.width;
   const zoomOutX = zoomInX - ZOOM_BUTTON_GAP - ZOOM_BUTTON_SIZE.width;
   const zoomY = ZOOM_BUTTON_MARGIN;
@@ -1120,10 +1018,7 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
     });
     rectComponent.rect.on("mouseout", () => {
       const stage = hudLayer.getStage();
-      // These buttons are only ever visible/hittable while build mode is active (see
-      // build-mode.system.ts), and build mode wants the normal OS cursor, not the custom
-      // crosshair - "default" is correct here, not "none" (cursor.system.ts owns "none" only
-      // while build mode is off, when this handler can't fire at all).
+      // "default", not "none" - build mode wants the normal OS cursor, not the crosshair.
       if (stage) stage.container().style.cursor = "default";
     });
 
@@ -1142,7 +1037,6 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
     });
     registry.addComponent(registry.spawnEntity(), textComponent);
 
-    // Coin icon + cost, centered under the label - replaces the old "20g" text suffix.
     const costY = barY + BUILD_BUTTON_SIZE.height - COIN_ICON_RADIUS * 2 - 10;
     const costDigits = String(entry.cost).length;
     const costRowWidth = COIN_ICON_RADIUS * 2 + COIN_ICON_GAP + costDigits * 9;
@@ -1175,15 +1069,9 @@ function buildBuildMode(worldLayer: Layer, hudLayer: Layer, registry: Registry) 
   });
 }
 
-// One column, one entry per catalog weapon, right-anchored - shown/hidden alongside the build bar
-// (both gated on BuildModeComponent.active, checked in build-mode.system.ts, which also owns this
-// panel's per-tick button-state refresh and the shopBounds click-guard). Clicking a weapon's top
-// row buys it if unowned, buys an ammo refill if already owned (build-mode.system.ts's
-// pendingBuyType handling) - the hint caption below the column spells this out for the player.
-// The row underneath is a single equip/unequip toggle - its label flips between "Buy" (not owned
-// yet - clicking it buys instead of trying to equip something you don't have), "Select"/"Selected"
-// (owned) - see build-mode.system.ts, which also owns switching it to a different owned weapon
-// (server-authoritative unequip-then-equip, equip-weapon-packet.handler.ts).
+// One column, one entry per catalog weapon, shown/hidden alongside the build bar. Clicking a
+// weapon's top row buys it if unowned, refills ammo if already owned; the row underneath
+// equips/unequips it - build-mode.system.ts owns the per-tick button state and click handling.
 function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) {
   const catalogEntries = Object.entries(WEAPON_CATALOG) as [
     WeaponType,
@@ -1193,9 +1081,8 @@ function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) 
   const totalHeight =
     catalogEntries.length * SHOP_ENTRY_HEIGHT + (catalogEntries.length - 1) * SHOP_ENTRY_GAP;
 
-  // One caption for the whole column rather than repeating it on every entry (SHOP_ENTRY_WIDTH is
-  // only 100px - a per-entry hint would either be unreadable or crowd out the price/ammo count
-  // already there). Sits just below the last entry, out of the way of the buy/select rows above it.
+  // One caption for the whole column rather than repeating it on every entry - SHOP_ENTRY_WIDTH is
+  // only 100px, too narrow for a per-entry hint alongside the price/ammo count.
   const hintTextComponent = new TextComponent(hudLayer, {
     text: "Click a weapon to buy it or refill its ammo",
     x: panelX,
@@ -1221,8 +1108,7 @@ function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) 
     hintTextComponent.text,
   );
   // Seeded from the local player's starting loadout - nothing broadcasts a weaponInventory/ammo
-  // packet at spawn (only buy/refill/equip events do), so without this the shop would show
-  // smallGun as unowned and unselected until the first purchase.
+  // packet at spawn, so without this the shop would show smallGun as unowned until first purchase.
   if (localPlayer) {
     weaponShop.equippedWeaponType = localPlayer.weaponType ?? null;
     for (const w of localPlayer.weapons ?? []) {
@@ -1262,8 +1148,7 @@ function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) 
     });
     registry.addComponent(registry.spawnEntity(), buyTextComponent);
 
-    // Cost row (coin icon + number) - alwaysOwned weapons (smallGun) never show one at all, per
-    // "no cost shown", not just a hidden/zeroed one.
+    // alwaysOwned weapons never show a cost row at all, not just a hidden/zeroed one.
     const costY = entryY + SHOP_BUY_HEIGHT - COIN_ICON_RADIUS * 2 - 6;
     const coinX = panelX + 14;
     const costTextComponent = new TextComponent(hudLayer, {
@@ -1299,9 +1184,8 @@ function buildWeaponShop(hudLayer: Layer, registry: Registry, localPlayer: any) 
       });
     }
 
-    // One button per entry now (dual wielding removed) - toggles this weapon equipped/unequipped
-    // when owned; its label flips between "Select"/"Selected"/"Buy" (build-mode.system.ts owns
-    // that per tick, since it's the one that knows both ownership and equip state every frame).
+    // Toggles this weapon equipped/unequipped when owned; label flips between
+    // "Select"/"Selected"/"Buy" - build-mode.system.ts owns that per tick.
     const selectButtonComponent = new RectComponent(hudLayer, {
       x: panelX,
       y: entryY + SHOP_BUY_HEIGHT + SHOP_SELECT_BUTTON_GAP,
@@ -1379,9 +1263,8 @@ function launchGame(packet: any, registry: Registry) {
     buildWeaponShop(newScene.hudLayer, registry, localPlayer);
 
     if (localPlayer) {
-      // Reserve comes from the shared per-type record; magazine is on the single equipped
-      // weapon's own state now (see weapon-inventory.component.ts, server) and arrives as its own
-      // magazineAmmo field instead of living inside the weapons[] entry.
+      // Reserve comes from the shared per-type record; magazine is on the equipped weapon's own
+      // state and arrives as its own field instead of living inside the weapons[] entry.
       const findAmmo = (weaponType: WeaponType | null, magazineAmmo: number) => {
         if (!weaponType) return undefined;
         const reserveAmmo =

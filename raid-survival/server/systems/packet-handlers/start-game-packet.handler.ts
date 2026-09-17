@@ -39,9 +39,8 @@ const MAP_CENTER: Vector2d = {
 };
 
 const PLAYER_COLLISION_BOX: Vector2d = { x: 24, y: 24 };
-// Slightly smaller than the collision box and centered inside it, per design: the hitbox
-// (combat range - what zombies attack) is a different concept from the collision box
-// (physical blocking).
+// Slightly smaller than the collision box and centered inside it - Hitbox (combat range) is a
+// different concept from CollisionBox (physical blocking).
 const PLAYER_HITBOX_SIZE: Vector2d = { x: 20, y: 20 };
 const PLAYER_HITBOX_OFFSET: Vector2d = {
   x: (PLAYER_COLLISION_BOX.x - PLAYER_HITBOX_SIZE.x) / 2,
@@ -79,15 +78,13 @@ const mapTreeLocations: TreeLocation[] = mapCollisionData.collision.flatMap((row
   row.flatMap((blocked, x) => (blocked ? [{ x, y }] : [])),
 );
 
-// Combat footprint used for zombie-vs-target range checks (zombie-ai.ts) - Position is its
-// top-left, same convention as everything else.
+// Combat footprint used for zombie-vs-target range checks (zombie-ai.ts).
 const ZOMBIE_HITBOX: Vector2d = { x: 24, y: 24 };
 
-// The only zombie type today - "punching zombies drop 10 coins" per design.
 const ZOMBIE_COIN_VALUE = 10;
 
 // Spawns a single zombie from a random tree cell, hunting via its own IAComponent. How many to
-// spawn and when is entirely zombie-wave.system.ts's concern - this just knows how to spawn one.
+// spawn and when is zombie-wave.system.ts's concern - this just spawns one.
 export function spawnZombie(
   registry: Registry,
   network: NetworkServerLibrary,
@@ -196,12 +193,8 @@ export function startGamePacketHandler(
     registry.addComponent(player, new Health(maxHealth, maxHealth));
     registry.addComponent(player, new PlayerClassComponent(playerClass));
 
-    // Every player starts owning and equipping smallGun, EXCEPT a fighter, who starts with a
-    // shotgun instead (2 magazines' worth of ammo total - one loaded, one in reserve, the same
-    // "arrives loaded" idea as smallGun's, just for a finite-reserve weapon). smallGun is
-    // infiniteReserve, so its reserve is left at the catalog's -1 sentinel regardless of the
-    // magazine handed to `state` below - same "arrives loaded, never touches reserve" shape
-    // equipWeaponPacketHandler's claimWeapon uses for any infiniteReserve weapon.
+    // Every player starts owning and equipping smallGun, except a fighter, who starts with a
+    // shotgun instead.
     const startingWeaponType = playerClass === "fighter" ? "shotgun" : STARTING_WEAPON_TYPE;
     const startingCatalog = WEAPON_CATALOG[startingWeaponType];
     const startingWeapon: OwnedWeapon = {

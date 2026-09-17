@@ -1,8 +1,5 @@
-// Display-only mirror of server/player-class-catalog.ts's skin->class mapping and abilities -
-// gameplay numbers are authoritative server-side (see that file's own header comment on why
-// classes exist at all: the skin swatch IS the class picker, no separate UI). Used only to show
-// the player what they're picking on the skin-select screen (MenuScene) - never used to actually
-// apply an effect.
+// Display-only mirror of server/player-class-catalog.ts's skin->class mapping - shown on
+// MenuScene's skin-select screen, never used to apply an effect.
 export type PlayerClass = "healer" | "ninja" | "fighter";
 
 export function classForSkin(skin: number): PlayerClass {

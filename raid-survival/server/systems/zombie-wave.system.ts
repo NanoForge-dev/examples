@@ -11,17 +11,12 @@ import { Health } from "../components/health.component";
 import { spawnZombie } from "./packet-handlers/start-game-packet.handler";
 import { sendToInGamePlayers } from "../network-utils";
 
-// How long a wave waits between spawning each of its numbers, and how long the game waits
-// between one wave finishing and the next starting - the numbers most likely to need tuning
-// alongside the wave counts themselves (server/static/zombie-waves.txt).
+// Time between sub-wave spawns, and between one wave finishing and the next starting.
 const SUB_WAVE_INTERVAL_SECONDS = 3;
 const WAVE_COOLDOWN_SECONDS = 20;
 
-// Static assets ship flattened next to the built server bundle - everything under
-// server/static/ lands directly beside main.js at runtime, not nested under a "static/" folder
-// (verified via `nf build` - server/static/map-collision.json ends up at .nanoforge/server/
-// map-collision.json). So this has to resolve relative to this module's own runtime location,
-// not by mirroring the source tree's "../static/" path.
+// Static assets ship flattened next to the built server bundle, not nested under "static/", so
+// this resolves relative to this module's own runtime location rather than "../static/".
 const WAVES_CONFIG_PATH = join(dirname(fileURLToPath(import.meta.url)), "zombie-waves.txt");
 
 // One entry per wave (a line in the config file), each entry the zombie count of every sub-wave
@@ -37,8 +32,6 @@ function loadZombieWaves(): number[][] {
 
 const zombieWaves = loadZombieWaves();
 
-// Generic-looking but only ever matches the single WaveState singleton spawned alongside the
-// lobby in start-game-packet.handler.ts.
 export function zombieWaveSystem(registry: Registry, ctx: Context) {
   const entities: { WaveState: WaveState }[] = registry.getZipper([WaveState]);
   const state = entities[0]?.WaveState;
@@ -57,8 +50,8 @@ export function zombieWaveSystem(registry: Registry, ctx: Context) {
       state.timer = 0;
       changed = true;
     } else if (state.subWaveIndex === 0 || state.timer >= SUB_WAVE_INTERVAL_SECONDS) {
-      // subWaveIndex 0 always fires immediately on entering the wave - the interval only
-      // separates sub-waves from each other, not the wave's start from its first sub-wave.
+      // subWaveIndex 0 fires immediately on entering the wave - the interval only separates
+      // sub-waves from each other.
       for (let i = 0; i < subWaveSize; i++) {
         spawnZombie(registry, network, state.lobbyEntityId);
       }
@@ -72,9 +65,7 @@ export function zombieWaveSystem(registry: Registry, ctx: Context) {
   } else {
     state.timer += delta;
 
-    // Re-broadcast whenever the displayed whole-second countdown ticks down, not every tick -
-    // the same "only send on a visible change" reasoning move-control.senders.system.ts already
-    // applies to input packets, just applied to an outgoing broadcast instead.
+    // Re-broadcast whenever the displayed whole-second countdown ticks down, not every tick.
     const remainingSecond = Math.max(0, Math.ceil(WAVE_COOLDOWN_SECONDS - state.timer));
     if (remainingSecond !== state.lastCountdownSecond) {
       state.lastCountdownSecond = remainingSecond;
@@ -106,8 +97,7 @@ function broadcastWaveInfo(network: NetworkServerLibrary, registry: Registry, st
     subWaveCount: wave.length,
     aliveZombies: countAliveZombies(registry),
     phase: state.phase,
-    // Only meaningful while "cooldown" - wave-info-packet.handler.ts hides the countdown text
-    // otherwise. Whole seconds, matching what's actually displayed (state.lastCountdownSecond).
+    // Only meaningful while "cooldown" - hidden client-side otherwise.
     cooldownRemaining:
       state.phase === "cooldown" ? Math.max(0, Math.ceil(WAVE_COOLDOWN_SECONDS - state.timer)) : 0,
   });

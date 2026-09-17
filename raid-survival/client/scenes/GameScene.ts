@@ -7,9 +7,8 @@ import { SpriteComponent } from "../components/renderable/sprite.component";
 export class GameScene implements Scene {
   readonly name = "GameScene";
   layer: Layer | undefined;
-  // Separate, unscaled layer for screen-space UI (the wave HUD) - cameraFollowSystem only ever
-  // pans/zooms `layer` (the 3x-scaled world), so anything added here stays fixed on screen
-  // regardless of camera movement.
+  // Separate, unscaled layer for screen-space UI - stays fixed while cameraFollowSystem pans/zooms
+  // `layer` (the 3x-scaled world).
   hudLayer: Layer | undefined;
 
   private stage!: Stage;
@@ -17,13 +16,9 @@ export class GameScene implements Scene {
   load(registry: Registry, stage: Stage): void {
     this.stage = stage;
 
-    // Replaced by a custom crosshair sprite (cursor.system.ts) - see also this scene's build-bar
-    // hover handlers in start-game-packet.handler.ts, which must restore "none" on mouseout
-    // rather than the OS default, or hovering a button would bring the OS cursor back for good.
+    // OS cursor hidden - replaced by a custom crosshair sprite (cursor.system.ts).
     this.stage.container().style.cursor = "none";
 
-    // Right-click is now a real fire button (the second weapon slot) - without this the browser's
-    // native context menu would pop up on every right-click.
     this.stage.container().addEventListener("contextmenu", (e) => e.preventDefault());
 
     this.layer = new Layer();
@@ -41,9 +36,7 @@ export class GameScene implements Scene {
   }
 
   unload() {
-    // Restore the OS cursor - otherwise it stays hidden (still "none" from load()) on whatever
-    // scene comes next, until the player happens to hover something with its own cursor handler.
-    this.stage.container().style.cursor = "default";
+    this.stage.container().style.cursor = "default"; // restore the OS cursor for the next scene
     this.layer?.destroy();
     this.hudLayer?.destroy();
   }

@@ -3,12 +3,9 @@ import { NetworkId } from "../../components/network-id.component";
 import { Weapon } from "../../components/weapon.component";
 import { ChildrenComponent } from "../../components/children.component";
 
-// A one-shot "a shot was actually fired" event, broadcast by server/systems/weapon.system.ts at
-// the exact moment it fires (not derived from client input state, so every player's shots
-// animate, not just the local one - see ShootController, which only ever reflects the LOCAL
-// player's held fire button, not whether a shot actually left the gun). Purely a visual trigger -
-// weapon-reload-animation.system.ts owns turning this into an actual animation and expiring it
-// again; this handler just flips the flag and resets the clock.
+// Server-broadcast at the exact moment a shot fires, so every player's shots animate (not just
+// the local one). Purely a visual trigger - weapon-reload-animation.system.ts turns this into an
+// actual animation.
 export function weaponFiredPacketHandler(packet: any, registry: Registry): void {
   const players: { id: number; NetworkId: NetworkId }[] = registry.getIndexedZipper([NetworkId]);
   const player = players.find((p) => p.NetworkId.id === packet.id);
@@ -18,8 +15,7 @@ export function weaponFiredPacketHandler(packet: any, registry: Registry): void 
     Weapon,
     ChildrenComponent,
   ]);
-  // Routed by weaponType, same as weapon-state-packet.handler.ts and for the same reason: guards
-  // against a stale in-flight packet for a weapon that's since been unequipped.
+  // Routed by weaponType to guard against a stale packet for a weapon since unequipped.
   const match = weapons.find(
     (w) => w.ChildrenComponent.parentId === player.id && w.Weapon.weaponType === packet.weaponType,
   );

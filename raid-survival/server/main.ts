@@ -22,14 +22,8 @@ import { reviveSystem } from "./systems/revive.system";
 import { gameOverSystem } from "./systems/game-over.system";
 import { packetHandler } from "./systems/packet-handler.system";
 
-// The engine's own per-tick system runner (@nanoforge-dev/ecs-lib's WASM Registry.run_systems,
-// invoked from @nanoforge-dev/core's Core.runExecute) has no try/catch anywhere in the chain - an
-// uncaught exception in ANY one system silently aborts that tick's run_systems call entirely,
-// taking every system registered AFTER it down with it (they simply never run again, forever,
-// with no visible error), and can stop the engine's own re-scheduling of the next tick outright.
-// Wrapping every system in this before it ever reaches registry.addSystem means one system's bug
-// can only ever break that system - not everything registered after it - and any exception (now
-// or in the future) gets logged with the system's name instead of vanishing silently.
+// The engine's system runner has no error isolation between systems - wrapping each one here
+// means a throwing system only breaks itself, not every system registered after it.
 function safeSystem<Fn extends (...args: never[]) => unknown>(system: Fn): Fn {
   return ((...args: never[]) => {
     try {
@@ -76,9 +70,8 @@ export async function main(options: IRunOptions) {
   registry.addSystem(safeSystem(packetHandler));
   registry.addSystem(safeSystem(moveInputSystem));
   registry.addSystem(safeSystem(weaponSystem));
-  // Autonomous, no player input - fires its own bullets the same way weaponSystem does for
-  // players, so it belongs right alongside it, before bulletSystem resolves anything spawned
-  // this tick.
+  // Fires its own bullets like weaponSystem, so it runs alongside it, before bulletSystem
+  // resolves this tick's spawns.
   registry.addSystem(safeSystem(towerSystem));
   registry.addSystem(safeSystem(moveSystem));
   registry.addSystem(safeSystem(mapCollisionSystem));
@@ -88,16 +81,13 @@ export async function main(options: IRunOptions) {
   registry.addSystem(safeSystem(aiSystem));
   registry.addSystem(safeSystem(zombieWaveSystem));
   registry.addSystem(safeSystem(zombieDeathSystem));
-  // After zombieDeathSystem so a box dropped this exact tick can already be picked up the same
-  // tick (both just read/write plain components, order only matters for same-tick freshness).
+  // After zombieDeathSystem so a box dropped this tick can be picked up the same tick.
   registry.addSystem(safeSystem(lootBoxPickupSystem));
   registry.addSystem(safeSystem(buildingDeathSystem));
-  // After weaponSystem/moveInputSystem (Health/Position are current for this tick) and before
-  // gameOverSystem, so a revive completed this exact tick is already reflected in Health before
-  // gameOverSystem's allPlayersDead check runs.
+  // Before gameOverSystem so a revive completed this tick is reflected before the
+  // allPlayersDead check.
   registry.addSystem(safeSystem(reviveSystem));
-  // Consumes the same E-press one-shot revive.system.ts's `targetId` deferral checks - must run
-  // after it so an active revive channel reliably wins the same tick's key press.
+  // After reviveSystem so an active revive channel wins the same tick's E press over an interact.
   registry.addSystem(safeSystem(buildingInteractSystem));
   registry.addSystem(safeSystem(gameOverSystem));
 

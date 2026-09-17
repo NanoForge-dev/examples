@@ -12,8 +12,6 @@ export function joinLobbyPacketHandler(
 ): void {
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
 
-  // Client-picked index into player1.png..player3.png (see MenuScene's skin swatches) - clamped
-  // here so a malformed/missing value can never propagate into an out-of-range sprite key.
   const skin = Number.isInteger(packet.skin) && packet.skin >= 1 && packet.skin <= 3 ? packet.skin : 1;
 
   function sendJoinLobbyInfo() {
@@ -45,11 +43,7 @@ export function joinLobbyPacketHandler(
   }
 
   // A game in progress never accepts joins - there's no way to hand a joiner a character until
-  // the next startGame call, known username or not (a "known" one only means they were in a
-  // *previous* game; game-over.system.ts empties `clients` the moment a game ends, so nobody
-  // is ever "known" while one is actually running). Rejecting unconditionally also covers the
-  // player who retries just after someone else already restarted without them - same result,
-  // clearly reported rather than left to hang.
+  // the next startGame call.
   if (gameStatus.status === GameStatusEnum.InGame) {
     network.tcp.sendToClient(
       clientId,
@@ -59,6 +53,21 @@ export function joinLobbyPacketHandler(
   }
 
   let client = clients.find((c) => c.username === packet.username);
+
+  // A username match only means "reconnect" when that entry's original connection is actually
+  // gone - checked against the live connected-client list, not the `client.connected` flag
+  // (which lags a tick behind and would otherwise reject a fast rejoin under your own name). A
+  // genuine second, still-open connection with the same name is still rejected: reusing that
+  // entry would silently orphan the first connection and hand the second one none of the first
+  // player's in-progress game state.
+  const connectedClientIds = network.tcp.getConnectedClients();
+  if (client && client.clientId !== clientId && connectedClientIds.includes(client.clientId)) {
+    network.tcp.sendToClient(
+      clientId,
+      new TextEncoder().encode(JSON.stringify({ type: "joinLobby", result: "username taken" })),
+    );
+    return;
+  }
 
   if (!client && clients.length >= 4) {
     network.tcp.sendToClient(
@@ -72,9 +81,7 @@ export function joinLobbyPacketHandler(
     client.clientId = clientId;
     client.connected = true;
     client.skin = skin;
-    // A returning client (e.g. after a finished game reset everything via
-    // registry.clearEntities() in game-over.system.ts) needs a fresh entity - whatever it held
-    // before may no longer exist, and reusing a dead entity id is unsafe.
+    // A returning client needs a fresh entity - whatever it held before may no longer exist.
     client.entityId = _registry.spawnEntity().getId();
   } else {
     client = {

@@ -23,11 +23,8 @@ function broadcastWeaponState(
   sendToInGamePlayers(network, { type: "weaponState", id, weaponType, state, reloadSeconds });
 }
 
-// A one-shot event, not a state (unlike broadcastWeaponState's idle/reloading) - sent exactly once
-// per shot that actually leaves the gun (magazine wasn't empty, cooldown had elapsed - see the
-// call site below), purely so clients can play a recoil/muzzle-flash animation at the real moment
-// of firing. Broadcast to everyone, not just the shooter, same reasoning as every other weapon
-// broadcast here - every client renders every player's weapons, not just their own.
+// A one-shot event, not a state - sent once per shot that actually leaves the gun, so clients can
+// play a recoil/muzzle-flash animation at the real moment of firing.
 function broadcastWeaponFired(network: NetworkServerLibrary, id: number, weaponType: WeaponType) {
   sendToInGamePlayers(network, { type: "weaponFired", id, weaponType });
 }
@@ -48,10 +45,8 @@ function broadcastAmmo(
   });
 }
 
-// Just the fields firePellets actually reads - not (typeof WEAPON_CATALOG)[WeaponType], so
-// tower.system.ts can hand it a computed-per-level stat block (damage/fireRatePerSecond that
-// scale with Tower.level) without needing a real catalog entry of its own. Every WEAPON_CATALOG
-// entry already satisfies this structurally.
+// Just the fields firePellets actually reads, so tower.system.ts can hand it a computed
+// per-level stat block without needing a real catalog entry of its own.
 export interface PelletStats {
   pellets: number;
   spreadDegrees: number;
@@ -59,11 +54,9 @@ export interface PelletStats {
   damage: number;
 }
 
-// direction here is a fresh, already-normalized aim vector computed by the caller at the exact
-// moment of firing (see computeAimDirection) - not the persisted Direction component, which is
-// now purely visual (rotation broadcast to other clients). Plain {x,y}, not the Direction class,
-// since Direction also carries a `name` field a literal aim vector has no reason to fake. Exported
-// so tower.system.ts can fire the exact same bullet pipeline autonomously (see PelletStats above).
+// `direction` is a fresh, already-normalized aim vector computed at the moment of firing (see
+// computeAimDirection) - not the persisted Direction component, which is purely visual. Exported
+// so tower.system.ts can fire the same bullet pipeline autonomously.
 export function firePellets(
   registry: Registry,
   network: NetworkServerLibrary,
@@ -101,12 +94,9 @@ export function firePellets(
   }
 }
 
-// Fresh (player -> mouse) aim vector, computed at the moment a shot actually fires - not derived
-// from the persisted Direction component, which only gets updated by whatever "direction" packet
-// last arrived and is shared with the visual-rotation broadcast, so it can be one packet's worth
-// of latency behind the mouse. Falls back to `direction` (the persisted component) only if no
-// mousePosition has ever arrived yet (the very first tick or two of a connection) - never crashes,
-// never no-ops, just briefly less precise.
+// Fresh player->mouse aim vector, computed at the moment a shot fires - not derived from the
+// persisted Direction component, which can be one packet's latency behind the mouse. Falls back
+// to `direction` only if no mousePosition has arrived yet.
 function computeAimDirection(
   centerX: number,
   centerY: number,
@@ -122,12 +112,9 @@ function computeAimDirection(
   return { x: direction.x, y: direction.y };
 }
 
-// Owns the whole weapon state machine (idle/reloading, cooldown, magazine) for the single
-// equipped weapon of every player - ShootInput just records what's currently held/requested,
-// this decides what actually happens and when, every tick, independent of packet frequency (same
-// split as move-input.system.ts / move.system.ts). Only one weapon at a time (per design - dual
-// wielding was removed), so there's exactly one WeaponFireState to advance per player, not a loop
-// over hand slots.
+// Owns the weapon state machine (idle/reloading, cooldown, magazine) for the single equipped
+// weapon of every player - ShootInput just records what's held/requested, this decides what
+// happens and when, every tick, independent of packet frequency.
 export function weaponSystem(registry: Registry, ctx: Context) {
   const entities: {
     id: number;
@@ -159,8 +146,7 @@ export function weaponSystem(registry: Registry, ctx: Context) {
     Direction: direction,
     Health: health,
   } of entities) {
-    // Dead - weapons do nothing until (if ever) they respawn, matching move-input.system.ts's
-    // dead-player guard.
+    // Dead players' weapons do nothing.
     if (health.current <= 0) {
       input.reloadRequested = false;
       continue;

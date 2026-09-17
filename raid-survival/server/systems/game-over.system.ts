@@ -10,13 +10,10 @@ import { WaveState } from "../components/wave-state.component";
 import { Zombie } from "../components/zombie.component";
 import { sendToInGamePlayers } from "../network-utils";
 
-// Ends the current game the moment the lobby or every player is dead (defeat) OR the last wave
-// has finished spawning and nothing's left alive to fight (victory): broadcasts the final tally,
-// then wipes every entity so a fresh game can start from a clean slate. `gameStatus` is switched
-// away from InGame in the same tick this fires, so this can never re-trigger on a later tick for
-// the same game (registry.clearEntities() alone wouldn't be enough - every zipper-based system,
-// including this one, would just see empty results and quietly no-op, not block a second
-// broadcast).
+// Ends the game when the lobby or every player is dead (defeat), or the last wave has finished
+// spawning with nothing left alive (victory): broadcasts the final tally, then wipes every
+// entity. `gameStatus` switches away from InGame in the same tick, so this can't re-trigger later
+// for the same game.
 export function gameOverSystem(registry: Registry, ctx: Context) {
   if (gameStatus.status !== GameStatusEnum.InGame) return;
 
@@ -26,8 +23,8 @@ export function gameOverSystem(registry: Registry, ctx: Context) {
   const players: { Health: Health }[] = registry.getZipper([Login, Health]);
   const allPlayersDead = players.length > 0 && players.every((p) => p.Health.current <= 0);
 
-  // Sample everything the "zombies killed" tally (and the victory check) needs up front - nothing
-  // after clearEntities() below can read the registry any more.
+  // Sample everything needed for the tally/victory check up front - nothing after
+  // clearEntities() below can read the registry any more.
   const waveStates: { WaveState: WaveState }[] = registry.getZipper([WaveState]);
   const waveState = waveStates[0]?.WaveState;
   const totalSpawned = waveState?.totalSpawned ?? 0;
@@ -35,10 +32,7 @@ export function gameOverSystem(registry: Registry, ctx: Context) {
   const zombies: { Health: Health }[] = registry.getZipper([Zombie, Health]);
   const aliveZombies = zombies.filter((z) => z.Health.current > 0).length;
 
-  // zombieWaveSystem flips WaveState to "finished" once every configured wave has been spawned
-  // (registered before this system - server/main.ts - so this reads the current tick's phase, not
-  // a stale one). totalSpawned > 0 guards against an empty/misconfigured waves file reading as an
-  // instant win at tick zero, before anything ever spawned.
+  // totalSpawned > 0 guards against an empty/misconfigured waves file reading as an instant win.
   const allWavesCleared = waveState?.phase === "finished" && aliveZombies === 0 && totalSpawned > 0;
 
   if (!allWavesCleared && !lobbyDead && !allPlayersDead) return;
@@ -46,29 +40,18 @@ export function gameOverSystem(registry: Registry, ctx: Context) {
   const network = ctx.libs.getNetwork<NetworkServerLibrary>();
   sendToInGamePlayers(network, {
     type: "gameOver",
-    // A photo finish (last zombie and last player/lobby health going to 0 the same tick) reads as
-    // a win, not a loss - the players did finish the fight, one tick's evaluation order shouldn't
-    // cost them that.
+    // A photo finish (last zombie and last player/lobby health hitting 0 the same tick) counts as
+    // a win, not a loss.
     result: allWavesCleared ? "victory" : "defeat",
-    // No system ever damages a zombie's own Health today (only players/the lobby take damage),
-    // so this is always 0 until a player-vs-zombie combat system exists - at which point it
-    // becomes correct for free, since it's just spawned-minus-still-alive.
     zombiesKilled: totalSpawned - aliveZombies,
   });
 
-  // Not InGame any more, so join-lobby-packet.handler.ts's InGame gate no longer blocks
-  // rejoining - EndScreen is purely an observability distinction, not a functional one.
   gameStatus.status = GameStatusEnum.EndScreen;
   registry.clearEntities();
 
-  // Reset the lobby roster too, not just the entities - every entityId in `clients` is now
-  // dangling (it pointed into the registry we just cleared), and every player is looking at
-  // their own game-over screen, not the lobby. Emptying it means the next startGame only ever
-  // spawns players who actually clicked Retry and rejoined through the normal flow (they'll get
-  // a brand new entry with a fresh entityId, same as a first-time join - see
-  // join-lobby-packet.handler.ts) - not a stale one that would otherwise collide with, or get
-  // silently ignored in favor of, the freshly spawned entities of whoever rejoined. A player who
-  // never retries simply isn't part of the next game, exactly like someone who never queued up.
+  // Every entityId in `clients` is now dangling (it pointed into the registry we just cleared).
+  // Emptying it means the next startGame only spawns players who rejoin through the normal flow
+  // with a fresh entityId - a player who never retries just isn't part of the next game.
   clients.length = 0;
 }
 

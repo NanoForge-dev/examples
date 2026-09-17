@@ -16,17 +16,14 @@ import {
 } from "../building-economy";
 import { playerId } from "../main";
 
-// Native player sprite size (see start-game-packet.handler.ts's own copy) - just enough to
-// approximate the local player's center for the proximity check below.
+// Approximates the local player's center for the proximity check below.
 const LOCAL_PLAYER_SIZE = { width: 24, height: 24 };
-// The real gate is server-authoritative (building-interact.system.ts's edge-to-edge Hitbox
-// check, INTERACT_RANGE=20) - Hitbox is server-only, so this is a generous center-distance
-// stand-in purely for deciding when to SHOW the hint text, not for whether E actually works.
+// The real gate is server-authoritative (building-interact.system.ts's Hitbox check) - this is a
+// generous stand-in purely for deciding when to show the hint text.
 const DISPLAY_INTERACT_RANGE = 46;
 
-// Drives every tower/wall/the-lobby's "Press E to..." hint: visible only near the local player,
-// text picked from the target's own Health (and TowerLevelComponent, if it has one) - heal cost
-// while damaged, or (a full-HP tower only) the next upgrade's cost and current/max level.
+// Shows a tower/wall/lobby's "Press E to..." hint near the local player: heal cost while
+// damaged, or a full-HP tower's next upgrade cost and level.
 export function buildingInteractIndicatorSystem(registry: Registry) {
   const indicators: {
     BuildingInteractIndicatorComponent: BuildingInteractIndicatorComponent;

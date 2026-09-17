@@ -1,5 +1,4 @@
-// Marker on the custom crosshair HUD sprite entity (built once per game - see launchGame in
-// start-game-packet.handler.ts) - lets cursor.system.ts find it uniquely.
+// Marker on the custom crosshair HUD sprite entity - lets cursor.system.ts find it.
 export class CursorComponent {
   name = this.constructor.name;
 }

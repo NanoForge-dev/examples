@@ -7,14 +7,9 @@ import { PlayerClass } from "../components/player-class.component";
 import { PLAYER_CLASS_CATALOG } from "../player-class-catalog";
 import { PLAYER_SPEED } from "../main";
 
-// Recomputes every player's Velocity fresh from their held-key intent every tick, before
-// movement and collision run. Without this, collision-resolve.ts's wall-slide handling (which
-// zeros whichever axis caused an overlap, directly on Velocity) would stick: the client only
-// re-sends an "input" packet when the *set* of held keys changes
-// (move-control.senders.system.ts), not every frame, so a zeroed axis would otherwise never get
-// restored while the player keeps holding the same keys - even once nothing is blocking it any
-// more. Recomputing here every tick means a collision's zeroing only ever lasts the tick(s) it's
-// actually still blocked.
+// Recomputes every player's Velocity from held-key intent every tick, not just when an input
+// packet arrives - otherwise collision-resolve.ts zeroing an axis on a wall hit would stick even
+// after the player is no longer blocked.
 export function moveInputSystem(registry: Registry) {
   const entities: {
     MoveInput: MoveInput;
@@ -43,8 +38,6 @@ export function moveInputSystem(registry: Registry) {
     if (input.left) dx -= 1;
     if (input.right) dx += 1;
 
-    // A ninja moves 30% faster (PLAYER_CLASS_CATALOG.ninja.speedMultiplier); everyone else's
-    // multiplier is 1, i.e. exactly PLAYER_SPEED, unchanged from before classes existed.
     const speed = PLAYER_SPEED * PLAYER_CLASS_CATALOG[playerClass.playerClass].speedMultiplier;
     const length = Math.hypot(dx, dy) || 1;
     velocity.x = (dx / length) * speed;

@@ -12,11 +12,7 @@ import { LobbyAction, LobbyState, LobbyStatusComponent } from "../components/lob
 import { classForSkin, PLAYER_CLASS_INFO } from "../player-class-catalog";
 import { playerId } from "../main";
 
-// One accent color per available skin (player1.png..player3.png - the only ones that share
-// player-animations.txt's 216x72 idle/walk/death frame layout; player4.png is a differently
-// sized sheet and would render garbled if selected) - reused for the skin carousel's dot
-// indicator and the lobby grid's card border so a given skin reads as "the same color"
-// everywhere in the menu.
+// player1.png..player3.png only - player4.png is a differently sized sheet and renders garbled.
 const SKIN_COLORS = ["#D9A441", "#5CA9DC", "#E07856"];
 const SKIN_COUNT = SKIN_COLORS.length;
 // Native, unscaled frame size shared by every player*.png sheet (player-animations.txt).
@@ -26,10 +22,8 @@ function skinColor(index: number): string {
   return SKIN_COLORS[index] ?? SKIN_COLORS[0] ?? "#D9A441";
 }
 
-// Shortest signed distance from `index` to `selected` around a `count`-item ring - e.g. for 3
-// skins this always yields exactly one item at -1 (previous), one at 0 (selected) and one at +1
-// (next), regardless of which is currently selected, which is what gives the carousel its
-// "wrap around" feel instead of the side previews bunching up on one edge.
+// Shortest signed distance from `index` to `selected` around a `count`-item ring - gives the
+// carousel its wrap-around feel instead of side previews bunching up on one edge.
 function carouselOffset(index: number, selected: number, count: number): number {
   let raw = ((index - selected) % count) + count;
   raw %= count;
@@ -47,8 +41,6 @@ const BUTTON_BORDER = "#5E8C61";
 
 const PANEL_SIZE = { width: 500, height: 560 };
 
-// Local (join-widget-space) layout of the skin carousel - shared by creation and by the
-// per-frame tick that slides/scales the preview sprites.
 const CAROUSEL_CENTER_Y = 196;
 const CAROUSEL_SPACING = 110;
 const CAROUSEL_SELECTED_SCALE = 3.5;
@@ -61,11 +53,8 @@ const CAROUSEL_EASE = 0.22;
 
 const LOBBY_PREVIEW_SCALE = 2.5;
 
-// Side panels flanking the join/lobby panel - story left, rules+keybinds right. Only drawn when
-// the window is wide enough for both to sit fully on screen next to the (fixed-position, never
-// itself resized) main panel; on a narrow window they're skipped rather than drawn cramped or
-// off-screen, since this scene doesn't handle window resize at all (see `background`'s own
-// window.innerWidth/innerHeight snapshot in load()).
+// Side panels flanking the join/lobby panel (story left, rules+keybinds right) - skipped
+// entirely on a window too narrow to fit both; this scene doesn't handle window resize.
 const SIDE_PANEL_WIDTH = 260;
 const SIDE_PANEL_GAP = 30;
 const SIDE_PANEL_PADDING = 20;
@@ -136,19 +125,15 @@ export class MenuScene implements Scene {
 
   private joinLobbyGroup: Group | undefined;
   private lobbyGroup: Group | undefined;
-  // Absolute (layer-space) position of the never-moving outer panel - the join/lobby widgets
-  // slide inside it, but sprite entities are laid out by the ECS in layer space (see
-  // sprite.system.ts), not Konva-parented to those groups, so every per-frame sprite reposition
-  // starts from this plus the relevant group's own (possibly still-tweening) x/y.
+  // Layer-space position of the never-moving outer panel. Carousel/lobby-preview sprites are laid
+  // out by the ECS in layer space, not Konva-parented to the sliding widget groups, so every
+  // per-frame reposition starts from this plus the relevant group's own (possibly tweening) x/y.
   private panelOrigin = { x: 0, y: 0 };
 
   private menu: "User" | "Lobby" = "User";
   private joinErrorText: TextComponent | undefined;
-  // TextAreaComponent isn't a Konva node - it backs the input with a real DOM <textarea>
-  // appended to document.body (Konva can't natively handle text entry), so neither
-  // registry.clearEntities() nor stage.clear() (both run by SceneManager.switchTo) ever remove
-  // it. Has to be destroyed explicitly here, or it lingers on screen - still showing whatever was
-  // typed - straight through into the game.
+  // Backed by a real DOM <textarea>, not a Konva node - SceneManager.switchTo's
+  // registry.clearEntities()/stage.clear() never remove it, so it must be destroyed explicitly.
   private usernameInput: TextAreaComponent | undefined;
 
   private selectedSkinIndex = 0;
@@ -220,9 +205,7 @@ export class MenuScene implements Scene {
     this.joinLobbyGroup = this.buildJoinLobbyWidget(registry, mainWidgetGroupComponent.group).group;
     this.lobbyGroup = this.buildLobbyWidget(registry, mainWidgetGroupComponent.group).group;
 
-    // Parented straight to the layer, not to either sliding widget group - these stay put (and
-    // stay visible) across the join screen and the lobby the same way panelOrigin's outer panel
-    // does, giving new players the story/rules/keybinds regardless of which screen they're on.
+    // Parented to the layer, not either sliding widget group - stays visible on both screens.
     this.buildInfoPanels(registry);
   }
 
@@ -271,10 +254,8 @@ export class MenuScene implements Scene {
   private tickCarousel(): void {
     if (this.carouselSkins.length === 0 || !this.joinLobbyGroup) return;
 
-    // The join widget's -panelWidth slide only clears its own 500px, not the full viewport -
-    // these preview sprites aren't Konva-parented to (or clipped by) that group (see
-    // panelOrigin's doc comment), so left uncorrected they'd keep sitting on screen, off to the
-    // side, for the rest of the time the player spends in the lobby.
+    // These sprites aren't Konva-parented to (or clipped by) the join widget group, so they need
+    // to be hidden explicitly once it slides off - otherwise they'd stay on screen in the lobby.
     if (this.menu === "Lobby") {
       this.carouselSkins.forEach((item) => item.sprite.sprite?.visible(false));
       return;
@@ -430,8 +411,6 @@ export class MenuScene implements Scene {
       new TextComponent(group, {
         text: "YOUR NAME",
         x: fieldX,
-        // Pushed down from 294 to clear the class caption above it (now ends at 292+34=326) with a
-        // 10px gap, instead of sitting right on top of it.
         y: 336,
         width: fieldWidth,
         height: 14,
@@ -443,8 +422,6 @@ export class MenuScene implements Scene {
     );
 
     const pseudoTextSize = { width: fieldWidth, height: 42 };
-    // 356, not the old 314 - shifted down by the same 42px the "YOUR NAME" label above moved,
-    // keeping the same 6px gap between that label and this box.
     const pseudoTextY = 356;
     registry.addComponent(
       registry.spawnEntity(),
@@ -643,8 +620,6 @@ export class MenuScene implements Scene {
       );
     };
 
-    // 180px out from center (was 150) - further toward the panel's edges, away from the carousel
-    // sprites they sit alongside.
     const arrowOffset = 180;
     buildArrow("<", panelWidth / 2 - arrowOffset - arrowSize / 2, () =>
       selectSkin(this.selectedSkinIndex - 1),
@@ -693,10 +668,8 @@ export class MenuScene implements Scene {
       this.skinDots.push(dotComponent);
     }
 
-    // Below the dots - each skin IS a class pick (server/player-class-catalog.ts), so this is
-    // what actually tells a player what they're choosing, not just cosmetics. Extra breathing
-    // room above (dots end at 274, this starts at 292) and below (see the "YOUR NAME" label's own
-    // y, pushed down to clear this box) - it used to sit right on top of both neighbors.
+    // Each skin IS a class pick (server/player-class-catalog.ts) - this is what tells a player
+    // what they're actually choosing, not just cosmetics.
     this.classCaption = new TextComponent(group, {
       text: "",
       x: 0,
@@ -813,12 +786,8 @@ export class MenuScene implements Scene {
       });
       registry.addComponent(registry.spawnEntity(), frameComponent);
 
-      // TransformComponent.x/y is top-left anchored, not center - localTopY already accounts for
-      // that (frameX/Y + half the leftover space once the sprite's own size is subtracted out).
-      // localCenterX used to skip that subtraction entirely (frameX + frameSize/2, missing the
-      // "- spriteSize/2" term), landing the sprite's top-left corner at the frame's center instead
-      // of at the point that puts the sprite's OWN center there - visibly shifted right/up by half
-      // the sprite size (30px) instead of sitting centered in the circular frame.
+      // TransformComponent.x/y is top-left anchored, not center - subtract half the sprite size
+      // so it actually sits centered in the circular frame.
       const spriteSize = SPRITE_NATIVE_SIZE * LOBBY_PREVIEW_SCALE;
       const localCenterX = frameX + (frameSize - spriteSize) / 2;
       const localTopY = frameY + (frameSize - spriteSize) / 2;

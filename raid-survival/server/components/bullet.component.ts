@@ -1,7 +1,5 @@
-// Marker + payload for a fired projectile (bullet.system.ts owns its collision/lifetime;
-// move.system.ts already drives its movement generically from Position+Velocity). Damage is
-// copied from the catalog at fire time so a weapon change mid-flight can't retroactively alter
-// an already-fired bullet.
+// Damage is snapshotted at fire time so switching weapons mid-flight can't alter an already-fired
+// bullet. Collision/lifetime is owned by bullet.system.ts; movement by move.system.ts generically.
 export class Bullet {
   name = this.constructor.name;
 

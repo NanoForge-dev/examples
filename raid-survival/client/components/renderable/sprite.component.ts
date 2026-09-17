@@ -6,14 +6,9 @@ interface SpriteComponentOptions {
   scale?: Vector2d;
   currentAnimation?: string;
   frameRate?: number;
-  // Native-pixel point within the frame that the rotation pivot sits on and that
-  // TransformComponent's position resolves to (see sprite.system.ts) - defaults to the frame's own
-  // geometric center (width/2, height/2) when omitted, which is correct for art that's naturally
-  // drawn centered in its crop. A weapon held by a hand isn't necessarily centered though (e.g.
-  // Shotgun-Shot.png's 52x32 frame has the gun's grip well off to one side, with empty space on
-  // the muzzle side for the recoil/flash frames) - without overriding this, the sprite is
-  // positioned/rotated around its crop's geometric center instead of the point a hand is actually
-  // holding it at, visibly displacing it away from the hand by however far off-center the art is.
+  // Native-pixel point within the frame that rotation pivots around and that TransformComponent's
+  // position resolves to (see sprite.system.ts). Defaults to the frame's geometric center; needed
+  // when the art's actual grip/anchor point isn't centered in its crop.
   pivot?: Vector2d;
 }
 
@@ -24,17 +19,11 @@ export class SpriteComponent {
   animationsKey?: string | undefined;
   layer: Layer | undefined;
   loading: boolean = false;
-  // Set by spriteSystem once THIS entity's load has exhausted its retries - scoped to the entity,
-  // not the asset (spriteSystem used to gate on a spriteKey-keyed Set shared by every entity, so
-  // one entity's bad luck on a flaky blob URL - see spriteSystem's own comment on that - permanently
-  // blacklisted the asset for every OTHER entity using it too; a bullet and a tower's decorative
-  // gun icon both source "weapons.png", so one failed tower sprite was silently taking every
-  // future bullet down with it). Reset on setSpriteKey below, same as `loading`, so a fresh key
-  // (or a deliberate retry via the same key) always gets its own fresh attempt.
+  // Set by spriteSystem once this entity's load has exhausted its retries. Scoped per-entity, not
+  // per-asset, so one entity's failed load can't blacklist a shared spriteKey for others.
   failed: boolean = false;
-  // Read by spriteSystem at Sprite-construction time only (like width/height/animations) - not
-  // reactive on its own; changing it takes effect on the next setSpriteKey-triggered rebuild, not
-  // on an already-live sprite. Defaults to 7, matching every sprite before this field existed.
+  // Read by spriteSystem only at Sprite-construction time - a change here takes effect on the
+  // next setSpriteKey-triggered rebuild, not on an already-live sprite.
   frameRate: number = 7;
 
   private _scale: Vector2d = { x: 1, y: 1 };
@@ -53,22 +42,10 @@ export class SpriteComponent {
     if (options?.pivot) this._pivot = options.pivot;
   }
 
-  // Swaps to a different source image (and, usually, a different animations file) at runtime -
-  // e.g. the shotgun's held-weapon sprite switching from its static weapons.png icon to
-  // Shotgun-Reload.png's real animation while reloading, then back. spriteSystem only ever
-  // creates the underlying Konva Sprite ONCE per component (guarded on `!sprite`), keyed off
-  // whatever spriteKey/animationsKey were set at that time - so this destroys the current one and
-  // clears the fields spriteSystem gates on, forcing it to load the new image and build a fresh
-  // Sprite next tick, exactly like a brand-new entity would. Also resets flip state: a freshly
-  // built Konva Sprite always starts unflipped (scaleX/Y at their base, non-negated), so leaving
-  // _flipped/_flippedY at whatever they were on the OLD sprite would desync
-  // rotate-to-direction.system.ts's hysteresis (it trusts isFlipped()/isFlippedY() to reflect the
-  // live sprite, and would then skip re-applying a flip the new sprite actually needs).
-  // currentAnimation defaults to "idle" for the same reason SpriteComponentOptions.currentAnimation
-  // is mostly decorative: spriteSystem always constructs a fresh Sprite on "idle" regardless of
-  // what _currentAnimation says, so a real animation key must be set again via setAnimation() once
-  // the new sprite actually exists (see weapon-reload-animation.system.ts for that idempotent
-  // every-tick check).
+  // Swaps to a different source image/animations file at runtime. spriteSystem only ever
+  // constructs the underlying Konva Sprite once per component (guarded on `!sprite`), so this
+  // destroys the current one and clears the gating fields, forcing a fresh build next tick. Also
+  // resets flip state, since a freshly built sprite always starts unflipped.
   setSpriteKey(spriteKey: string, animationsKey?: string, currentAnimation: string = "idle"): void {
     this.spriteKey = spriteKey;
     this.animationsKey = animationsKey;
@@ -104,11 +81,8 @@ export class SpriteComponent {
     return this._pivot;
   }
 
-  // Not applied to an already-live sprite (Konva's offsetX/Y, unlike scale, would also need the
-  // rendered position recomputed the same tick to avoid a one-frame jump) - like frameRate, this
-  // is read by spriteSystem only at Sprite-construction time, so a change here takes effect on the
-  // next setSpriteKey-triggered rebuild. Pass undefined to go back to the default frame-centered
-  // pivot (e.g. re-equipping from a weapon that overrode this to one that doesn't).
+  // Like frameRate, read by spriteSystem only at construction time - takes effect on the next
+  // setSpriteKey-triggered rebuild, not the live sprite.
   setPivot(pivot: Vector2d | undefined) {
     this._pivot = pivot;
   }
@@ -127,9 +101,8 @@ export class SpriteComponent {
     this.sprite?.scaleX(this._scale.x);
   }
 
-  // Vertical mirror (scaleY), distinct from flip()/unflip()'s horizontal one - used by a
-  // continuously-rotating sprite (rotate-to-direction.system.ts) to stay right-side-up while
-  // aiming left, instead of a static left/right-facing sprite mirroring horizontally.
+  // Vertical mirror, distinct from flip()/unflip()'s horizontal one - used by a continuously
+  // rotating sprite to stay right-side-up while aiming left.
   isFlippedY() {
     return this._flippedY;
   }

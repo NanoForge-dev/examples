@@ -1,7 +1,6 @@
 export type WavePhase = "spawning" | "cooldown" | "finished";
 
-// Singleton - one entity holds this for the whole game (spawned alongside the lobby in
-// start-game-packet.handler.ts). Drives and is driven entirely by zombie-wave.system.ts.
+// Singleton (spawned alongside the lobby) - owned entirely by zombie-wave.system.ts.
 export class WaveState {
   name = this.constructor.name;
 
@@ -10,16 +9,13 @@ export class WaveState {
   waveIndex: number = 0;
   subWaveIndex: number = 0;
   phase: WavePhase = "spawning";
-  // Seconds since the current sub-wave/cooldown started - reset to 0 on every spawn and on every
-  // phase transition.
+  // Seconds since the current sub-wave/cooldown phase started.
   timer: number = 0;
-  // Running total of zombies spawned this game - read by game-over.system.ts (alongside a live
-  // alive-zombie count) to derive a "zombies killed" tally, since nothing kills a zombie's own
-  // Health component directly today.
+  // Total zombies spawned this game; game-over.system.ts uses it with the live alive-count to
+  // report a kill tally.
   totalSpawned: number = 0;
-  // Last whole-second countdown value broadcast during "cooldown" (see zombie-wave.system.ts) -
-  // lets it re-broadcast at most once per displayed second instead of every tick, the same
-  // "only send on a visible change" idea sendShootControl already applies to input packets.
+  // Last whole-second countdown value broadcast during cooldown, so zombie-wave.system.ts only
+  // re-sends on a visible change.
   lastCountdownSecond: number = -1;
 }
 

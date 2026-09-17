@@ -16,10 +16,8 @@ function overlapsHitbox(x: number, y: number, position: Position, hitbox: Hitbox
   return x >= left && x <= left + hitbox.width && y >= top && y <= top + hitbox.height;
 }
 
-// Runs after move.system.ts has already advanced every bullet's Position this tick (Bullet only
-// needs Position+Velocity to move, which move.system.ts already drives generically - this only
-// owns what stops a bullet). A bullet is a point, not a box - it doesn't need its own Hitbox,
-// just to fall inside whatever it's checked against.
+// Runs after move.system.ts has advanced every bullet's Position this tick - this only owns what
+// stops a bullet. A bullet is a point, not a box, so it's checked against other hitboxes directly.
 export function bulletSystem(registry: Registry, ctx: Context) {
   const bullets: { id: number; Bullet: Bullet; Position: Position }[] = registry.getIndexedZipper([Bullet, Position]);
   if (bullets.length === 0) return;
@@ -38,8 +36,7 @@ export function bulletSystem(registry: Registry, ctx: Context) {
     if (map) {
       const mapWidth = map.cols * map.tileSize;
       const mapHeight = map.rows * map.tileSize;
-      // Bounded, not a contradiction of "continue infinitely" - the map itself has an edge, and
-      // a bullet with nothing left it could ever hit out there would otherwise never despawn.
+      // Despawn at the map edge - otherwise a bullet that never hits anything would fly forever.
       if (x < 0 || y < 0 || x >= mapWidth || y >= mapHeight) {
         sendToInGamePlayers(network, { type: "kill", id: bullet.id });
         registry.killEntity(registry.entityFromIndex(bullet.id));
@@ -61,9 +58,7 @@ export function bulletSystem(registry: Registry, ctx: Context) {
     if (hitZombie) {
       sendToInGamePlayers(network, { type: "kill", id: bullet.id });
       registry.killEntity(registry.entityFromIndex(bullet.id));
-      // The `hit` packet is broadcast-only (client display) - the authoritative damage has to be
-      // applied here, same as zombie-ai.ts's attack does to players/the lobby. Without this,
-      // zombie-death.system.ts's `Health.current <= 0` check never fires.
+      // Damage must be applied here, not just broadcast - the `hit` packet is display-only.
       hitZombie.Health.current = Math.max(0, hitZombie.Health.current - bullet.Bullet.damage);
       sendToInGamePlayers(network, { type: "hit", id: hitZombie.id, damage: bullet.Bullet.damage });
     }

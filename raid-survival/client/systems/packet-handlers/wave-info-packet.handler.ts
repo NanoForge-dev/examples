@@ -8,8 +8,6 @@ export function waveInfoPacketHandler(packet: any, registry: Registry): void {
 
   hud.waveText.text(`Wave ${packet.wave}/${packet.maxWaves}`);
 
-  // Rect geometry is anchored at its own (x, y) top-left, unlike Sprite scaling - no center-
-  // anchor compensation needed here (contrast hit-packet.handler.ts's health bar fill).
   const fraction = packet.subWaveCount > 0 ? packet.subWave / packet.subWaveCount : 0;
   hud.progressFill.width(hud.progressTrack.width() * fraction);
 

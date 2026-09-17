@@ -1,7 +1,6 @@
-// Raw held-key intent from the client, persisted separately from Velocity - see
-// move-input.system.ts for why: Velocity gets recomputed from this every tick, so a wall
-// collision zeroing one axis (collision-resolve.ts) never permanently overrides what the player
-// is actually still holding, only what's applied for the tick(s) it's genuinely blocked.
+// Held-key intent, kept separate from Velocity: move-input.system.ts recomputes Velocity from
+// this every tick, so a wall-collision-zeroed axis (collision-resolve.ts) isn't stuck once
+// unblocked.
 export class MoveInput {
   name = this.constructor.name;
 
@@ -10,9 +9,8 @@ export class MoveInput {
   left: boolean = false;
   right: boolean = false;
 
-  // Last velocity actually broadcast to clients (move-sync.system.ts) - compared every tick,
-  // after movement and collision have both fully resolved, to catch a blocked axis becoming
-  // unblocked again, which nothing else announces.
+  // Last velocity broadcast (move-sync.system.ts) - used to detect a blocked axis becoming free
+  // again.
   lastBroadcastVelocity: { x: number; y: number } = { x: 0, y: 0 };
 }
 

@@ -5,11 +5,10 @@ import { Position } from "../components/position.component";
 import { Velocity } from "../components/velocity.component";
 import { sendToInGamePlayers } from "../network-utils";
 
-// Shared by every server-side collision system (map trees, the lobby structure, ...): resolves
-// a moving entity's overlap with a static obstacle by reverting just the axis (or axes) that
-// caused it - so it keeps sliding along the other axis instead of hard-stopping - then
-// broadcasts the corrected position/velocity. `isBlocked` tests whether a given (x, y) overlaps
-// the obstacle.
+// Shared by every server-side collision system: resolves a moving entity's overlap with a static
+// obstacle by reverting just the axis that caused it, so it keeps sliding along the other axis
+// instead of hard-stopping, then broadcasts the corrected position/velocity. `isBlocked` tests
+// whether a given (x, y) overlaps the obstacle.
 export function resolveCollision(
   ctx: Context,
   entityId: number,

@@ -6,10 +6,8 @@ import { TextComponent } from "../components/renderable/text.component";
 import { MenuScene } from "./MenuScene";
 import { sceneManager } from "../main";
 
-// Modeled on MenuScene's plain Rect/Text UI pattern - a static screen, no ECS gameplay entities.
-// Doubles as the victory screen (server/systems/game-over.system.ts's "victory" result, all waves
-// cleared with nothing left alive) - same layout and Retry flow either way, just the headline/
-// accent color changes, rather than a whole separate scene for what's otherwise identical UI.
+// Doubles as the victory screen - same layout and Retry flow either way, just the headline/accent
+// color changes based on `won`.
 export class GameOverScene implements Scene {
   readonly name = "gameOver";
   layer: Layer | undefined;
@@ -64,8 +62,6 @@ export class GameOverScene implements Scene {
         fontSize: 32,
         fontStyle: "bold",
         align: "center",
-        // Gold for a win, the same muted red the join-error text uses for a loss - a clear win/
-        // lose read at a glance, not just the wording.
         fill: this.won ? "#D9A441" : "#E88686",
       }),
     );
@@ -126,10 +122,6 @@ export class GameOverScene implements Scene {
       this.stage.container().style.cursor = "default";
     });
     retryButtonComponent.rect.on("click", () => {
-      // Straight back to the join-lobby screen, in its normal fresh/unjoined state - same place
-      // a first-time visitor lands. switchTo() clears the registry and this scene's own layer
-      // before MenuScene builds its own, so nothing from this screen (or the finished game)
-      // lingers.
       this.stage.container().style.cursor = "default";
       sceneManager.switchTo(new MenuScene());
     });

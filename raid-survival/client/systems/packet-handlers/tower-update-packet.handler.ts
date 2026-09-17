@@ -5,11 +5,8 @@ import { SpriteComponent } from "../../components/renderable/sprite.component";
 import { TowerLevelComponent } from "../../components/tower-level.component";
 import { updateHealthBarFill } from "../health-bar-update";
 
-// building-interact.system.ts's E-press heal/upgrade result for a tower - sent for both outcomes
-// (only `level` tells them apart: unchanged on a heal, +1 on an upgrade), so this always applies
-// Health and always re-asserts the level's sprite frame. setAnimation() no-ops when the key is
-// already current (see SpriteComponent), so calling it unconditionally on a heal (same level) is
-// free.
+// Result of a tower heal or upgrade (only `level` tells them apart - unchanged vs. +1). Always
+// applies Health and re-asserts the sprite frame; setAnimation() no-ops if the key is unchanged.
 export function towerUpdatePacketHandler(packet: any, registry: Registry): void {
   const targets: {
     id: number;

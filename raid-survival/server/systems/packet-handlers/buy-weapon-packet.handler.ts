@@ -15,8 +15,7 @@ function reject(network: NetworkServerLibrary, clientId: number, reason: string)
   );
 }
 
-// Buying an unowned weapon. Mirrors build-packet.handler.ts's exact validate -> reject-or-proceed
-// -> mutate -> broadcast flow.
+// Buys an unowned weapon.
 export function buyWeaponPacketHandler(
   clientId: number,
   packet: any,
@@ -51,13 +50,9 @@ export function buyWeaponPacketHandler(
   if (money.amount < catalog.cost) return reject(network, clientId, "not enough money");
 
   money.amount -= catalog.cost;
-  // Arrives loaded: reserve holds the catalog's starting reserve PLUS a full magazine's worth -
-  // ownership alone doesn't equip it (equipWeaponPacketHandler does that separately), and it's
-  // equipping that actually pulls a magazine out of reserve (see there). Seeding it this way
-  // means the first equip nets exactly today's "N in mag, starting reserve in reserve" feel.
-  // infiniteReserve (smallGun) keeps the catalog's -1 sentinel instead - adding magazineSize to it
-  // would turn "infinite" into a real, finite-looking 7 - same guard start-game-packet.handler.ts's
-  // spawn code and equipWeaponPacketHandler's claimWeapon already use.
+  // Ownership alone doesn't equip it - equipWeaponPacketHandler pulls a magazine out of reserve
+  // when it's actually equipped, so reserve is seeded with a full magazine on top of the starting
+  // amount. infiniteReserve weapons keep the catalog's -1 sentinel instead.
   const startingReserve = catalog.infiniteReserve
     ? catalog.startingReserve
     : catalog.startingReserve + catalog.magazineSize;

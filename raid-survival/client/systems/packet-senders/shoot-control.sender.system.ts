@@ -13,10 +13,7 @@ export function sendShootControl(registry: Registry, ctx: Context) {
   const network = ctx.libs.getNetwork<NetworkClientLibrary>();
 
   entities.forEach(({ ShootController, Direction }) => {
-    // Only send "shooting" when it actually changes - weapon.system.ts (server) recomputes
-    // firing/cooldown every tick from the persisted state regardless of packet frequency, so
-    // sending this every single frame the button is held (the old behavior) was pure waste, the
-    // same inefficiency move-control.senders.system.ts already avoids for move keys.
+    // Only send "shooting" on change - the server recomputes firing/cooldown every tick regardless.
     if (ShootController.shooting !== ShootController.lastSentShooting) {
       network.tcp.sendData(
         new TextEncoder().encode(
@@ -33,12 +30,8 @@ export function sendShootControl(registry: Registry, ctx: Context) {
       ShootController.reloadRequested = false;
     }
 
-    // `direction` is purely visual from here on (rotation broadcast to other clients) -
-    // weapon.system.ts (server) no longer aims bullets with it. `mousePosition` (world-space,
-    // same coordinate space Position/Hitbox already live in - see shoot-control.system.ts, which
-    // computes both from the same getRelativePointerPosition() call) is what the server
-    // recomputes a fresh aim vector from at the exact moment a shot fires, so a shot can never
-    // use a Direction value that's gone stale relative to the mouse by even one packet.
+    // `direction` is now purely visual - the server recomputes the actual aim vector from
+    // `mousePosition` at the exact moment a shot fires, so it's never stale by even one packet.
     network.tcp.sendData(
       new TextEncoder().encode(
         JSON.stringify({

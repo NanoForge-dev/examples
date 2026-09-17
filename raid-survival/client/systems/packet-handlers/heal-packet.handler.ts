@@ -3,8 +3,6 @@ import { NetworkId } from "../../components/network-id.component";
 import { Health } from "../../components/health.component";
 import { updateHealthBarFill } from "../health-bar-update";
 
-// loot-box-pickup.system.ts's heal-box result (server-authoritative final value, same "send the
-// number, don't make the client recompute a delta" idiom revive's "completed" event uses).
 export function healPacketHandler(packet: any, registry: Registry): void {
   const targets: { id: number; NetworkId: NetworkId; Health: Health }[] = registry.getIndexedZipper(
     [NetworkId, Health],
