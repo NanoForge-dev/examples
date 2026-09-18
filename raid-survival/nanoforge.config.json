@@ -1,0 +1,10 @@
+{
+  "name": "raid-survival",
+  "language": "ts",
+  "client": {
+    "enable": true
+  },
+  "server": {
+    "enable": true
+  }
+}
