@@ -1,0 +1,19 @@
+import type { Registry } from "@nanoforge-dev/ecs/client";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
+
+import { Health } from "../components/health.component";
+import { NetworkId } from "../components/network-id.component";
+import { updateHealthBarFill } from "../health-bar-update";
+
+export const healHandler = (packet: ServerMessageOf<"heal">, registry: Registry): void => {
+  const targets: { id: number; NetworkId: NetworkId; Health: Health }[] = registry.getIndexedZipper(
+    [NetworkId, Health],
+  );
+  const target = targets.find((entity) => entity.NetworkId.id === packet.id);
+  if (!target) return;
+
+  target.Health.current = packet.health.current;
+  target.Health.max = packet.health.max;
+  const fraction = target.Health.max > 0 ? target.Health.current / target.Health.max : 0;
+  updateHealthBarFill(registry, target.id, fraction);
+};

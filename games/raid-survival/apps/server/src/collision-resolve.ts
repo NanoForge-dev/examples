@@ -1,0 +1,44 @@
+import type { Context } from "@nanoforge-dev/common";
+
+import { broadcast } from "./broadcast";
+import { Position2D } from "./components/position-2d.component";
+import { Velocity2D } from "./components/velocity-2d.component";
+
+// Shared by every server-side collision system: resolves a moving entity's overlap with a static
+// obstacle by reverting just the axis that caused it, so it keeps sliding along the other axis
+// instead of hard-stopping, then broadcasts the corrected position/velocity. `isBlocked` tests
+// whether a given (x, y) overlaps the obstacle.
+export const resolveCollision = (
+  ctx: Context,
+  entityId: number,
+  position: Position2D,
+  velocity: Velocity2D,
+  delta: number,
+  isBlocked: (x: number, y: number) => boolean,
+): void => {
+  const prevX = position.x - velocity.x * delta;
+  const prevY = position.y - velocity.y * delta;
+
+  if (!isBlocked(position.x, prevY)) {
+    // Only the Y movement caused the overlap - stop on Y, keep sliding along X.
+    position.y = prevY;
+    velocity.y = 0;
+  } else if (!isBlocked(prevX, position.y)) {
+    // Only the X movement caused the overlap - stop on X, keep sliding along Y.
+    position.x = prevX;
+    velocity.x = 0;
+  } else {
+    // Both axes overlap on their own (e.g. moving straight into a corner) - stop fully.
+    position.x = prevX;
+    position.y = prevY;
+    velocity.x = 0;
+    velocity.y = 0;
+  }
+
+  broadcast(ctx, {
+    type: "move",
+    id: entityId,
+    velocity: { x: velocity.x, y: velocity.y },
+    position: { x: position.x, y: position.y },
+  });
+};

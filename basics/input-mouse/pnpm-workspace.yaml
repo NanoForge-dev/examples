@@ -1,0 +1,5 @@
+allowBuilds:
+  bun: true
+# NanoForge packages are ours: take a release as soon as it is out.
+minimumReleaseAgeExclude:
+  - "@nanoforge-dev/*"
