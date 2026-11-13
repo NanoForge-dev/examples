@@ -6,8 +6,7 @@ import {
   isBuildingType,
   type OccupiedBox,
 } from "@raid-survival/shared/building-catalog";
-import type { ClientMessageOf } from "@raid-survival/shared/protocol";
-import type { Vector } from "@raid-survival/shared/protocol";
+import type { ClientMessageOf, Vector } from "@raid-survival/shared/protocol";
 
 import { broadcast, sendTo } from "../broadcast";
 import { Building } from "../components/building.component";

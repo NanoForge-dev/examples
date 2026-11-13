@@ -5,8 +5,7 @@ import { Arc, Circle, Layer, Rect, Ring, Shape } from "@nanoforge-dev/graphics-2
 import "@nanoforge-dev/scene";
 import { BUILDING_CATALOG, type BuildingType } from "@raid-survival/shared/building-catalog";
 import { TILE_SIZE } from "@raid-survival/shared/map";
-import type { ServerMessageOf, StartingPlayer } from "@raid-survival/shared/protocol";
-import type { Vector } from "@raid-survival/shared/protocol";
+import type { ServerMessageOf, StartingPlayer, Vector } from "@raid-survival/shared/protocol";
 import { TOWER_RANGE } from "@raid-survival/shared/tower";
 import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
 

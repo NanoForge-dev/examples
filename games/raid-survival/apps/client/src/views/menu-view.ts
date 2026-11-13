@@ -3,7 +3,6 @@ import type { Registry } from "@nanoforge-dev/ecs/client";
 import "@nanoforge-dev/graphics-2d";
 import { Container, Easings, Group, Layer, Stage, Tween } from "@nanoforge-dev/graphics-2d";
 import "@nanoforge-dev/scene";
-import "@nanoforge-dev/scene";
 import { classForSkin, PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
 import { normalizeUsername } from "@raid-survival/shared/protocol";
 

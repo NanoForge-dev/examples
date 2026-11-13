@@ -2,8 +2,7 @@ import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 import { MAP_COLS, MAP_ROWS, TILE_SIZE, TREE_LOCATIONS } from "@raid-survival/shared/map";
 import { classForSkin, PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
-import type { ClientMessageOf } from "@raid-survival/shared/protocol";
-import type { StartingPlayer, Vector } from "@raid-survival/shared/protocol";
+import type { ClientMessageOf, StartingPlayer, Vector } from "@raid-survival/shared/protocol";
 import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
 
 import { broadcast } from "../broadcast";

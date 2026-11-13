@@ -1,8 +1,7 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import "@nanoforge-dev/network/client";
-import { ClientPacket } from "@raid-survival/shared/protocol";
-import type { Vector } from "@raid-survival/shared/protocol";
+import { ClientPacket, type Vector } from "@raid-survival/shared/protocol";
 
 import { Direction } from "../components/direction.component";
 import { ShootController } from "../components/shoot-controller.component";
