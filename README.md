@@ -13,6 +13,27 @@ Games made with [NanoForge](https://nanoforge.eu). Each one is a project of its 
 | `games/`  | Complete games.                                                        |
 | `shared/` | Components and systems several examples use, copied into each of them. |
 
+## Examples
+
+| Example                                          | Shows                                                       |
+| ------------------------------------------------ | ----------------------------------------------------------- |
+| [`basics/input-keyboard`](basics/input-keyboard) | Keyboard input: two squares moved with the arrows and WASD. |
+| [`basics/input-mouse`](basics/input-mouse)       | Mouse position, clicks and drag.                            |
+| [`basics/input-gamepad`](basics/input-gamepad)   | A controller's stick, buttons and rumble.                   |
+| [`basics/sprite-2d`](basics/sprite-2d)           | Images drawn from the assets folder.                        |
+| [`basics/sound`](basics/sound)                   | Sound effects.                                              |
+| [`basics/music`](basics/music)                   | Music tracks.                                               |
+| [`basics/scenes`](basics/scenes)                 | Two scenes and their scene vars.                            |
+| [`basics/network`](basics/network)               | A client, a game server and a shared protocol library.      |
+| [`basics/graphics-3d`](basics/graphics-3d)       | A lit, spinning cube in 3D.                                 |
+| [`demos/pong`](demos/pong)                       | Pong for two players on one keyboard, with scenes.          |
+| [`demos/pong-network`](demos/pong-network)       | Pong over the network, run by a game server.                |
+| [`demos/pong-3d`](demos/pong-3d)                 | Pong in 3D, peer to peer, with the same server code.        |
+| [`games/breakout`](games/breakout)               | Breakout: menu, three levels, pause and end screens.        |
+| [`games/flappy-bird`](games/flappy-bird)         | Flappy Bird.                                                |
+| [`games/tic-tac-toe`](games/tic-tac-toe)         | Tic-tac-toe for two players.                                |
+| [`games/raid-survival`](games/raid-survival)     | A co-op multiplayer zombie survival game.                   |
+
 ## Run an example
 
 ```sh
