@@ -1,7 +1,7 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs";
 import "@nanoforge-dev/network/server";
-import { Move, PLAYER_SPEED } from "@network/protocol/protocol";
+import { Move, PLAYER_SPEED } from "@network/protocol/messages";
 import { Velocity2D } from "../components/velocity-2d.component";
 
 import { Player } from "../components/player.component";

@@ -1,7 +1,7 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs";
 import "@nanoforge-dev/network/client";
-import { PLAYER_SIZE, Players } from "@network/protocol/protocol";
+import { PLAYER_SIZE, Players } from "@network/protocol/messages";
 import { DrawableRect2D } from "../components/drawable-rect-2d.component";
 import { Position2D } from "../components/position-2d.component";
 

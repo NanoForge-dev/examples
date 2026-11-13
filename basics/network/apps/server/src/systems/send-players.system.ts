@@ -1,7 +1,7 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs";
 import "@nanoforge-dev/network/server";
-import { Players } from "@network/protocol/protocol";
+import { Players } from "@network/protocol/messages";
 import { Position2D } from "../components/position-2d.component";
 
 import { Player } from "../components/player.component";

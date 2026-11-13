@@ -14,7 +14,7 @@ It shows the `network` engine library, with a server that owns the game:
 - the client draws the players the server sent (`showPlayers`).
 
 The packets are declared once with `definePacket`, in the shared library `libs/protocol`, which
-both apps import as `@network/protocol/protocol` (the root `tsconfig.json` maps it). `Move`'s
+both apps import as `@network/protocol/messages` (the root `tsconfig.json` maps it). `Move`'s
 `validate` drops anything but two directions: the server never trusts a client.
 
 ```sh

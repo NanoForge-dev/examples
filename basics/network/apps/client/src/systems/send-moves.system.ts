@@ -2,7 +2,7 @@ import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs";
 import "@nanoforge-dev/input";
 import "@nanoforge-dev/network/client";
-import { Join, Move } from "@network/protocol/protocol";
+import { Join, Move } from "@network/protocol/messages";
 
 import { MoveSender } from "../components/move-sender.component";
 

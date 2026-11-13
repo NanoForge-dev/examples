@@ -7,7 +7,7 @@ import { HitboxRect2D } from "../components/hitbox-rect-2d.component";
 import { Paddle } from "../components/paddle.component";
 import { Position2D } from "../components/position-2d.component";
 import { Velocity2D } from "../components/velocity-2d.component";
-import { justPressed } from "../keys";
+import { justPressed } from "../just-pressed";
 
 /** The angle of a serve, from vertical. */
 const SERVE_ANGLE = (30 * Math.PI) / 180;

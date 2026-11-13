@@ -2,7 +2,7 @@ import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs";
 import { InputEnum } from "@nanoforge-dev/input";
 
-import { justPressed } from "../keys";
+import { justPressed } from "../just-pressed";
 import { Level1 } from "../scenes/level-1.scene";
 
 /**
