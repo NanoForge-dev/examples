@@ -39,7 +39,12 @@ import { weaponVisibilitySystem } from "./systems/weapon-visibility.system";
 import { zOrderSystem } from "./systems/z-order.system";
 
 export const main = async (options: ClientRunOptions): Promise<void> => {
-  const app = NanoforgeFactory.createClient();
+  // The screens are laid out in window pixels, as in the original game: a design resolution of the
+  // window's size at start keeps one game unit to one CSS pixel. shortcut: a resize letterboxes
+  // instead of laying the screens out again; lay them out from ctx.viewport to handle it.
+  const app = NanoforgeFactory.createClient({
+    viewport: { width: window.innerWidth, height: window.innerHeight },
+  });
   const ecs = new EcsLibrary();
 
   app.use(ecs);
