@@ -40,6 +40,13 @@ export type LootType = "heal" | "gold" | "ammo";
 
 export type ZombieState = "idle" | "attack" | "dying";
 
+/** The answer to a request the server refused, and why. */
+interface Rejection<T extends string> {
+  type: T;
+  result: "rejected";
+  reason: string;
+}
+
 /** What a client sends. The server checks every field: a client can send anything. */
 export type ClientMessage =
   | { type: "joinLobby"; username: string; skin: number }
@@ -141,7 +148,10 @@ export type ServerMessage =
       weaponType: WeaponType | null;
       weapons: OwnedWeaponAmmo[];
     }
-  | { type: "build" | "buyWeapon" | "buyAmmo" | "equipWeapon"; result: "rejected"; reason: string }
+  | Rejection<"build">
+  | Rejection<"buyWeapon">
+  | Rejection<"buyAmmo">
+  | Rejection<"equipWeapon">
   | { type: "gameOver"; result: "victory" | "defeat"; zombiesKilled: number };
 
 /** The `ServerMessage` of a type. */

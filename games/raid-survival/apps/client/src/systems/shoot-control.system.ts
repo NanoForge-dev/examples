@@ -1,0 +1,66 @@
+import { gameView } from "../game-view";
+import type { Context } from "@nanoforge-dev/common";
+import type { Registry } from "@nanoforge-dev/ecs/client";
+import { InputEnum } from "@nanoforge-dev/input";
+
+import { ShootController } from "../components/shoot-controller.component";
+import { Direction } from "../components/direction.component";
+import type { Vector } from "@raid-survival/shared/protocol";
+import { TransformComponent } from "../components/transform.component";
+import { BuildModeComponent } from "../components/build-mode.component";
+
+const PLAYER_SPRITE_SIZE: Vector = { x: 24, y: 24 };
+
+export const shootControl = (registry: Registry, ctx: Context) => {
+  const entities: {
+    ShootController: ShootController;
+    Direction: Direction;
+    TransformComponent: TransformComponent;
+  }[] = registry.getZipper([ShootController, Direction, TransformComponent]);
+  const input = ctx.input;
+
+  const buildModeEntities: { BuildModeComponent: BuildModeComponent }[] = registry.getZipper([
+    BuildModeComponent,
+  ]);
+  const buildModeActive = buildModeEntities[0]?.BuildModeComponent.active ?? false;
+
+  const pointerPosition: Vector | null =
+    gameView(registry)?.world.getRelativePointerPosition() || null;
+
+  entities.forEach(({ ShootController, Direction, TransformComponent }) => {
+    if (buildModeActive) {
+      // A build-bar click must not also register as a shot. Checked before the pointerPosition
+      // guard below so this branch always runs, even if the pointer is briefly off-canvas.
+      ShootController.shooting = false;
+      ShootController.wasReloadKeyPressed = false;
+      ShootController.reloadRequested = false;
+      return;
+    }
+
+    // Only the aim-dependent polling below needs a pointer position - skip it, but don't skip the
+    // build-mode branch above, which must run every tick regardless.
+    if (!pointerPosition) return;
+
+    ShootController.shooting = <boolean>input.isKeyPressed(ShootController.keyShoot);
+
+    // Edge-detected - a reload request is one-shot, not held, or holding R would re-queue every
+    // frame.
+    const reloadKeyPressed = !!input.isKeyPressed(InputEnum.KeyR);
+    if (reloadKeyPressed && !ShootController.wasReloadKeyPressed) {
+      ShootController.reloadRequested = true;
+    }
+    ShootController.wasReloadKeyPressed = reloadKeyPressed;
+
+    ShootController.position.x = pointerPosition?.x || 0;
+    ShootController.position.y = pointerPosition?.y || 0;
+
+    const dx = pointerPosition.x - (TransformComponent.x + PLAYER_SPRITE_SIZE.x / 2);
+    const dy = pointerPosition.y - (TransformComponent.y + PLAYER_SPRITE_SIZE.y / 2);
+    const length = Math.hypot(dx, dy);
+
+    if (length > 0) {
+      Direction.x = dx / length;
+      Direction.y = dy / length;
+    }
+  });
+};

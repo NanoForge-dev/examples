@@ -5,9 +5,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "nf dev -r",
-    "build": "nf build -r",
-    "start": "nf start -r",
+    "dev": "nf dev",
+    "build": "nf build",
+    "start": "nf start",
     "editor": "nf editor ."
   },
   "devDependencies": {

@@ -1,0 +1,36 @@
+export interface LobbyPlayer {
+  id: number;
+  username: string;
+  skin: number;
+}
+
+export enum LobbyState {
+  UNJOINED,
+  LOADING,
+  JOINED,
+}
+
+export enum LobbyAction {
+  EMPTY,
+  JOIN_LOBBY,
+  START_GAME
+}
+
+/**
+ * What the menu knows of the lobby: the username and skin entered, whether it joined, the
+ * players in it, the last error, and the action to send (`lobbyActionSenders`).
+ *
+ * @component
+ * @side client
+ */
+export class LobbyStatusComponent {
+  name = "LobbyStatusComponent";
+  username = "";
+  // Chosen character skin (player1.png..player3.png) - sent with the join request.
+  skin: number = 1;
+  state: LobbyState = LobbyState.UNJOINED;
+  action: LobbyAction = LobbyAction.EMPTY;
+  players: LobbyPlayer[] = [];
+  // Set on a rejected join, rendered by MenuScene, cleared on the next successful join.
+  error: string | null = null;
+}
