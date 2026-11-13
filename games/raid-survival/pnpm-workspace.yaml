@@ -1,0 +1,12 @@
+packages:
+  - "apps/*"
+  - "libs/*"
+allowBuilds:
+  bun: true
+  node-datachannel: true
+# NanoForge packages are ours: take a release as soon as it is out.
+minimumReleaseAgeExclude:
+  - "@nanoforge-dev/*"
+# The server bundle loads node-datachannel's native addon by its bare name (network README).
+publicHoistPattern:
+  - "@node-datachannel/*"
