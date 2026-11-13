@@ -1,6 +1,7 @@
 import type { ServerMessageOf } from "@raid-survival/shared/protocol";
-import { gameView } from "../game-view";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+
+import { gameView } from "../game-view";
 import { TextComponent } from "../components/text.component";
 import { FloatingTextComponent } from "../components/floating-text.component";
 

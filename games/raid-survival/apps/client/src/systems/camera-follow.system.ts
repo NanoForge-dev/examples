@@ -1,5 +1,6 @@
-import { gameView } from "../game-view";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+
+import { gameView } from "../game-view";
 import { TransformComponent } from "../components/transform.component";
 import { MoveController } from "../components/move-controller.component";
 

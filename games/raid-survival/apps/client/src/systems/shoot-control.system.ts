@@ -1,11 +1,11 @@
-import { gameView } from "../game-view";
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import { InputEnum } from "@nanoforge-dev/input";
+import type { Vector } from "@raid-survival/shared/protocol";
 
+import { gameView } from "../game-view";
 import { ShootController } from "../components/shoot-controller.component";
 import { Direction } from "../components/direction.component";
-import type { Vector } from "@raid-survival/shared/protocol";
 import { TransformComponent } from "../components/transform.component";
 import { BuildModeComponent } from "../components/build-mode.component";
 

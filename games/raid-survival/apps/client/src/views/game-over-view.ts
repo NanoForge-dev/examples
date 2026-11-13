@@ -1,10 +1,10 @@
 import type { Context } from "@nanoforge-dev/common";
 import "@nanoforge-dev/graphics-2d";
 import "@nanoforge-dev/scene";
-
-import type { ScreenView } from "./screen-view";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import { Layer, Stage } from "@nanoforge-dev/graphics-2d";
+
+import type { ScreenView } from "./screen-view";
 import { RectComponent } from "../components/rect.component";
 import { TextComponent } from "../components/text.component";
 import { Menu } from "../scenes/menu.scene";

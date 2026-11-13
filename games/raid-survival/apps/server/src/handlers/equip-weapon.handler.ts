@@ -1,15 +1,15 @@
 import type { ClientMessageOf } from "@raid-survival/shared/protocol";
-import { clientOf, inGame } from "../queries";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 import type { Context } from "@nanoforge-dev/common";
-
-import { broadcast, sendTo } from "../broadcast";
-import { WeaponInventory, type WeaponFireState } from "../components/weapon-inventory.component";
 import {
   WEAPON_CATALOG,
   isWeaponType,
   type WeaponType,
 } from "@raid-survival/shared/weapon-catalog";
+
+import { clientOf, inGame } from "../queries";
+import { broadcast, sendTo } from "../broadcast";
+import { WeaponInventory, type WeaponFireState } from "../components/weapon-inventory.component";
 
 const reject = (ctx: Context, clientId: string, reason: string): void =>
   sendTo(ctx, clientId, { type: "equipWeapon", result: "rejected", reason });

@@ -1,8 +1,9 @@
 import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Context } from "@nanoforge-dev/common";
 import "@nanoforge-dev/scene";
-import { gameView } from "../game-view";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+
+import { gameView } from "../game-view";
 import { TransformComponent } from "../components/transform.component";
 import { NetworkId } from "../components/network-id.component";
 import { TextComponent } from "../components/text.component";

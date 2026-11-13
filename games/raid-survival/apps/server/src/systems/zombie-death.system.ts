@@ -1,13 +1,12 @@
 import type { Registry } from "@nanoforge-dev/ecs/server";
 import type { Context } from "@nanoforge-dev/common";
+import type { LootType } from "@raid-survival/shared/protocol";
 
 import { Zombie } from "../components/zombie.component";
 import { Health } from "../components/health.component";
 import { Money } from "../components/money.component";
 import { Position2D } from "../components/position-2d.component";
 import { Velocity2D } from "../components/velocity-2d.component";
-import type { LootType } from "@raid-survival/shared/protocol";
-
 import { LootBox } from "../components/loot-box.component";
 import { Hitbox } from "../components/hitbox.component";
 import { broadcast } from "../broadcast";

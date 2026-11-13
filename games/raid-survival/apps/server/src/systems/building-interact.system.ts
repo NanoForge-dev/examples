@@ -1,5 +1,13 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
+import {
+  TOWER_HEAL_COST,
+  TOWER_HP_PER_LEVEL,
+  TOWER_MAX_LEVEL,
+  TOWER_UPGRADE_COST,
+  LOBBY_HEAL_COST_PER_HP,
+  WALL_HEAL_COST_PER_HP,
+} from "@raid-survival/shared/tower";
 
 import { Login } from "../components/login.component";
 import { Position2D } from "../components/position-2d.component";
@@ -11,14 +19,6 @@ import { Tower } from "../components/tower.component";
 import { Lobby } from "../components/lobby.component";
 import { Money } from "../components/money.component";
 import { distanceBetweenHitboxes } from "../zombie-ai";
-import {
-  TOWER_HEAL_COST,
-  TOWER_HP_PER_LEVEL,
-  TOWER_MAX_LEVEL,
-  TOWER_UPGRADE_COST,
-  LOBBY_HEAL_COST_PER_HP,
-  WALL_HEAL_COST_PER_HP,
-} from "@raid-survival/shared/tower";
 import { broadcast } from "../broadcast";
 
 const INTERACT_RANGE = 20;

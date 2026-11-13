@@ -1,5 +1,6 @@
 import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+
 import { TransformComponent } from "../components/transform.component";
 import { Velocity2D } from "../components/velocity-2d.component";
 import { NetworkId } from "../components/network-id.component";

@@ -1,12 +1,12 @@
+import type { Context } from "@nanoforge-dev/common";
+import type { Registry } from "@nanoforge-dev/ecs/client";
 import "@nanoforge-dev/network/client";
 import { type ClientMessageOf, ClientPacket } from "@raid-survival/shared/protocol";
 
-type MoveKey = "up" | "down" | "left" | "right";
-import type { Context } from "@nanoforge-dev/common";
-import type { Registry } from "@nanoforge-dev/ecs/client";
-
 import { MoveController } from "../components/move-controller.component";
 import { Velocity2D } from "../components/velocity-2d.component";
+
+type MoveKey = "up" | "down" | "left" | "right";
 
 const compareStringArrays = (array1: string[], array2: string[]) => {
   if (array1.length !== array2.length) return false;

@@ -1,5 +1,6 @@
 import { Circle, Rect, Text } from "@nanoforge-dev/graphics-2d";
 import { type WeaponType } from "@raid-survival/shared/weapon-catalog";
+
 import { type ScreenBox } from "./build-mode.component";
 
 export interface WeaponShopEntry {

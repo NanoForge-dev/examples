@@ -1,5 +1,7 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
+import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
+import { TOWER_RANGE } from "@raid-survival/shared/tower";
 
 import { Building } from "../components/building.component";
 import { Tower } from "../components/tower.component";
@@ -7,9 +9,7 @@ import { Position2D } from "../components/position-2d.component";
 import { Hitbox } from "../components/hitbox.component";
 import { Health } from "../components/health.component";
 import { Zombie } from "../components/zombie.component";
-import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 import { firePellets } from "../fire-pellets";
-import { TOWER_RANGE } from "@raid-survival/shared/tower";
 import { distanceBetweenHitboxes } from "../zombie-ai";
 
 // Level 1 fires at smallGun's own stats; each upgrade adds +1 shot/sec and +1 damage.

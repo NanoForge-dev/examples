@@ -1,6 +1,8 @@
-import { gameView } from "../game-view";
 import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import { TILE_SIZE } from "@raid-survival/shared/map";
+
+import { gameView } from "../game-view";
 import { NetworkId } from "../components/network-id.component";
 import { TransformComponent } from "../components/transform.component";
 import { Velocity2D } from "../components/velocity-2d.component";
@@ -12,7 +14,6 @@ import { DrawOrder2D } from "../components/draw-order-2d.component";
 import { buildHealthBar, buildInteractIndicator } from "../build-world";
 import { Building } from "../components/building.component";
 import { TowerLevelComponent } from "../components/tower-level.component";
-import { TILE_SIZE } from "@raid-survival/shared/map";
 
 // Scales wall-animations.txt's 18x27 crop down slightly to fit the tile's 16px width.
 const BUILDING_SPRITE_SCALE = { x: 0.85, y: 0.85 };

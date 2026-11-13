@@ -2,13 +2,12 @@ import "@nanoforge-dev/scene";
 import type { Context } from "@nanoforge-dev/common";
 import "@nanoforge-dev/graphics-2d";
 import "@nanoforge-dev/scene";
-
 import { normalizeUsername } from "@raid-survival/shared/protocol";
-
-import type { ScreenView } from "./screen-view";
 import { Container, Easings, Group, Layer, Stage, Tween } from "@nanoforge-dev/graphics-2d";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import { classForSkin, PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
 
+import type { ScreenView } from "./screen-view";
 import { RectComponent } from "../components/rect.component";
 import { TextAreaComponent } from "../components/textarea.component";
 import { GroupComponent } from "../components/group.component";
@@ -20,7 +19,6 @@ import {
   LobbyState,
   LobbyStatusComponent,
 } from "../components/lobby-status.component";
-import { classForSkin, PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
 
 // player1.png..player3.png only - player4.png is a differently sized sheet and renders garbled.
 const SKIN_COLORS = ["#D9A441", "#5CA9DC", "#E07856"];

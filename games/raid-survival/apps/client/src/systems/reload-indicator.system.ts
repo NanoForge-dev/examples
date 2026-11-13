@@ -1,6 +1,7 @@
 import type { Context } from "@nanoforge-dev/common";
 import "@nanoforge-dev/scene";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 
 import { NetworkId } from "../components/network-id.component";
 import { ChildrenComponent } from "../components/children.component";
@@ -8,7 +9,6 @@ import { TransformComponent } from "../components/transform.component";
 import { Weapon } from "../components/weapon.component";
 import { ReloadIndicatorComponent } from "../components/reload-indicator.component";
 import { AmmoHudComponent } from "../components/ammo-hud.component";
-import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 import { AMMO_ICON_SIZE } from "../hud-layout";
 
 // Two concerns off the same weapon-by-parent lookup: the world-space "Reloading..." label above

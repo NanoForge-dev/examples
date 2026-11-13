@@ -1,4 +1,5 @@
 import type { Registry } from "@nanoforge-dev/ecs/client";
+
 import { ChildrenComponent } from "./components/children.component";
 import { SpriteComponent } from "./components/sprite.component";
 import { HealthBarFill } from "./components/health-bar-fill.component";

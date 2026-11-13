@@ -2,15 +2,19 @@ import type { Context } from "@nanoforge-dev/common";
 import "@nanoforge-dev/graphics-2d";
 import "@nanoforge-dev/scene";
 import type { ServerMessageOf, StartingPlayer } from "@raid-survival/shared/protocol";
+import type { Registry } from "@nanoforge-dev/ecs/client";
+import { Arc, Circle, Layer, Rect, Ring, Shape } from "@nanoforge-dev/graphics-2d";
+import type { Vector } from "@raid-survival/shared/protocol";
+import { BUILDING_CATALOG, type BuildingType } from "@raid-survival/shared/building-catalog";
+import { TOWER_RANGE } from "@raid-survival/shared/tower";
+import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
+import { TILE_SIZE } from "@raid-survival/shared/map";
 
 import { GameView } from "./components/game-view.component";
-import type { Registry } from "@nanoforge-dev/ecs/client";
 import { SpriteComponent } from "./components/sprite.component";
 import { TransformComponent } from "./components/transform.component";
 import { Velocity2D } from "./components/velocity-2d.component";
 import { MoveController } from "./components/move-controller.component";
-import { Arc, Circle, Layer, Rect, Ring, Shape } from "@nanoforge-dev/graphics-2d";
-import type { Vector } from "@raid-survival/shared/protocol";
 import { NetworkId } from "./components/network-id.component";
 import { Direction } from "./components/direction.component";
 import { ShootController } from "./components/shoot-controller.component";
@@ -39,10 +43,6 @@ import {
   ZOOM_STEP,
 } from "./hud-layout";
 import { WeaponShopComponent } from "./components/weapon-shop.component";
-import { BUILDING_CATALOG, type BuildingType } from "@raid-survival/shared/building-catalog";
-import { TOWER_RANGE } from "@raid-survival/shared/tower";
-import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
-import { TILE_SIZE } from "@raid-survival/shared/map";
 import { Weapon } from "./components/weapon.component";
 import { AmmoHudComponent } from "./components/ammo-hud.component";
 import { ReloadIndicatorComponent } from "./components/reload-indicator.component";

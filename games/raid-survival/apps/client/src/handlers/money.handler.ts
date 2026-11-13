@@ -1,5 +1,6 @@
 import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+
 import { MoneyHudComponent } from "../components/money-hud.component";
 
 export const moneyHandler = (packet: ServerMessageOf<"money">, registry: Registry): void => {

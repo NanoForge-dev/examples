@@ -1,6 +1,7 @@
+import type { Registry } from "@nanoforge-dev/ecs/client";
+
 import { DrawOrder2D } from "../components/draw-order-2d.component";
 import { SpriteComponent } from "../components/sprite.component";
-import type { Registry } from "@nanoforge-dev/ecs/client";
 
 let lastOrder: number[] = [];
 

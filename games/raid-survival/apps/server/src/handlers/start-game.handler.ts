@@ -1,7 +1,12 @@
 import type { ClientMessageOf } from "@raid-survival/shared/protocol";
-import { clientOf, gameState, lobbyClients } from "../queries";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 import type { Context } from "@nanoforge-dev/common";
+import { classForSkin, PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
+import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
+import type { StartingPlayer, Vector } from "@raid-survival/shared/protocol";
+import { MAP_COLS, MAP_ROWS, TILE_SIZE, TREE_LOCATIONS } from "@raid-survival/shared/map";
+
+import { clientOf, gameState, lobbyClients } from "../queries";
 import { broadcast } from "../broadcast";
 import { Position2D } from "../components/position-2d.component";
 import { Direction } from "../components/direction.component";
@@ -19,10 +24,6 @@ import { WeaponInventory, type OwnedWeapon } from "../components/weapon-inventor
 import { ShootInput } from "../components/shoot-input.component";
 import { ReviveInput } from "../components/revive-input.component";
 import { PlayerClass as PlayerClassComponent } from "../components/player-class.component";
-import { classForSkin, PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
-import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
-import type { StartingPlayer, Vector } from "@raid-survival/shared/protocol";
-import { MAP_COLS, MAP_ROWS, TILE_SIZE, TREE_LOCATIONS } from "@raid-survival/shared/map";
 
 const MAX_PLAYERS = 4;
 

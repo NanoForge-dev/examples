@@ -1,8 +1,8 @@
 import type { Context } from "@nanoforge-dev/common";
-import { CURSOR_ICON_SIZE, CURSOR_SCALE } from "../hud-layout";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import "@nanoforge-dev/graphics-2d";
 
+import { CURSOR_ICON_SIZE, CURSOR_SCALE } from "../hud-layout";
 import { CursorComponent } from "../components/cursor.component";
 import { TransformComponent } from "../components/transform.component";
 import { SpriteComponent } from "../components/sprite.component";

@@ -1,7 +1,7 @@
 import { type Context, NfFile } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
-
 import { Sprite } from "@nanoforge-dev/graphics-2d";
+
 import { TransformComponent } from "../components/transform.component";
 import { SpriteComponent } from "../components/sprite.component";
 

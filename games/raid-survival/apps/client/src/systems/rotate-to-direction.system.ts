@@ -1,4 +1,5 @@
 import type { Registry } from "@nanoforge-dev/ecs/client";
+
 import { Direction } from "../components/direction.component";
 import { DirectionRotatorComponent } from "../components/direction-rotator.component";
 import { TransformComponent } from "../components/transform.component";

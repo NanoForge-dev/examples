@@ -1,5 +1,7 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
+import { PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
+import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 
 import { Login } from "../components/login.component";
 import { Position2D } from "../components/position-2d.component";
@@ -9,8 +11,6 @@ import { WeaponInventory } from "../components/weapon-inventory.component";
 import { LootBox } from "../components/loot-box.component";
 import { Money } from "../components/money.component";
 import { PlayerClass } from "../components/player-class.component";
-import { PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
-import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 import { distanceBetweenHitboxes } from "../zombie-ai";
 import { broadcast } from "../broadcast";
 

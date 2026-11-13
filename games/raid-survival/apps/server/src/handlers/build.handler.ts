@@ -1,9 +1,15 @@
 import type { ClientMessageOf } from "@raid-survival/shared/protocol";
-import { inGame, teamMoney } from "../queries";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 import type { Context } from "@nanoforge-dev/common";
 import type { Vector } from "@raid-survival/shared/protocol";
+import {
+  BUILDING_CATALOG,
+  canPlaceBuilding,
+  isBuildingType,
+  type OccupiedBox,
+} from "@raid-survival/shared/building-catalog";
 
+import { inGame, teamMoney } from "../queries";
 import { broadcast, sendTo } from "../broadcast";
 import { Position2D } from "../components/position-2d.component";
 import { CollisionBox } from "../components/collision-box.component";
@@ -12,12 +18,6 @@ import { Health } from "../components/health.component";
 import { Building } from "../components/building.component";
 import { Tower } from "../components/tower.component";
 import { MapCollisions } from "../components/map-collisions.component";
-import {
-  BUILDING_CATALOG,
-  canPlaceBuilding,
-  isBuildingType,
-  type OccupiedBox,
-} from "@raid-survival/shared/building-catalog";
 
 const reject = (ctx: Context, clientId: string, reason: string): void =>
   sendTo(ctx, clientId, { type: "build", result: "rejected", reason });

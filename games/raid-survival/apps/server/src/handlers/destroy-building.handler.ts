@@ -1,14 +1,14 @@
 import type { ClientMessageOf } from "@raid-survival/shared/protocol";
-import { inGame, teamMoney } from "../queries";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 import type { Context } from "@nanoforge-dev/common";
+import { BUILDING_CATALOG } from "@raid-survival/shared/building-catalog";
+import { TOWER_UPGRADE_COST } from "@raid-survival/shared/tower";
 
+import { inGame, teamMoney } from "../queries";
 import { broadcast } from "../broadcast";
 import { Building } from "../components/building.component";
 import { Tower } from "../components/tower.component";
 import { Health } from "../components/health.component";
-import { BUILDING_CATALOG } from "@raid-survival/shared/building-catalog";
-import { TOWER_UPGRADE_COST } from "@raid-survival/shared/tower";
 
 const REFUND_FRACTION = 0.5;
 

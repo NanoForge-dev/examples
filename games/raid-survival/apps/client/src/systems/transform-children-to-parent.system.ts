@@ -1,4 +1,5 @@
 import type { Registry } from "@nanoforge-dev/ecs/client";
+
 import { TransformComponent } from "../components/transform.component";
 import { ChildrenComponent } from "../components/children.component";
 import { Direction } from "../components/direction.component";

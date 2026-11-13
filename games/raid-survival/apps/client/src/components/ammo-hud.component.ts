@@ -1,4 +1,5 @@
 import { Text } from "@nanoforge-dev/graphics-2d";
+
 import { SpriteComponent } from "./sprite.component";
 
 /**

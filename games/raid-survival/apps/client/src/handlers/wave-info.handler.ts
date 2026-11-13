@@ -1,5 +1,6 @@
 import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+
 import { WaveHudComponent } from "../components/wave-hud.component";
 
 export const waveInfoHandler = (packet: ServerMessageOf<"waveInfo">, registry: Registry): void => {
