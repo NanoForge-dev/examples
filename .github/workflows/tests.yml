@@ -1,0 +1,47 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint and shared code
+    runs-on: ubuntu-latest
+    outputs:
+      examples: ${{ steps.list.outputs.examples }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - id: list
+        run: echo "examples=$(node scripts/check.ts --list)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.example }}
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example: ${{ fromJSON(needs.lint.outputs.examples) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.example }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsc --noEmit -p .
+      - run: pnpm build
