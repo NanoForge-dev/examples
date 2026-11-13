@@ -3,6 +3,8 @@ import type { Context } from "@nanoforge-dev/common";
 import "@nanoforge-dev/graphics-2d";
 import "@nanoforge-dev/scene";
 
+import { normalizeUsername } from "@raid-survival/shared/protocol";
+
 import type { ScreenView } from "./screen-view";
 import { Container, Easings, Group, Layer, Stage, Tween } from "@nanoforge-dev/graphics-2d";
 import type { Registry } from "@nanoforge-dev/ecs/client";
@@ -13,7 +15,11 @@ import { GroupComponent } from "../components/group.component";
 import { TextComponent } from "../components/text.component";
 import { SpriteComponent } from "../components/sprite.component";
 import { TransformComponent } from "../components/transform.component";
-import { LobbyAction, LobbyState, LobbyStatusComponent } from "../components/lobby-status.component";
+import {
+  LobbyAction,
+  LobbyState,
+  LobbyStatusComponent,
+} from "../components/lobby-status.component";
 import { classForSkin, PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
 
 // player1.png..player3.png only - player4.png is a differently sized sheet and renders garbled.
@@ -482,7 +488,7 @@ export class MenuView implements ScreenView {
     });
     joinLobbyButtonComponent.rect.on("click", () => {
       if (this.lobbyStatusComponent) {
-        this.lobbyStatusComponent.username = pseudoTextComponent.value;
+        this.lobbyStatusComponent.username = normalizeUsername(pseudoTextComponent.value);
         this.lobbyStatusComponent.action = LobbyAction.JOIN_LOBBY;
       }
     });
@@ -674,7 +680,7 @@ export class MenuView implements ScreenView {
       this.skinDots.push(dotComponent);
     }
 
-    // Each skin IS a class pick (server/player-class-catalog.ts) - this is what tells a player
+    // Each skin IS a class pick (libs/shared player-class-catalog.ts) - this is what tells a player
     // what they're actually choosing, not just cosmetics.
     this.classCaption = new TextComponent(group, {
       text: "",

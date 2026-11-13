@@ -30,7 +30,14 @@ import { WaveHudComponent } from "./components/wave-hud.component";
 import { MoneyHudComponent } from "./components/money-hud.component";
 import { Player } from "./components/player.component";
 import { BuildModeComponent, type BuildBarButton } from "./components/build-mode.component";
-import { AMMO_ICON_SIZE, CURSOR_SCALE, MAX_ZOOM, MIN_ZOOM, WEAPON_LOCAL_OFFSET, ZOOM_STEP } from "./hud-layout";
+import {
+  AMMO_ICON_SIZE,
+  CURSOR_SCALE,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  WEAPON_LOCAL_OFFSET,
+  ZOOM_STEP,
+} from "./hud-layout";
 import { WeaponShopComponent } from "./components/weapon-shop.component";
 import { BUILDING_CATALOG, type BuildingType } from "@raid-survival/shared/building-catalog";
 import { TOWER_RANGE } from "@raid-survival/shared/tower";
@@ -78,7 +85,7 @@ const WAVE_PROGRESS_BAR_SIZE = { width: 180, height: 14 };
 const ALIVE_TEXT_SIZE = { width: 100, height: 24 };
 const WAVE_HUD_GAP = 12;
 const WAVE_HUD_TOP_MARGIN = 14;
-// "Next round in Ns" - wave-info-packet.handler.ts owns showing/hiding it during cooldown.
+// "Next round in Ns" - handlers/wave-info.handler.ts owns showing/hiding it during cooldown.
 const WAVE_COUNTDOWN_TEXT_SIZE = { height: 18 };
 const WAVE_COUNTDOWN_GAP = 6;
 
@@ -125,7 +132,7 @@ const AMMO_HUD_GAP = 10;
 // visible to everyone nearby, not just a local HUD element (reload-indicator.system.ts).
 const RELOAD_TEXT_GAP_ABOVE = 22;
 
-// Custom crosshair cursor, replacing the OS cursor in GameScene. Size/scale shared with
+// Custom crosshair cursor, replacing the OS cursor during a game. Size/scale shared with
 // cursor.system.ts (which positions it every tick), so they can't drift apart.
 const CURSOR_Z_INDEX = 100;
 
@@ -236,7 +243,7 @@ export const buildInteractIndicator = (
 };
 
 // Grey->green "hold E to revive" progress circle, one per player, starting hidden.
-// revive-packet.handler.ts drives its visibility/progress from the server's revive.system.ts
+// handlers/revive.handler.ts drives its visibility/progress from the server's revive.system.ts
 // events; revive-indicator.system.ts positions it every tick (raw Konva shapes, not a
 // SpriteComponent, so spriteSystem never touches it).
 const buildReviveIndicator = (
@@ -352,7 +359,7 @@ const buildReloadIndicator = (
 };
 
 // The single hand + its held weapon for a player. `weaponType` null means unequipped: the weapon
-// sprite still exists (so weapon-inventory-packet.handler.ts has something to re-point later),
+// sprite still exists (so handlers/weapon-inventory.handler.ts has something to re-point later),
 // just hidden - reload-indicator.system.ts/weapon-visibility.system.ts own that visibility.
 const buildHandAndWeapon = (
   world: Layer,
@@ -461,7 +468,6 @@ const buildPlayer = (
   registry: Registry,
   playerId: number | undefined,
 ) => {
-
   const playerEntity = registry.spawnEntity();
   registry.addComponent(playerEntity, new NetworkId(playerPacket.id));
   registry.addComponent(playerEntity, new Player());
@@ -473,7 +479,7 @@ const buildPlayer = (
   );
   registry.addComponent(playerEntity, new Velocity(0, 0));
   // player1.png..player3.png share the same 24x24 idle/walk/death layout (see
-  // player-animations.txt) - picked in MenuScene's skin swatches and carried through the
+  // player-animations.txt) - picked in MenuView's skin swatches and carried through the
   // joinLobby/startGame packets, clamped again here in case a stale/malformed value slipped in.
   const skin =
     Number.isInteger(playerPacket.skin) && playerPacket.skin >= 1 && playerPacket.skin <= 3
@@ -495,31 +501,10 @@ const buildPlayer = (
     playerEntity,
     new Health(playerPacket.health.current, playerPacket.health.max),
   );
-  buildHealthBar(
-    world,
-    registry,
-    playerEntity,
-    PLAYER_SPRITE_SIZE.width,
-    playerPacket.health,
-  );
-  buildReviveIndicator(
-    world,
-    registry,
-    playerEntity,
-    PLAYER_SPRITE_SIZE.width,
-  );
-  buildReviveHintIndicator(
-    world,
-    registry,
-    playerEntity,
-    PLAYER_SPRITE_SIZE.width,
-  );
-  buildReloadIndicator(
-    world,
-    registry,
-    playerEntity,
-    PLAYER_SPRITE_SIZE.width,
-  );
+  buildHealthBar(world, registry, playerEntity, PLAYER_SPRITE_SIZE.width, playerPacket.health);
+  buildReviveIndicator(world, registry, playerEntity, PLAYER_SPRITE_SIZE.width);
+  buildReviveHintIndicator(world, registry, playerEntity, PLAYER_SPRITE_SIZE.width);
+  buildReloadIndicator(world, registry, playerEntity, PLAYER_SPRITE_SIZE.width);
 
   // Every player visibly holds their weapon (not just the local one), so everyone agrees on what
   // everyone else's loadout looks like.
@@ -597,7 +582,11 @@ const buildCursor = (hudLayer: Layer, registry: Registry) => {
   registry.addComponent(cursorEntity, new ZIndexComponent(CURSOR_Z_INDEX));
 };
 
-const buildLobby = (world: Layer, lobbyPacket: any, registry: Registry) => {
+const buildLobby = (
+  world: Layer,
+  lobbyPacket: ServerMessageOf<"startGame">["lobby"],
+  registry: Registry,
+) => {
   const lobbyEntity = registry.spawnEntity();
   registry.addComponent(lobbyEntity, new NetworkId(lobbyPacket.id));
   registry.addComponent(
@@ -617,19 +606,8 @@ const buildLobby = (world: Layer, lobbyPacket: any, registry: Registry) => {
     lobbyEntity,
     new Health(lobbyPacket.health.current, lobbyPacket.health.max),
   );
-  buildHealthBar(
-    world,
-    registry,
-    lobbyEntity,
-    LOBBY_SPRITE_SIZE.width,
-    lobbyPacket.health,
-  );
-  buildInteractIndicator(
-    world,
-    registry,
-    lobbyEntity,
-    LOBBY_SPRITE_SIZE.width,
-  );
+  buildHealthBar(world, registry, lobbyEntity, LOBBY_SPRITE_SIZE.width, lobbyPacket.health);
+  buildInteractIndicator(world, registry, lobbyEntity, LOBBY_SPRITE_SIZE.width);
 };
 
 const buildWaveHud = (layer: Layer, registry: Registry) => {
@@ -671,7 +649,7 @@ const buildWaveHud = (layer: Layer, registry: Registry) => {
   });
   registry.addComponent(trackEntity, trackComponent);
 
-  // Drawn on top of the track, grown from 0 width by wave-info-packet.handler.ts as sub-waves
+  // Drawn on top of the track, grown from 0 width by handlers/wave-info.handler.ts as sub-waves
   // complete.
   const fillEntity = registry.spawnEntity();
   const fillComponent = new RectComponent(layer, {
@@ -699,7 +677,7 @@ const buildWaveHud = (layer: Layer, registry: Registry) => {
   registry.addComponent(aliveTextEntity, aliveTextComponent);
 
   // Centered under the progress bar, hidden except during the between-waves cooldown -
-  // wave-info-packet.handler.ts owns both its text and visibility.
+  // handlers/wave-info.handler.ts owns both its text and visibility.
   const countdownTextEntity = registry.spawnEntity();
   const countdownTextComponent = new TextComponent(layer, {
     text: "",
@@ -1071,7 +1049,11 @@ const buildBuildMode = (worldLayer: Layer, hudLayer: Layer, registry: Registry) 
 // One column, one entry per catalog weapon, shown/hidden alongside the build bar. Clicking a
 // weapon's top row buys it if unowned, refills ammo if already owned; the row underneath
 // equips/unequips it - build-mode.system.ts owns the per-tick button state and click handling.
-const buildWeaponShop = (hudLayer: Layer, registry: Registry, localPlayer: any) => {
+const buildWeaponShop = (
+  hudLayer: Layer,
+  registry: Registry,
+  localPlayer: StartingPlayer | undefined,
+) => {
   const catalogEntries = Object.entries(WEAPON_CATALOG) as [
     WeaponType,
     (typeof WEAPON_CATALOG)[WeaponType],
@@ -1259,6 +1241,7 @@ export const buildWorld = (
   stage.add(view.hud);
   // The crosshair of cursor.system.ts replaces the OS cursor; GameView.destroy() restores it.
   stage.container().style.cursor = "none";
+  stage.container().oncontextmenu = (event) => event.preventDefault();
   registry.addComponent(registry.spawnEntity(), view);
 
   const map = registry.spawnEntity();

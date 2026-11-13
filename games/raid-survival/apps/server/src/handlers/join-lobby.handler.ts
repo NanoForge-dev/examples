@@ -1,13 +1,12 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
-import type { ClientMessageOf } from "@raid-survival/shared/protocol";
+import { type ClientMessageOf, normalizeUsername } from "@raid-survival/shared/protocol";
 
 import { broadcast, sendTo } from "../broadcast";
 import { Client } from "../components/client.component";
 import { inGame, lobbyClients } from "../queries";
 
 const MAX_PLAYERS = 4;
-const MAX_USERNAME_LENGTH = 24;
 
 /** Adds a player to the lobby, or takes back the place of one who left under the same name. */
 export const joinLobbyHandler = (
@@ -19,7 +18,7 @@ export const joinLobbyHandler = (
   const skin =
     Number.isInteger(packet.skin) && packet.skin >= 1 && packet.skin <= 3 ? packet.skin : 1;
   if (typeof packet.username !== "string") return;
-  const username = packet.username.trim().slice(0, MAX_USERNAME_LENGTH);
+  const username = normalizeUsername(packet.username);
   if (!username) return;
 
   // A game in progress never accepts joins: there's no way to hand a joiner a character until
@@ -36,11 +35,7 @@ export const joinLobbyHandler = (
   // against the live sessions rather than the `connected` flag, which lags a tick behind. A second
   // open session under the same name is refused: taking the place over would orphan the first.
   const connected = ctx.network.getConnectedClients();
-  if (
-    known &&
-    known.Client.clientId !== clientId &&
-    connected.includes(known.Client.clientId)
-  ) {
+  if (known && known.Client.clientId !== clientId && connected.includes(known.Client.clientId)) {
     sendTo(ctx, clientId, { type: "joinLobby", result: "username taken" });
     return;
   }

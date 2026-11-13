@@ -40,6 +40,16 @@ export type LootType = "heal" | "gold" | "ammo";
 
 export type ZombieState = "idle" | "attack" | "dying";
 
+/** Longest username a lobby keeps. */
+export const MAX_USERNAME_LENGTH = 24;
+
+/**
+ * The username the server keeps from what a player typed: trimmed, then cut to
+ * `MAX_USERNAME_LENGTH`. The client compares the lobby's players with it to find its own.
+ */
+export const normalizeUsername = (username: string): string =>
+  username.trim().slice(0, MAX_USERNAME_LENGTH);
+
 /** The answer to a request the server refused, and why. */
 interface Rejection<T extends string> {
   type: T;
@@ -163,7 +173,9 @@ export type ClientMessageOf<T extends ClientMessage["type"]> = Extract<ClientMes
 /** Client to server. Only the `type` is checked here: each handler checks its own fields. */
 export const ClientPacket = definePacket<ClientMessage>("raid-client", {
   validate: (data): data is ClientMessage =>
-    typeof data === "object" && data !== null && typeof (data as { type?: unknown }).type === "string",
+    typeof data === "object" &&
+    data !== null &&
+    typeof (data as { type?: unknown }).type === "string",
 });
 
 /** Server to client. */

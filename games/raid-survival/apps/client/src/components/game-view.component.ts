@@ -2,8 +2,8 @@ import { Layer } from "@nanoforge-dev/graphics-2d";
 
 /**
  * The layers a game is drawn on: `world`, scaled and moved by the camera, and `hud`, fixed on
- * screen. The `gameView` system puts them on the stage; `destroy()` removes them when the game
- * scene is unloaded.
+ * screen. `buildWorld` puts them on the stage; `destroy()` removes them, and gives the OS
+ * cursor back, when the game scene is unloaded.
  *
  * @component
  * @side client
@@ -22,6 +22,8 @@ export class GameView {
   ) {}
 
   destroy(): void {
+    const container = this.world.getStage()?.container();
+    if (container) container.style.cursor = "default";
     this.world.destroy();
     this.hud.destroy();
   }
