@@ -23,11 +23,16 @@ export const packetDispatch = (registry: Registry, ctx: Context) => {
     if (!connected.includes(client.clientId)) client.connected = false;
 
   for (const { clientId, data } of ctx.network.packets.read(ClientPacket)) {
-    const handler = CLIENT_HANDLERS[data.type] as
-      | ((clientId: string, message: ClientMessage, registry: Registry, ctx: Context) => void)
-      | undefined;
+    // `type` comes from the client: an inherited key such as "constructor" is no handler.
+    if (!Object.hasOwn(CLIENT_HANDLERS, data.type)) continue;
+    const handler = CLIENT_HANDLERS[data.type] as (
+      clientId: string,
+      message: ClientMessage,
+      registry: Registry,
+      ctx: Context,
+    ) => void;
     try {
-      handler?.(clientId, data, registry, ctx);
+      handler(clientId, data, registry, ctx);
     } catch (error) {
       console.error(`[packet:${data.type}] from ${clientId}`, error);
     }
