@@ -1,7 +1,8 @@
 export type ZombieAnimationState = "idle" | "attack";
 
 /**
- * TODO Zombie
+ * A zombie: the coins it gives when it dies, and the state of its attack and death animations,
+ * which `aiSystem` drives.
  *
  * @component
  * @side server

@@ -18,7 +18,8 @@ const overlapsBox = (
 };
 
 /**
- * TODO
+ * Stops the moving entities with a `CollisionBox` at the still ones (the lobby, the buildings):
+ * the axis that ran into one is undone, and they slide along the other one. Runs after `move2D`.
  *
  * @system
  * @side server

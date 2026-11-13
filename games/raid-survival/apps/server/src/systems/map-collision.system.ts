@@ -23,7 +23,9 @@ const overlapsTree = (map: MapCollisions, x: number, y: number, box: CollisionBo
 };
 
 /**
- * TODO
+ * Stops the moving entities with a `CollisionBox` at the trees of the map: the axis that ran into
+ * a tree cell is undone, and they slide along the other one. Needs a `MapCollisions` entity; runs
+ * after `move2D`.
  *
  * @system
  * @side server

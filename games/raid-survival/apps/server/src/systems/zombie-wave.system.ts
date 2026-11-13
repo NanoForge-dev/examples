@@ -14,7 +14,8 @@ const WAVE_COOLDOWN_SECONDS = 20;
 
 
 /**
- * TODO
+ * Runs the zombie waves of `ZOMBIE_WAVES` (`WaveState`): spawns each sub-wave at the trees, waits
+ * for the wave to be cleared, then counts down to the next one, and tells the players.
  *
  * @system
  * @side server
