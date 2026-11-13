@@ -4,7 +4,7 @@ import type { Registry } from "@nanoforge-dev/ecs";
 import { NetworkId } from "../components/network-id.component";
 import { Position2D } from "../components/position-2d.component";
 import { Velocity2D } from "../components/velocity-2d.component";
-import { Move } from "../protocol";
+import { Move } from "../pong-protocol";
 
 /**
  * Sends a `Move` to every client for each `NetworkId` entity whose velocity changed: the clients

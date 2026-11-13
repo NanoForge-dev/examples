@@ -11,7 +11,7 @@ import { NetworkId } from "./components/network-id.component";
 import { PaddleInput } from "./components/paddle-input.component";
 import { Position2D } from "./components/position-2d.component";
 import { Velocity2D } from "./components/velocity-2d.component";
-import { Play } from "./protocol";
+import { Play } from "./pong-protocol";
 import { applyMoves } from "./systems/apply-moves.system";
 import { draw2D } from "./systems/draw-2d.system";
 import { move2D } from "./systems/move-2d.system";

@@ -4,5 +4,4 @@ dist/
 .nanoforge/
 nf_modules/
 # Old layout, until each game is remade (each remake removes its line)
-/raid-survival/
 /.idea/

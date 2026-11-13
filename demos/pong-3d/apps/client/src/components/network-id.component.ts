@@ -1,6 +1,6 @@
 /**
- * The id of an entity on the network: the server and the clients spawn it with the same one, and
- * its `Move` packets carry it. The paddles have the id of their seat (1 and 2).
+ * The id of an entity on the network: the server and the clients know the entity by it, and the
+ * messages about the entity carry it.
  *
  * @component
  * @side shared
@@ -8,7 +8,7 @@
 export class NetworkId {
   name = "NetworkId";
 
-  /** The velocity last sent to the clients, by the server's `syncMoves`. NaN: to send again. */
+  /** The velocity last sent to the clients (by pong's `syncMoves`). NaN: to send again. */
   sentX = Number.NaN;
   /** See `sentX`. */
   sentY = Number.NaN;

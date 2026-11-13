@@ -4,7 +4,7 @@ import type { Registry } from "@nanoforge-dev/ecs";
 import { NetworkId } from "../components/network-id.component";
 import { Seat } from "../components/seat.component";
 import { Velocity2D } from "../components/velocity-2d.component";
-import { Play, Seated } from "../protocol";
+import { Play, Seated } from "../pong-protocol";
 
 /**
  * Seats each client that sends `Play` on a free `Seat`, or as a watcher, tells it with `Seated`,

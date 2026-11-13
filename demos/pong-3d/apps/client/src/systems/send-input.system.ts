@@ -3,7 +3,7 @@ import type { Registry } from "@nanoforge-dev/ecs";
 import "@nanoforge-dev/input";
 
 import { PaddleInput } from "../components/paddle-input.component";
-import { Input, Seated } from "../protocol";
+import { Input, Seated } from "../pong-protocol";
 
 /**
  * Sends the local player's `PaddleInput` keys to the server when they change, once it has a

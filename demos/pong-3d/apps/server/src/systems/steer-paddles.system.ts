@@ -3,7 +3,7 @@ import type { Registry } from "@nanoforge-dev/ecs";
 
 import { Seat } from "../components/seat.component";
 import { Velocity2D } from "../components/velocity-2d.component";
-import { Input } from "../protocol";
+import { Input } from "../pong-protocol";
 
 const DIRECTIONS = { up: -1, down: 1, stop: 0 };
 

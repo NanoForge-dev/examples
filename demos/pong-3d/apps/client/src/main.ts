@@ -14,7 +14,7 @@ import { PaddleInput } from "./components/paddle-input.component";
 import { Position2D } from "./components/position-2d.component";
 import { Velocity2D } from "./components/velocity-2d.component";
 import { addLights } from "./lights";
-import { Play } from "./protocol";
+import { Play } from "./pong-protocol";
 import { applyMoves } from "./systems/apply-moves.system";
 import { draw3D } from "./systems/draw-3d.system";
 import { followCamera } from "./systems/follow-camera.system";
