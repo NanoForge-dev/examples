@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "scenes",
+  "description": "Switch between two scenes with a key: the smallest NanoForge game made of scenes",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nf dev",
+    "build": "nf build",
+    "start": "nf start",
+    "editor": "nf editor ."
+  },
+  "devDependencies": {
+    "@nanoforge-dev/asset": "^3.0.0",
+    "@nanoforge-dev/cli": "^3.0.1",
+    "@nanoforge-dev/common": "^3.0.0",
+    "@nanoforge-dev/config": "^3.0.1",
+    "@nanoforge-dev/core": "^3.0.0",
+    "@nanoforge-dev/ecs": "^3.0.0",
+    "@nanoforge-dev/editor-lib": "^3.0.0",
+    "@nanoforge-dev/env": "^3.0.0",
+    "@nanoforge-dev/graphics-2d": "^3.0.0",
+    "@nanoforge-dev/input": "^3.0.0",
+    "@nanoforge-dev/scene": "^3.0.0",
+    "typescript": "^6.0.0"
+  }
+}
