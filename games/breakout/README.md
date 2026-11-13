@@ -45,7 +45,8 @@ src/
 ├── components/     one component per file
 ├── level.ts        Level, the base class of the levels (their parent and the next level)
 ├── scene-vars.ts   the scene vars' types and docs
-├── keys.ts         justPressed: a key down since the last time a system asked
+├── just-pressed.ts justPressed: a key down since the last time a system asked (shared copy)
+├── collisions.ts   contact tests of the ball, paddle and walls (shared copy)
 └── record-best.ts  keeps the best score
 ```
 
