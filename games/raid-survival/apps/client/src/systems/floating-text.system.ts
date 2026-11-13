@@ -7,7 +7,8 @@ import { TextComponent } from "../components/text.component";
 const RISE_SPEED = 8; // world-layer-local px/sec
 
 /**
- * Raises and fades each floating text (damage, coins), then removes it when its time is up.
+ * Raises and fades each floating text (loot, a refused purchase), then removes it when its time is
+ * up.
  *
  * @system
  * @side client
