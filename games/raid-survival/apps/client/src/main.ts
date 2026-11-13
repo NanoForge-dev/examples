@@ -8,11 +8,11 @@ import { NetworkClientLibrary } from "@nanoforge-dev/network/client";
 import { SceneLibrary } from "@nanoforge-dev/scene";
 
 import "./scene-vars";
-import { Game } from "./scenes/game.scene";
 import { GameOver } from "./scenes/game-over.scene";
+import { Game } from "./scenes/game.scene";
 import { Menu } from "./scenes/menu.scene";
-import { buildingInteractIndicatorSystem } from "./systems/building-interact-indicator.system";
 import { buildModeSystem } from "./systems/build-mode.system";
+import { buildingInteractIndicatorSystem } from "./systems/building-interact-indicator.system";
 import { cameraFollowSystem } from "./systems/camera-follow.system";
 import { cursorSystem } from "./systems/cursor.system";
 import { floatingTextSystem } from "./systems/floating-text.system";

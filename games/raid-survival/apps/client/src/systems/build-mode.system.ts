@@ -1,31 +1,31 @@
-import "@nanoforge-dev/scene";
-import "@nanoforge-dev/network/client";
-import { ClientPacket } from "@raid-survival/shared/protocol";
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
-import { InputEnum } from "@nanoforge-dev/input";
 import "@nanoforge-dev/graphics-2d";
+import { InputEnum } from "@nanoforge-dev/input";
+import "@nanoforge-dev/network/client";
+import "@nanoforge-dev/scene";
 import {
   BUILDING_CATALOG,
   canPlaceBuilding,
   type OccupiedBox,
 } from "@raid-survival/shared/building-catalog";
-import { TOWER_RANGE } from "@raid-survival/shared/tower";
 import { TILE_SIZE, MAP_COLS, MAP_ROWS, isTreeCell } from "@raid-survival/shared/map";
+import { ClientPacket } from "@raid-survival/shared/protocol";
+import { TOWER_RANGE } from "@raid-survival/shared/tower";
 import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 
-import { gameView } from "../game-view";
 import { BuildModeComponent } from "../components/build-mode.component";
-import { MoneyHudComponent } from "../components/money-hud.component";
 import { Building } from "../components/building.component";
-import { Player } from "../components/player.component";
-import { Lobby } from "../components/lobby.component";
-import { TransformComponent } from "../components/transform.component";
-import { NetworkId } from "../components/network-id.component";
 import { ChildrenComponent } from "../components/children.component";
-import { Weapon } from "../components/weapon.component";
+import { Lobby } from "../components/lobby.component";
+import { MoneyHudComponent } from "../components/money-hud.component";
+import { NetworkId } from "../components/network-id.component";
+import { Player } from "../components/player.component";
 import { SpriteComponent } from "../components/sprite.component";
+import { TransformComponent } from "../components/transform.component";
 import { WeaponShopComponent } from "../components/weapon-shop.component";
+import { Weapon } from "../components/weapon.component";
+import { gameView } from "../game-view";
 
 // Must match the server's handlers/start-game.handler.ts LOBBY_COLLISION_BOX
 // exactly - a real box, not a tile-index check, since the lobby's footprint isn't tile-aligned.

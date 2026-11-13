@@ -1,8 +1,8 @@
 import type { Registry } from "@nanoforge-dev/ecs/client";
 
-import { TransformComponent } from "../components/transform.component";
 import { ChildrenComponent } from "../components/children.component";
 import { Direction } from "../components/direction.component";
+import { TransformComponent } from "../components/transform.component";
 
 /**
  * Moves each child entity to its parent's position plus its offset, and gives it the parent's

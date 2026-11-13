@@ -1,19 +1,19 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import { TILE_SIZE } from "@raid-survival/shared/map";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 
-import { gameView } from "../game-view";
-import { NetworkId } from "../components/network-id.component";
-import { TransformComponent } from "../components/transform.component";
-import { Velocity2D } from "../components/velocity-2d.component";
-import { SpriteComponent } from "../components/sprite.component";
-import { Direction } from "../components/direction.component";
-import { ChildrenComponent } from "../components/children.component";
-import { Health } from "../components/health.component";
-import { DrawOrder2D } from "../components/draw-order-2d.component";
 import { buildHealthBar, buildInteractIndicator } from "../build-world";
 import { Building } from "../components/building.component";
+import { ChildrenComponent } from "../components/children.component";
+import { Direction } from "../components/direction.component";
+import { DrawOrder2D } from "../components/draw-order-2d.component";
+import { Health } from "../components/health.component";
+import { NetworkId } from "../components/network-id.component";
+import { SpriteComponent } from "../components/sprite.component";
 import { TowerLevelComponent } from "../components/tower-level.component";
+import { TransformComponent } from "../components/transform.component";
+import { Velocity2D } from "../components/velocity-2d.component";
+import { gameView } from "../game-view";
 
 // Scales wall-animations.txt's 18x27 crop down slightly to fit the tile's 16px width.
 const BUILDING_SPRITE_SCALE = { x: 0.85, y: 0.85 };

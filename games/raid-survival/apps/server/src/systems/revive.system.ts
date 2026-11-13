@@ -2,14 +2,14 @@ import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 import { PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
 
-import { Login } from "../components/login.component";
-import { Position2D } from "../components/position-2d.component";
-import { Hitbox } from "../components/hitbox.component";
-import { Health } from "../components/health.component";
-import { ReviveInput } from "../components/revive-input.component";
-import { PlayerClass } from "../components/player-class.component";
-import { distanceBetweenHitboxes } from "../zombie-ai";
 import { broadcast } from "../broadcast";
+import { Health } from "../components/health.component";
+import { Hitbox } from "../components/hitbox.component";
+import { Login } from "../components/login.component";
+import { PlayerClass } from "../components/player-class.component";
+import { Position2D } from "../components/position-2d.component";
+import { ReviveInput } from "../components/revive-input.component";
+import { distanceBetweenHitboxes } from "../zombie-ai";
 
 const REVIVE_RANGE = 20;
 const REVIVE_HEALTH_FRACTION = 0.2;

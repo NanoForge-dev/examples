@@ -1,24 +1,24 @@
-import "@nanoforge-dev/scene";
 import type { Context } from "@nanoforge-dev/common";
-import "@nanoforge-dev/graphics-2d";
-import "@nanoforge-dev/scene";
-import { normalizeUsername } from "@raid-survival/shared/protocol";
-import { Container, Easings, Group, Layer, Stage, Tween } from "@nanoforge-dev/graphics-2d";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/graphics-2d";
+import { Container, Easings, Group, Layer, Stage, Tween } from "@nanoforge-dev/graphics-2d";
+import "@nanoforge-dev/scene";
+import "@nanoforge-dev/scene";
 import { classForSkin, PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
+import { normalizeUsername } from "@raid-survival/shared/protocol";
 
-import type { ScreenView } from "./screen-view";
-import { RectComponent } from "../components/rect.component";
-import { TextAreaComponent } from "../components/textarea.component";
 import { GroupComponent } from "../components/group.component";
-import { TextComponent } from "../components/text.component";
-import { SpriteComponent } from "../components/sprite.component";
-import { TransformComponent } from "../components/transform.component";
 import {
   LobbyAction,
   LobbyState,
   LobbyStatusComponent,
 } from "../components/lobby-status.component";
+import { RectComponent } from "../components/rect.component";
+import { SpriteComponent } from "../components/sprite.component";
+import { TextComponent } from "../components/text.component";
+import { TextAreaComponent } from "../components/textarea.component";
+import { TransformComponent } from "../components/transform.component";
+import type { ScreenView } from "./screen-view";
 
 // player1.png..player3.png only - player4.png is a differently sized sheet and renders garbled.
 const SKIN_COLORS = ["#D9A441", "#5CA9DC", "#E07856"];

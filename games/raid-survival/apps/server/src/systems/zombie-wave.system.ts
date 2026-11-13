@@ -1,12 +1,12 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 
+import { broadcast } from "../broadcast";
+import { Health } from "../components/health.component";
 import { WaveState } from "../components/wave-state.component";
 import { Zombie } from "../components/zombie.component";
-import { Health } from "../components/health.component";
 import { spawnZombie } from "../spawn-zombie";
 import { ZOMBIE_WAVES } from "../zombie-waves";
-import { broadcast } from "../broadcast";
 
 // Time between sub-wave spawns, and between one wave finishing and the next starting.
 const SUB_WAVE_INTERVAL_SECONDS = 3;

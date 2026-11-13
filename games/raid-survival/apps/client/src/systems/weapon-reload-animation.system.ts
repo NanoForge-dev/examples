@@ -2,11 +2,11 @@ import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 
-import { Weapon } from "../components/weapon.component";
 import { ChildrenComponent } from "../components/children.component";
 import { DirectionRotatorComponent } from "../components/direction-rotator.component";
 import { SpriteComponent } from "../components/sprite.component";
 import { WeaponReloadOverlayComponent } from "../components/weapon-reload-overlay.component";
+import { Weapon } from "../components/weapon.component";
 import { WEAPON_LOCAL_OFFSET } from "../hud-layout";
 
 // Procedural fallback for any weapon with no dedicated reload animation asset (currently

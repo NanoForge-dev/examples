@@ -1,8 +1,8 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 
-import { NetworkId } from "../components/network-id.component";
 import { Health } from "../components/health.component";
+import { NetworkId } from "../components/network-id.component";
 import { SpriteComponent } from "../components/sprite.component";
 import { TowerLevelComponent } from "../components/tower-level.component";
 import { updateHealthBarFill } from "../health-bar-update";

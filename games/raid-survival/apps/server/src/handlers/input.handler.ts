@@ -1,15 +1,15 @@
-import type { ClientMessageOf } from "@raid-survival/shared/protocol";
-import type { Registry } from "@nanoforge-dev/ecs/server";
 import type { Context } from "@nanoforge-dev/common";
+import type { Registry } from "@nanoforge-dev/ecs/server";
+import type { ClientMessageOf } from "@raid-survival/shared/protocol";
 
-import { clientOf } from "../queries";
-import { Velocity2D } from "../components/velocity-2d.component";
-import { Position2D } from "../components/position-2d.component";
-import { MoveInput } from "../components/move-input.component";
-import { ShootInput } from "../components/shoot-input.component";
-import { ReviveInput } from "../components/revive-input.component";
 import { broadcast } from "../broadcast";
 import { Direction } from "../components/direction.component";
+import { MoveInput } from "../components/move-input.component";
+import { Position2D } from "../components/position-2d.component";
+import { ReviveInput } from "../components/revive-input.component";
+import { ShootInput } from "../components/shoot-input.component";
+import { Velocity2D } from "../components/velocity-2d.component";
+import { clientOf } from "../queries";
 
 export const inputHandler = (
   clientId: string,

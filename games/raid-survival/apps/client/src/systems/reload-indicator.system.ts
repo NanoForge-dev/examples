@@ -1,14 +1,14 @@
 import type { Context } from "@nanoforge-dev/common";
-import "@nanoforge-dev/scene";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/scene";
 import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 
-import { NetworkId } from "../components/network-id.component";
+import { AmmoHudComponent } from "../components/ammo-hud.component";
 import { ChildrenComponent } from "../components/children.component";
+import { NetworkId } from "../components/network-id.component";
+import { ReloadIndicatorComponent } from "../components/reload-indicator.component";
 import { TransformComponent } from "../components/transform.component";
 import { Weapon } from "../components/weapon.component";
-import { ReloadIndicatorComponent } from "../components/reload-indicator.component";
-import { AmmoHudComponent } from "../components/ammo-hud.component";
 import { AMMO_ICON_SIZE } from "../hud-layout";
 
 /**

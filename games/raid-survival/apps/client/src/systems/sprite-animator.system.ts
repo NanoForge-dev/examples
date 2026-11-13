@@ -1,8 +1,8 @@
 import type { Registry } from "@nanoforge-dev/ecs/client";
 
-import { Velocity2D } from "../components/velocity-2d.component";
-import { SpriteComponent } from "../components/sprite.component";
 import { Direction } from "../components/direction.component";
+import { SpriteComponent } from "../components/sprite.component";
+import { Velocity2D } from "../components/velocity-2d.component";
 
 /**
  * Plays the walk or idle animation from each sprite's speed, and flips it to face its `Direction`.

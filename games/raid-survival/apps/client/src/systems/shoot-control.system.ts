@@ -3,11 +3,11 @@ import type { Registry } from "@nanoforge-dev/ecs/client";
 import { InputEnum } from "@nanoforge-dev/input";
 import type { Vector } from "@raid-survival/shared/protocol";
 
-import { gameView } from "../game-view";
-import { ShootController } from "../components/shoot-controller.component";
-import { Direction } from "../components/direction.component";
-import { TransformComponent } from "../components/transform.component";
 import { BuildModeComponent } from "../components/build-mode.component";
+import { Direction } from "../components/direction.component";
+import { ShootController } from "../components/shoot-controller.component";
+import { TransformComponent } from "../components/transform.component";
+import { gameView } from "../game-view";
 
 const PLAYER_SPRITE_SIZE: Vector = { x: 24, y: 24 };
 

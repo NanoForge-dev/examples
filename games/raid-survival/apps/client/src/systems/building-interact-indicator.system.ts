@@ -1,6 +1,6 @@
 import type { Context } from "@nanoforge-dev/common";
-import "@nanoforge-dev/scene";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/scene";
 import {
   LOBBY_HEAL_COST_PER_HP,
   TOWER_HEAL_COST,
@@ -9,13 +9,13 @@ import {
   WALL_HEAL_COST_PER_HP,
 } from "@raid-survival/shared/tower";
 
-import { NetworkId } from "../components/network-id.component";
-import { TransformComponent } from "../components/transform.component";
+import { BuildingInteractIndicatorComponent } from "../components/building-interact-indicator.component";
 import { ChildrenComponent } from "../components/children.component";
 import { Health } from "../components/health.component";
 import { Lobby } from "../components/lobby.component";
+import { NetworkId } from "../components/network-id.component";
 import { TowerLevelComponent } from "../components/tower-level.component";
-import { BuildingInteractIndicatorComponent } from "../components/building-interact-indicator.component";
+import { TransformComponent } from "../components/transform.component";
 
 // Approximates the local player's center for the proximity check below.
 const LOCAL_PLAYER_SIZE = { width: 24, height: 24 };

@@ -1,12 +1,12 @@
-import "@nanoforge-dev/network/client";
-import { ClientPacket } from "@raid-survival/shared/protocol";
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/network/client";
+import { ClientPacket } from "@raid-survival/shared/protocol";
 import type { Vector } from "@raid-survival/shared/protocol";
 
-import { Velocity2D } from "../components/velocity-2d.component";
-import { ShootController } from "../components/shoot-controller.component";
 import { Direction } from "../components/direction.component";
+import { ShootController } from "../components/shoot-controller.component";
+import { Velocity2D } from "../components/velocity-2d.component";
 
 /**
  * Sends the local player's shooting state, reload requests and aim (direction and mouse position)

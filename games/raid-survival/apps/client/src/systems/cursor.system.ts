@@ -2,11 +2,11 @@ import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import "@nanoforge-dev/graphics-2d";
 
-import { CURSOR_ICON_SIZE, CURSOR_SCALE } from "../hud-layout";
-import { CursorComponent } from "../components/cursor.component";
-import { TransformComponent } from "../components/transform.component";
-import { SpriteComponent } from "../components/sprite.component";
 import { BuildModeComponent } from "../components/build-mode.component";
+import { CursorComponent } from "../components/cursor.component";
+import { SpriteComponent } from "../components/sprite.component";
+import { TransformComponent } from "../components/transform.component";
+import { CURSOR_ICON_SIZE, CURSOR_SCALE } from "../hud-layout";
 
 /**
  * Follows the mouse every tick with a custom crosshair, replacing the OS cursor. Build mode wants

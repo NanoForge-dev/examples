@@ -1,9 +1,9 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 
+import { ChildrenComponent } from "../components/children.component";
 import { NetworkId } from "../components/network-id.component";
 import { Weapon } from "../components/weapon.component";
-import { ChildrenComponent } from "../components/children.component";
 
 export const weaponStateHandler = (
   packet: ServerMessageOf<"weaponState">,

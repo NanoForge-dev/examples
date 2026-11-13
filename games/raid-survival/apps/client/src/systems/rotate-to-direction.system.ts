@@ -1,9 +1,9 @@
 import type { Registry } from "@nanoforge-dev/ecs/client";
 
-import { Direction } from "../components/direction.component";
 import { DirectionRotatorComponent } from "../components/direction-rotator.component";
-import { TransformComponent } from "../components/transform.component";
+import { Direction } from "../components/direction.component";
 import { SpriteComponent } from "../components/sprite.component";
+import { TransformComponent } from "../components/transform.component";
 
 /**
  * Turns each sprite with a `DirectionRotatorComponent` toward its `Direction`, mirroring it when it

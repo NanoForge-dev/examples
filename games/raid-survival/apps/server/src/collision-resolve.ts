@@ -1,8 +1,8 @@
 import type { Context } from "@nanoforge-dev/common";
 
+import { broadcast } from "./broadcast";
 import { Position2D } from "./components/position-2d.component";
 import { Velocity2D } from "./components/velocity-2d.component";
-import { broadcast } from "./broadcast";
 
 // Shared by every server-side collision system: resolves a moving entity's overlap with a static
 // obstacle by reverting just the axis that caused it, so it keeps sliding along the other axis

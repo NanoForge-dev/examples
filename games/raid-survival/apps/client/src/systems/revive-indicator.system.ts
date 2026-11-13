@@ -1,8 +1,8 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 
-import { TransformComponent } from "../components/transform.component";
 import { ReviveIndicatorComponent } from "../components/revive-indicator.component";
+import { TransformComponent } from "../components/transform.component";
 
 /**
  * Positions each revive ring pair and fills the green Arc in from the grey Ring underneath as

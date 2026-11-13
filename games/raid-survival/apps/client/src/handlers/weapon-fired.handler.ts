@@ -1,9 +1,9 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 
+import { ChildrenComponent } from "../components/children.component";
 import { NetworkId } from "../components/network-id.component";
 import { Weapon } from "../components/weapon.component";
-import { ChildrenComponent } from "../components/children.component";
 
 // Server-broadcast at the exact moment a shot fires, so every player's shots animate (not just
 // the local one). Purely a visual trigger - weapon-reload-animation.system.ts turns this into an

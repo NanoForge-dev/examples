@@ -1,7 +1,7 @@
-import "@nanoforge-dev/scene";
 import type { Context } from "@nanoforge-dev/common";
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/scene";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 
 import { LobbyState, LobbyStatusComponent } from "../components/lobby-status.component";
 

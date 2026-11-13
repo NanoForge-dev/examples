@@ -1,7 +1,7 @@
 import type { Registry } from "@nanoforge-dev/ecs/client";
 
-import { Player } from "../components/player.component";
 import { Health } from "../components/health.component";
+import { Player } from "../components/player.component";
 import { SpriteComponent } from "../components/sprite.component";
 
 /**

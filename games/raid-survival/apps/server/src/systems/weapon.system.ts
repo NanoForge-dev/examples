@@ -2,13 +2,13 @@ import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
 
-import { WeaponInventory, type WeaponFireState } from "../components/weapon-inventory.component";
-import { ShootInput } from "../components/shoot-input.component";
-import { Position2D } from "../components/position-2d.component";
-import { Hitbox } from "../components/hitbox.component";
+import { broadcast } from "../broadcast";
 import { Direction } from "../components/direction.component";
 import { Health } from "../components/health.component";
-import { broadcast } from "../broadcast";
+import { Hitbox } from "../components/hitbox.component";
+import { Position2D } from "../components/position-2d.component";
+import { ShootInput } from "../components/shoot-input.component";
+import { WeaponInventory, type WeaponFireState } from "../components/weapon-inventory.component";
 import { firePellets } from "../fire-pellets";
 
 const broadcastWeaponState = (

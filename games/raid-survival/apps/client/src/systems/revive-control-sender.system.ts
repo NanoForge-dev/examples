@@ -1,7 +1,7 @@
-import "@nanoforge-dev/network/client";
-import { ClientPacket } from "@raid-survival/shared/protocol";
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/network/client";
+import { ClientPacket } from "@raid-survival/shared/protocol";
 
 import { ReviveController } from "../components/revive-controller.component";
 

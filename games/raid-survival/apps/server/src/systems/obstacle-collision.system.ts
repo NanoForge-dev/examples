@@ -1,10 +1,10 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 
+import { resolveCollision } from "../collision-resolve";
+import { CollisionBox } from "../components/collision-box.component";
 import { Position2D } from "../components/position-2d.component";
 import { Velocity2D } from "../components/velocity-2d.component";
-import { CollisionBox } from "../components/collision-box.component";
-import { resolveCollision } from "../collision-resolve";
 
 const overlapsBox = (
   x1: number,

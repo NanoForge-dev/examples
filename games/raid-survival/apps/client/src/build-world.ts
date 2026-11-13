@@ -1,39 +1,46 @@
 import type { Context } from "@nanoforge-dev/common";
-import "@nanoforge-dev/graphics-2d";
-import "@nanoforge-dev/scene";
-import type { ServerMessageOf, StartingPlayer } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/graphics-2d";
 import { Arc, Circle, Layer, Rect, Ring, Shape } from "@nanoforge-dev/graphics-2d";
-import type { Vector } from "@raid-survival/shared/protocol";
+import "@nanoforge-dev/scene";
 import { BUILDING_CATALOG, type BuildingType } from "@raid-survival/shared/building-catalog";
+import { TILE_SIZE } from "@raid-survival/shared/map";
+import type { ServerMessageOf, StartingPlayer } from "@raid-survival/shared/protocol";
+import type { Vector } from "@raid-survival/shared/protocol";
 import { TOWER_RANGE } from "@raid-survival/shared/tower";
 import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
-import { TILE_SIZE } from "@raid-survival/shared/map";
 
-import { GameView } from "./components/game-view.component";
-import { SpriteComponent } from "./components/sprite.component";
-import { TransformComponent } from "./components/transform.component";
-import { Velocity2D } from "./components/velocity-2d.component";
-import { MoveController } from "./components/move-controller.component";
-import { NetworkId } from "./components/network-id.component";
-import { Direction } from "./components/direction.component";
-import { ShootController } from "./components/shoot-controller.component";
-import { ReviveController } from "./components/revive-controller.component";
-import { ReviveIndicatorComponent } from "./components/revive-indicator.component";
-import { ReviveHintIndicatorComponent } from "./components/revive-hint-indicator.component";
+import { AmmoHudComponent } from "./components/ammo-hud.component";
+import { BuildModeComponent, type BuildBarButton } from "./components/build-mode.component";
 import { BuildingInteractIndicatorComponent } from "./components/building-interact-indicator.component";
 import { ChildrenComponent } from "./components/children.component";
+import { CursorComponent } from "./components/cursor.component";
 import { DirectionRotatorComponent } from "./components/direction-rotator.component";
-import { Lobby } from "./components/lobby.component";
-import { Health } from "./components/health.component";
+import { Direction } from "./components/direction.component";
 import { DrawOrder2D } from "./components/draw-order-2d.component";
+import { GameView } from "./components/game-view.component";
 import { HealthBarFill } from "./components/health-bar-fill.component";
-import { RectComponent } from "./components/rect.component";
-import { TextComponent } from "./components/text.component";
-import { WaveHudComponent } from "./components/wave-hud.component";
+import { Health } from "./components/health.component";
+import { Lobby } from "./components/lobby.component";
 import { MoneyHudComponent } from "./components/money-hud.component";
+import { MoveController } from "./components/move-controller.component";
+import { NetworkId } from "./components/network-id.component";
 import { Player } from "./components/player.component";
-import { BuildModeComponent, type BuildBarButton } from "./components/build-mode.component";
+import { RectComponent } from "./components/rect.component";
+import { ReloadIndicatorComponent } from "./components/reload-indicator.component";
+import { ReviveController } from "./components/revive-controller.component";
+import { ReviveHintIndicatorComponent } from "./components/revive-hint-indicator.component";
+import { ReviveIndicatorComponent } from "./components/revive-indicator.component";
+import { ShootController } from "./components/shoot-controller.component";
+import { SpriteComponent } from "./components/sprite.component";
+import { TextComponent } from "./components/text.component";
+import { TransformComponent } from "./components/transform.component";
+import { Velocity2D } from "./components/velocity-2d.component";
+import { WaveHudComponent } from "./components/wave-hud.component";
+import { WeaponReloadOverlayComponent } from "./components/weapon-reload-overlay.component";
+import { WeaponShopComponent } from "./components/weapon-shop.component";
+import { Weapon } from "./components/weapon.component";
+import { addCoinIcon } from "./hud-helpers";
 import {
   AMMO_ICON_SIZE,
   CURSOR_SCALE,
@@ -42,13 +49,6 @@ import {
   WEAPON_LOCAL_OFFSET,
   ZOOM_STEP,
 } from "./hud-layout";
-import { WeaponShopComponent } from "./components/weapon-shop.component";
-import { Weapon } from "./components/weapon.component";
-import { AmmoHudComponent } from "./components/ammo-hud.component";
-import { ReloadIndicatorComponent } from "./components/reload-indicator.component";
-import { WeaponReloadOverlayComponent } from "./components/weapon-reload-overlay.component";
-import { CursorComponent } from "./components/cursor.component";
-import { addCoinIcon } from "./hud-helpers";
 
 const HEALTH_BAR_Z_INDEX = 30; // above hands (20) - health bars must render above nearby sprites
 // Strictly higher than the frame, not equal - zOrderSystem sorts ties by enumeration order, not

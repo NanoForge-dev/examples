@@ -1,10 +1,10 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 
 import { NetworkId } from "../components/network-id.component";
+import { SpriteComponent } from "../components/sprite.component";
 import { TransformComponent } from "../components/transform.component";
 import { Velocity2D } from "../components/velocity-2d.component";
-import { SpriteComponent } from "../components/sprite.component";
 
 export const zombieStateHandler = (
   packet: ServerMessageOf<"zombieState">,

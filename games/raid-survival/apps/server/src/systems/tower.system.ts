@@ -1,13 +1,13 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
-import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 import { TOWER_RANGE } from "@raid-survival/shared/tower";
+import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 
 import { Building } from "../components/building.component";
-import { Tower } from "../components/tower.component";
-import { Position2D } from "../components/position-2d.component";
-import { Hitbox } from "../components/hitbox.component";
 import { Health } from "../components/health.component";
+import { Hitbox } from "../components/hitbox.component";
+import { Position2D } from "../components/position-2d.component";
+import { Tower } from "../components/tower.component";
 import { Zombie } from "../components/zombie.component";
 import { firePellets } from "../fire-pellets";
 import { distanceBetweenHitboxes } from "../zombie-ai";

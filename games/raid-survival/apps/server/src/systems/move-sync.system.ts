@@ -1,10 +1,10 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 
+import { broadcast } from "../broadcast";
 import { MoveInput } from "../components/move-input.component";
 import { Position2D } from "../components/position-2d.component";
 import { Velocity2D } from "../components/velocity-2d.component";
-import { broadcast } from "../broadcast";
 
 /**
  * collision-resolve.ts broadcasts the moment an axis becomes newly blocked, but not the reverse:

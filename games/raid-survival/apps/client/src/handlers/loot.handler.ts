@@ -1,9 +1,9 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 
-import { gameView } from "../game-view";
-import { TextComponent } from "../components/text.component";
 import { FloatingTextComponent } from "../components/floating-text.component";
+import { TextComponent } from "../components/text.component";
+import { gameView } from "../game-view";
 
 const LOOT_TEXT_DURATION = 1.2; // seconds
 const LOOT_TEXT_SIZE = { width: 60, height: 16 }; // world-layer-local units

@@ -1,5 +1,5 @@
-import type { Vector } from "@raid-survival/shared/protocol";
 import { InputEnum } from "@nanoforge-dev/input";
+import type { Vector } from "@raid-survival/shared/protocol";
 
 /**
  * Aims and fires the weapon of the local player: `shootControl` reads the mouse and the keys,

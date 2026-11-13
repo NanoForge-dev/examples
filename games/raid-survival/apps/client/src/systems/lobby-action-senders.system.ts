@@ -1,7 +1,7 @@
+import type { Context } from "@nanoforge-dev/common";
+import type { Registry } from "@nanoforge-dev/ecs/client";
 import "@nanoforge-dev/network/client";
 import { ClientPacket } from "@raid-survival/shared/protocol";
-import type { Registry } from "@nanoforge-dev/ecs/client";
-import type { Context } from "@nanoforge-dev/common";
 
 import { LobbyAction, LobbyStatusComponent } from "../components/lobby-status.component";
 

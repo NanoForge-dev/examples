@@ -1,5 +1,5 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 
 import { WaveHudComponent } from "../components/wave-hud.component";
 

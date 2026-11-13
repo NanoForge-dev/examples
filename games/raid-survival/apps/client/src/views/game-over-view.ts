@@ -1,13 +1,13 @@
 import type { Context } from "@nanoforge-dev/common";
-import "@nanoforge-dev/graphics-2d";
-import "@nanoforge-dev/scene";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/graphics-2d";
 import { Layer, Stage } from "@nanoforge-dev/graphics-2d";
+import "@nanoforge-dev/scene";
 
-import type { ScreenView } from "./screen-view";
 import { RectComponent } from "../components/rect.component";
 import { TextComponent } from "../components/text.component";
 import { Menu } from "../scenes/menu.scene";
+import type { ScreenView } from "./screen-view";
 
 // Doubles as the victory screen - same layout and Retry flow either way, just the headline/accent
 // color changes based on `won`.

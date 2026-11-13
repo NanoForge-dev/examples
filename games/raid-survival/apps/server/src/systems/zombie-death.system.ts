@@ -1,15 +1,15 @@
-import type { Registry } from "@nanoforge-dev/ecs/server";
 import type { Context } from "@nanoforge-dev/common";
+import type { Registry } from "@nanoforge-dev/ecs/server";
 import type { LootType } from "@raid-survival/shared/protocol";
 
-import { Zombie } from "../components/zombie.component";
+import { broadcast } from "../broadcast";
 import { Health } from "../components/health.component";
+import { Hitbox } from "../components/hitbox.component";
+import { LootBox } from "../components/loot-box.component";
 import { Money } from "../components/money.component";
 import { Position2D } from "../components/position-2d.component";
 import { Velocity2D } from "../components/velocity-2d.component";
-import { LootBox } from "../components/loot-box.component";
-import { Hitbox } from "../components/hitbox.component";
-import { broadcast } from "../broadcast";
+import { Zombie } from "../components/zombie.component";
 
 const LOOT_BOX_DROP_CHANCE = 1 / 20;
 const LOOT_TYPES: LootType[] = ["heal", "gold", "ammo"];

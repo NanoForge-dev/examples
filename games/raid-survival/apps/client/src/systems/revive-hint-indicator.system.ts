@@ -1,13 +1,13 @@
 import type { Context } from "@nanoforge-dev/common";
-import "@nanoforge-dev/scene";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/scene";
 
-import { NetworkId } from "../components/network-id.component";
-import { TransformComponent } from "../components/transform.component";
+import { BuildModeComponent } from "../components/build-mode.component";
 import { ChildrenComponent } from "../components/children.component";
 import { Health } from "../components/health.component";
-import { BuildModeComponent } from "../components/build-mode.component";
+import { NetworkId } from "../components/network-id.component";
 import { ReviveHintIndicatorComponent } from "../components/revive-hint-indicator.component";
+import { TransformComponent } from "../components/transform.component";
 
 // Approximates the local player's center for the proximity check below.
 const LOCAL_PLAYER_SIZE = { width: 24, height: 24 };

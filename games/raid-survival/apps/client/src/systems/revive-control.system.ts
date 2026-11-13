@@ -2,8 +2,8 @@ import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import "@nanoforge-dev/input";
 
-import { ReviveController } from "../components/revive-controller.component";
 import { BuildModeComponent } from "../components/build-mode.component";
+import { ReviveController } from "../components/revive-controller.component";
 
 /**
  * Hold-to-channel poll of the revive key - server-authoritative range/timing lives in
