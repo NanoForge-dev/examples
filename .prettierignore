@@ -4,8 +4,8 @@ dist/
 .nanoforge/
 nf_modules/
 # Old layout, until each game is remade (each remake removes its line)
-flappy-bird/
-pong-network/
-raid-survival/
-tic-tac-toe/
-.idea/
+/flappy-bird/
+/pong-network/
+/raid-survival/
+/tic-tac-toe/
+/.idea/
