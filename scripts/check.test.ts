@@ -26,6 +26,7 @@ test("countItems leaves out types, interfaces and enums", () => {
     "export type T = string;",
     "export interface I {}",
     "export enum E { A }",
+    "export const enum F { A }",
     "export type { U };",
     "export class A {}",
   ].join("\n");

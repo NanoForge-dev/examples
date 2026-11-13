@@ -47,7 +47,7 @@ const sharedFiles = (errors: string[]): Map<string, string> => {
 // An exported value: `export [default] [abstract|async] class|function|const|let|var`, a bare
 // `export default`, or `export *`. Types, interfaces and enums describe the item: not counted.
 const ITEM =
-  /^export (?:default\b|\*|(?:(?:abstract|async) )*(?:class|function|const|let|var)\b)/gm;
+  /^export (?:default\b|\*|(?:(?:abstract|async) )*(?:class|function|const(?! enum\b)|let|var)\b)/gm;
 // `export { a, b as c }` (and `export { a } from "…"`): one item per name not marked `type`.
 const LIST = /^export \{([^}]*)\}/gm;
 const SCENE = /^export (?:default )?class \w+ extends /gm;
