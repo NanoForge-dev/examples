@@ -23,5 +23,10 @@ export class Paddle {
     public maxAngle = 60,
     /** The ball's speed is multiplied by it at each hit: 1 keeps it. @group Bounce */
     public speedUp = 1,
+    /**
+     * The most `speedUp` takes the ball to, in pixels per second. A faster ball goes through
+     * walls in one frame on a slow machine. @group Bounce
+     */
+    public maxSpeed = 1600,
   ) {}
 }

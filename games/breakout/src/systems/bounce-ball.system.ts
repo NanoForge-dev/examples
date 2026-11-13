@@ -14,8 +14,9 @@ import { Wall } from "../components/wall.component";
  *
  * @remarks
  * Off a paddle, the ball leaves in the paddle's direction, turned toward the end it hit, up to
- * the paddle's `maxAngle`, and `speedUp` times faster. Off a wall, it goes back on the axis it
- * went in the least, and the wall counts a hit.
+ * the paddle's `maxAngle`, and `speedUp` times faster, up to its `maxSpeed` (a ball already
+ * faster keeps its speed). Off a wall, it goes back on the axis it went in the least, and the
+ * wall counts a hit.
  *
  * @system
  * @side shared
@@ -43,7 +44,8 @@ export const bounceBall = (registry: Registry) => {
             alongY * (ball.y + box.height / 2 - at.y - size.height / 2)) /
           (length / 2);
         const angle = (Math.max(-1, Math.min(1, offset)) * paddle.maxAngle * Math.PI) / 180;
-        const speed = Math.hypot(velocity.x, velocity.y) * paddle.speedUp;
+        const before = Math.hypot(velocity.x, velocity.y);
+        const speed = Math.min(before * paddle.speedUp, Math.max(before, paddle.maxSpeed));
         velocity.x = speed * (paddle.normalX * Math.cos(angle) + alongX * Math.sin(angle));
         velocity.y = speed * (paddle.normalY * Math.cos(angle) + alongY * Math.sin(angle));
         if (paddle.normalX > 0) ball.x = at.x + size.width;
