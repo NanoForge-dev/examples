@@ -56,7 +56,7 @@ const computeAimDirection = (
     const dx = mousePosition.x - centerX;
     const dy = mousePosition.y - centerY;
     const length = Math.hypot(dx, dy);
-    if (length > 0) return { x: dx / length, y: dy / length };
+    if (Number.isFinite(length) && length > 0) return { x: dx / length, y: dy / length };
   }
   return { x: direction.x, y: direction.y };
 };
