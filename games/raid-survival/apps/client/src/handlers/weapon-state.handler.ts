@@ -4,7 +4,10 @@ import { NetworkId } from "../components/network-id.component";
 import { Weapon } from "../components/weapon.component";
 import { ChildrenComponent } from "../components/children.component";
 
-export const weaponStateHandler = (packet: ServerMessageOf<"weaponState">, registry: Registry): void => {
+export const weaponStateHandler = (
+  packet: ServerMessageOf<"weaponState">,
+  registry: Registry,
+): void => {
   const players: { id: number; NetworkId: NetworkId }[] = registry.getIndexedZipper([NetworkId]);
   const player = players.find((p) => p.NetworkId.id === packet.id);
   if (!player) return;

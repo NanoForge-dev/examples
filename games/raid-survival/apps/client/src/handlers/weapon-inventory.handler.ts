@@ -13,7 +13,11 @@ import { AMMO_ICON_SIZE } from "../hud-layout";
 
 // Handles a buy/ammo-refill/equip result for any player - every client renders every player's
 // weapon, not just its own.
-export const weaponInventoryHandler = (packet: ServerMessageOf<"weaponInventory">, registry: Registry, ctx: Context): void => {
+export const weaponInventoryHandler = (
+  packet: ServerMessageOf<"weaponInventory">,
+  registry: Registry,
+  ctx: Context,
+): void => {
   const players: { id: number; NetworkId: NetworkId }[] = registry.getIndexedZipper([NetworkId]);
   const player = players.find((p) => p.NetworkId.id === packet.id);
   if (!player) return;

@@ -11,7 +11,13 @@ const MAP_BOUNDS = { x: 0, y: 0, width: 1600, height: 1600 };
 // Clamps a camera target so the viewport never scrolls past the map's edge on this axis. If the
 // map is smaller than the viewport (scaled) on this axis, there's no position that avoids
 // showing empty space on both sides - center it instead of hugging one edge arbitrarily.
-const clampCameraAxis = (target: number, viewSize: number, mapOrigin: number, mapSize: number, scale: number): number => {
+const clampCameraAxis = (
+  target: number,
+  viewSize: number,
+  mapOrigin: number,
+  mapSize: number,
+  scale: number,
+): number => {
   const mapSizeScaled = mapSize * scale;
   if (mapSizeScaled <= viewSize) {
     return viewSize / 2 - (mapOrigin + mapSize / 2) * scale;
@@ -43,7 +49,7 @@ export const cameraFollowSystem = (registry: Registry) => {
     const current = layer.position();
     layer.position({
       x: current.x + (targetX - current.x) * CAMERA_SMOOTHING,
-      y: current.y + (targetY - current.y) * CAMERA_SMOOTHING
+      y: current.y + (targetY - current.y) * CAMERA_SMOOTHING,
     });
   }
-}
+};

@@ -15,7 +15,7 @@ const RELOAD_TILT_SPEED = 10; // radians/sec of the oscillation clock
 const RELOAD_TILT_AMPLITUDE = 25; // degrees
 
 // Owns the held weapon's animation state: idle pose, the reload overlay, and a one-shot "shoot"
-// recoil pulse triggered by weapon-fired-packet.handler.ts setting weapon.firing.
+// recoil pulse triggered by handlers/weapon-fired.handler.ts setting weapon.firing.
 //
 // Must run after build-mode.system.ts/weapon-visibility.system.ts (main.ts's registration order):
 // this system only ever forces the main sprite *hidden* while a reload overlay plays instead, so
@@ -81,7 +81,7 @@ export const weaponReloadAnimationSystem = (registry: Registry, ctx: Context) =>
         : WEAPON_LOCAL_OFFSET;
     }
 
-    // weapon-fired-packet.handler.ts sets weapon.firing/firingElapsed on each shot; this counts
+    // handlers/weapon-fired.handler.ts sets weapon.firing/firingElapsed on each shot; this counts
     // the pulse down and expires it after shootSeconds. A weapon with no shoot animation still
     // gets `firing` set (the server broadcasts weaponFired for every type), so clear it
     // immediately here rather than let it never expire with no shootSeconds to compare against.

@@ -23,14 +23,20 @@ const overlapsHitbox = (x: number, y: number, position: Position2D, hitbox: Hitb
  * @side server
  */
 export const bulletSystem = (registry: Registry, ctx: Context) => {
-  const bullets: { id: number; Bullet: Bullet; Position2D: Position2D }[] = registry.getIndexedZipper([Bullet, Position2D]);
+  const bullets: { id: number; Bullet: Bullet; Position2D: Position2D }[] =
+    registry.getIndexedZipper([Bullet, Position2D]);
   if (bullets.length === 0) return;
 
   const maps: { MapCollisions: MapCollisions }[] = registry.getZipper([MapCollisions]);
   const map = maps[0]?.MapCollisions;
 
-  const zombies: { id: number; Zombie: Zombie; Position2D: Position2D; Hitbox: Hitbox; Health: Health }[] =
-    registry.getIndexedZipper([Zombie, Position2D, Hitbox, Health]);
+  const zombies: {
+    id: number;
+    Zombie: Zombie;
+    Position2D: Position2D;
+    Hitbox: Hitbox;
+    Health: Health;
+  }[] = registry.getIndexedZipper([Zombie, Position2D, Hitbox, Health]);
 
   for (const bullet of bullets) {
     const { x, y } = bullet.Position2D;
@@ -55,7 +61,8 @@ export const bulletSystem = (registry: Registry, ctx: Context) => {
     }
 
     const hitZombie = zombies.find(
-      (z) => z.Health.current > 0 && !z.Zombie.dying && overlapsHitbox(x, y, z.Position2D, z.Hitbox),
+      (z) =>
+        z.Health.current > 0 && !z.Zombie.dying && overlapsHitbox(x, y, z.Position2D, z.Hitbox),
     );
     if (hitZombie) {
       broadcast(ctx, { type: "kill", id: bullet.id });

@@ -92,13 +92,7 @@ export const spawnHandler = (packet: ServerMessageOf<"spawn">, registry: Registr
           animationsKey: "zombie-animations.txt",
         }),
       );
-      buildHealthBar(
-        world,
-        registry,
-        newEnt,
-        ZOMBIE_SPRITE_SIZE.width,
-        packet.health,
-      );
+      buildHealthBar(world, registry, newEnt, ZOMBIE_SPRITE_SIZE.width, packet.health);
       break;
     case "building": {
       // zOrderSystem only reorders entities with both ZIndexComponent and SpriteComponent.

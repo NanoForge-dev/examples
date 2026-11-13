@@ -10,5 +10,8 @@ import { Text } from "@nanoforge-dev/graphics-2d";
 export class BuildingInteractIndicatorComponent {
   name = "BuildingInteractIndicatorComponent";
 
-  constructor(public text: Text) {}
+  constructor(
+    /** The hint shown next to a building the player can heal or upgrade. */
+    public text: Text,
+  ) {}
 }

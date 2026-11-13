@@ -16,7 +16,6 @@ export const inputHandler = (
   registry: Registry,
   ctx: Context,
 ): void => {
-
   // Resolved by clientId -> entityId, not by matching a username - usernames aren't unique, so
   // matching by name previously let one player's input packets drive another player's character.
   const client = clientOf(registry, clientId);

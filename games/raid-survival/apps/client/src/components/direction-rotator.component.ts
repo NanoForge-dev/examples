@@ -12,7 +12,14 @@ export class DirectionRotatorComponent {
   // mirrored vertically while aiming left - see rotate-to-direction.system.ts.
   mirrorWhenFacingLeft: boolean;
 
-  constructor(offset: number = 0, enable: boolean = true, mirrorWhenFacingLeft: boolean = false) {
+  constructor(
+    /** Angle added to the direction, in degrees. */
+    offset: number = 0,
+    /** Whether the sprite rotates. */
+    enable: boolean = true,
+    /** Flips the sprite vertically while it aims left. */
+    mirrorWhenFacingLeft: boolean = false,
+  ) {
     this.offset = offset;
     this.enable = enable;
     this.mirrorWhenFacingLeft = mirrorWhenFacingLeft;

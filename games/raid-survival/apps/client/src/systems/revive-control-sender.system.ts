@@ -11,7 +11,10 @@ export const sendReviveControl = (registry: Registry, ctx: Context) => {
   entities.forEach(({ ReviveController }) => {
     // Sent only on change - the server recomputes range/progress every tick regardless.
     if (ReviveController.held !== ReviveController.lastSentHeld) {
-      ctx.network.packets.send(ClientPacket, { type: "input", reviveKeyHeld: ReviveController.held });
+      ctx.network.packets.send(ClientPacket, {
+        type: "input",
+        reviveKeyHeld: ReviveController.held,
+      });
       ReviveController.lastSentHeld = ReviveController.held;
     }
 

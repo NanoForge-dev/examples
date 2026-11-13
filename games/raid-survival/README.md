@@ -19,23 +19,23 @@ pnpm editor   # open it in the editor
 `nf` gives the `NANOFORGE_CLIENT_*` variables to the client and the `NANOFORGE_SERVER_*` ones to
 the server, without the prefix. Everything the client gets reaches the browser.
 
-| Variable                              | Side   | What                                          |
-| ------------------------------------- | ------ | --------------------------------------------- |
-| `NANOFORGE_CLIENT_SERVER_ADDRESS`     | client | Address of the game server                    |
-| `NANOFORGE_CLIENT_SERVER_TCP_PORT`    | client | Its TCP (WebSocket) port                      |
+| Variable                              | Side   | What                                           |
+| ------------------------------------- | ------ | ---------------------------------------------- |
+| `NANOFORGE_CLIENT_SERVER_ADDRESS`     | client | Address of the game server                     |
+| `NANOFORGE_CLIENT_SERVER_TCP_PORT`    | client | Its TCP (WebSocket) port                       |
 | `NANOFORGE_SERVER_LISTENING_TCP_PORT` | server | The TCP (WebSocket) port the server listens on |
 
 ## Controls
 
-| Key or button | Action                                                         |
-| ------------- | -------------------------------------------------------------- |
-| W A S D       | Move                                                           |
-| Mouse         | Aim                                                            |
-| Left click    | Shoot; in build mode, place a building or use a button         |
-| R             | Reload                                                         |
-| E             | Next to the lobby or a building, heal it, or upgrade a tower   |
-| E (hold)      | Next to a downed teammate, revive them                         |
-| B             | Build mode: walls and towers on the grid, zoom buttons         |
+| Key or button | Action                                                       |
+| ------------- | ------------------------------------------------------------ |
+| W A S D       | Move                                                         |
+| Mouse         | Aim                                                          |
+| Left click    | Shoot; in build mode, place a building or use a button       |
+| R             | Reload                                                       |
+| E             | Next to the lobby or a building, heal it, or upgrade a tower |
+| E (hold)      | Next to a downed teammate, revive them                       |
+| B             | Build mode: walls and towers on the grid, zoom buttons       |
 
 The weapon shop on the right of the screen buys weapons and ammo, and picks the weapon in hand.
 

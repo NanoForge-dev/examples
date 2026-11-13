@@ -14,8 +14,12 @@ const REJECTED_TEXT_FONT_SIZE = 8;
 
 // Shared handler for buyWeapon/buyAmmo/equipWeapon rejections (a success is reflected via the
 // separate weaponInventory/money/ammo broadcasts instead). Shown as floating text above the local
-// player, reusing loot-packet.handler.ts's floating-text mechanism.
-export const shopRejectedHandler = (packet: ServerMessageOf<"buyWeapon" | "buyAmmo" | "equipWeapon">, registry: Registry, ctx: Context): void => {
+// player, reusing loot.handler.ts's floating-text mechanism.
+export const shopRejectedHandler = (
+  packet: ServerMessageOf<"buyWeapon" | "buyAmmo" | "equipWeapon">,
+  registry: Registry,
+  ctx: Context,
+): void => {
   const layer = gameView(registry)?.world;
   if (!layer) return;
 

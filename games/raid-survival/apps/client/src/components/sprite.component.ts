@@ -40,7 +40,12 @@ export class SpriteComponent {
   private _flippedY: boolean = false;
   private _pivot: Vector | undefined;
 
-  constructor(spriteKey: string, options?: SpriteComponentOptions) {
+  constructor(
+    /** Path of the image in the assets. */
+    spriteKey: string,
+    /** The animations file, the layer, the scale, the pivot and the first animation. */
+    options?: SpriteComponentOptions,
+  ) {
     this.spriteKey = spriteKey;
     if (options?.animationsKey) this.animationsKey = options.animationsKey;
     if (options?.scale) this._scale = options.scale;

@@ -8,6 +8,7 @@ export class ZIndexComponent {
   name = "ZIndexComponent";
 
   constructor(
-    public value: number = 0
+    /** Draw order: higher is drawn on top. */
+    public value: number = 0,
   ) {}
 }

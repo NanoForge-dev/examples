@@ -9,5 +9,8 @@ export class HealthBarFill {
 
   // Fill's cavity-left-edge X in parent-local space - constant per instance, used to recompute
   // LocalTransform.x on a health change.
-  constructor(public cavityLocalX: number) {}
+  constructor(
+    /** Left edge of the bar's cavity, in the bar's local space. */
+    public cavityLocalX: number,
+  ) {}
 }

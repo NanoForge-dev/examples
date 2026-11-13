@@ -10,5 +10,8 @@ import { type BuildingType } from "@raid-survival/shared/building-catalog";
 export class Building {
   name = "Building";
 
-  constructor(public buildingType: BuildingType) {}
+  constructor(
+    /** The kind of building. */
+    public buildingType: BuildingType,
+  ) {}
 }

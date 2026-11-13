@@ -4,7 +4,11 @@ import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import { LobbyState, LobbyStatusComponent } from "../components/lobby-status.component";
 
-export const joinLobbyHandler = (packet: ServerMessageOf<"joinLobby">, registry: Registry, ctx: Context): void => {
+export const joinLobbyHandler = (
+  packet: ServerMessageOf<"joinLobby">,
+  registry: Registry,
+  ctx: Context,
+): void => {
   const entities: { LobbyStatusComponent: LobbyStatusComponent }[] = registry.getZipper([
     LobbyStatusComponent,
   ]);
@@ -28,9 +32,11 @@ export const joinLobbyHandler = (packet: ServerMessageOf<"joinLobby">, registry:
   } else if (packet.result === "full") {
     firstLobbyStatus.LobbyStatusComponent.error = "Lobby is full.";
   } else if (packet.result === "in game") {
-    firstLobbyStatus.LobbyStatusComponent.error = "A game is already in progress - please wait for it to end.";
+    firstLobbyStatus.LobbyStatusComponent.error =
+      "A game is already in progress - please wait for it to end.";
   } else if (packet.result === "username taken") {
-    firstLobbyStatus.LobbyStatusComponent.error = "That username is already taken - pick another one.";
+    firstLobbyStatus.LobbyStatusComponent.error =
+      "That username is already taken - pick another one.";
   } else {
     console.log(packet);
   }

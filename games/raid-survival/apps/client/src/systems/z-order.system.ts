@@ -5,7 +5,8 @@ import type { Registry } from "@nanoforge-dev/ecs/client";
 let lastOrder: number[] = [];
 
 export const zOrderSystem = (registry: Registry) => {
-  const entities: {ZIndexComponent: ZIndexComponent, SpriteComponent: SpriteComponent}[] = registry.getZipper([ZIndexComponent, SpriteComponent]);
+  const entities: { ZIndexComponent: ZIndexComponent; SpriteComponent: SpriteComponent }[] =
+    registry.getZipper([ZIndexComponent, SpriteComponent]);
   const sorted = [...entities].sort((a, b) => a.ZIndexComponent.value - b.ZIndexComponent.value);
 
   const currentOrder = sorted.map((e) => e.SpriteComponent.sprite?._id ?? -1);

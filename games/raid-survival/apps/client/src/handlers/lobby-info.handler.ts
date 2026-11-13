@@ -2,7 +2,10 @@ import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import { LobbyStatusComponent } from "../components/lobby-status.component";
 
-export const lobbyInfoHandler = (packet: ServerMessageOf<"lobbyInfo">, registry: Registry): void => {
+export const lobbyInfoHandler = (
+  packet: ServerMessageOf<"lobbyInfo">,
+  registry: Registry,
+): void => {
   const entities: { LobbyStatusComponent: LobbyStatusComponent }[] = registry.getZipper([
     LobbyStatusComponent,
   ]);
@@ -13,6 +16,10 @@ export const lobbyInfoHandler = (packet: ServerMessageOf<"lobbyInfo">, registry:
   firstLobbyStatus.LobbyStatusComponent.players = [];
 
   for (const player of packet.players) {
-    firstLobbyStatus.LobbyStatusComponent.players.push({ id: player.id, username: player.username, skin: player.skin ?? 1 });
+    firstLobbyStatus.LobbyStatusComponent.players.push({
+      id: player.id,
+      username: player.username,
+      skin: player.skin ?? 1,
+    });
   }
 };

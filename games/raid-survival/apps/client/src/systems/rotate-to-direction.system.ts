@@ -21,7 +21,10 @@ export const rotateToDirectionSystem = (registry: Registry) => {
 
     let flipped = false;
     if (mirrorWhenFacingLeft) {
-      const sprite = registry.getEntityComponent(registry.entityFromIndex(entity.id), SpriteComponent);
+      const sprite = registry.getEntityComponent(
+        registry.entityFromIndex(entity.id),
+        SpriteComponent,
+      );
       if (sprite) {
         // Direction.x === 0 leaves the current flip state alone, avoiding flicker aiming exactly
         // up/down.

@@ -8,6 +8,7 @@ export class NetworkId {
   name = "NetworkId";
 
   constructor(
+    /** Entity id on the server. */
     public id: number,
   ) {}
 }

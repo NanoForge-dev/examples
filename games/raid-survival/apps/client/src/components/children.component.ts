@@ -15,7 +15,12 @@ export class ChildrenComponent {
   parentId: number;
   options: ChildrenOptions;
 
-  constructor(parentId: number, options: ChildrenOptions) {
+  constructor(
+    /** Entity id of the entity to follow. */
+    parentId: number,
+    /** The offset, and what of the parent to follow. */
+    options: ChildrenOptions,
+  ) {
     this.parentId = parentId;
     this.options = options;
   }

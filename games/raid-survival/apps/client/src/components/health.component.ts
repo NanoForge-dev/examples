@@ -8,7 +8,9 @@ export class Health {
   name = "Health";
 
   constructor(
+    /** Health left. */
     public current: number,
+    /** Health at full. */
     public max: number,
   ) {}
 }

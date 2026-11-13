@@ -9,7 +9,9 @@ export class Velocity {
   name = "Velocity";
 
   constructor(
+    /** Horizontal speed, in pixels per second. */
     public x: number,
+    /** Vertical speed, in pixels per second. */
     public y: number,
   ) {}
 }

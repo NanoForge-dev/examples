@@ -8,7 +8,10 @@ import { updateHealthBarFill } from "../health-bar-update";
 
 // Result of a tower heal or upgrade (only `level` tells them apart - unchanged vs. +1). Always
 // applies Health and re-asserts the sprite frame; setAnimation() no-ops if the key is unchanged.
-export const towerUpdateHandler = (packet: ServerMessageOf<"towerUpdate">, registry: Registry): void => {
+export const towerUpdateHandler = (
+  packet: ServerMessageOf<"towerUpdate">,
+  registry: Registry,
+): void => {
   const targets: {
     id: number;
     NetworkId: NetworkId;

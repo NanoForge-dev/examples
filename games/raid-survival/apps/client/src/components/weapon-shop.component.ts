@@ -20,7 +20,7 @@ export interface OwnedWeaponAmmo {
 
 /**
  * Singleton, local player only. Visibility/button state owned by build-mode.system.ts; data kept
- * in sync by weapon-inventory-packet.handler.ts and ammo-packet.handler.ts.
+ * in sync by handlers/weapon-inventory.handler.ts and handlers/ammo.handler.ts.
  *
  * @component
  * @side client
@@ -39,8 +39,11 @@ export class WeaponShopComponent {
   pendingEquip: { weaponType: WeaponType | null } | null = null;
 
   constructor(
+    /** One entry per weapon: its buy and select buttons. */
     public entries: WeaponShopEntry[],
+    /** Screen box of the shop, where a click is not a shot. */
     public shopBounds: ScreenBox,
+    /** The hint under the shop. */
     public hintText: Text,
   ) {}
 }

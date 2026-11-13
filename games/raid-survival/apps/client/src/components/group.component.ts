@@ -10,7 +10,12 @@ export class GroupComponent {
   name = "GroupComponent";
   group: Group;
 
-  constructor(parent: Container, options: GroupConfig) {
+  constructor(
+    /** The node the group is added to. */
+    parent: Container,
+    /** Konva options of the group. */
+    options: GroupConfig,
+  ) {
     this.group = new Group(options);
     parent.add(this.group);
   }

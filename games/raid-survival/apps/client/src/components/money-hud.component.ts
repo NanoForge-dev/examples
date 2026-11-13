@@ -12,8 +12,11 @@ export class MoneyHudComponent {
   name = "MoneyHudComponent";
 
   constructor(
+    /** The amount text. */
     public text: Text,
+    /** Coins of the team. */
     public amount: number,
+    /** The coin drawn before the amount. */
     public coinIcon: Circle,
   ) {}
 }

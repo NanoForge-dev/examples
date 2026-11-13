@@ -46,8 +46,7 @@ const PLAYER_HITBOX_OFFSET: Vector = {
 
 const LOBBY_SPRITE_SIZE: Vector = { x: 187, y: 143 };
 
-const tilesFor = (size: number) =>
-  Math.ceil(size / TILE_SIZE) * TILE_SIZE;
+const tilesFor = (size: number) => Math.ceil(size / TILE_SIZE) * TILE_SIZE;
 const LOBBY_COLLISION_BOX: Vector = {
   x: tilesFor(LOBBY_SPRITE_SIZE.x),
   y: tilesFor(LOBBY_SPRITE_SIZE.y),
@@ -83,15 +82,7 @@ export const startGameHandler = (
   state.status = "inGame";
 
   const map = registry.spawnEntity();
-  registry.addComponent(
-    map,
-    new MapCollisions(
-      TILE_SIZE,
-      MAP_COLS,
-      MAP_ROWS,
-      TREE_LOCATIONS,
-    ),
-  );
+  registry.addComponent(map, new MapCollisions(TILE_SIZE, MAP_COLS, MAP_ROWS, TREE_LOCATIONS));
 
   const lobby = registry.spawnEntity();
   registry.addComponent(lobby, new Position2D(LOBBY_POSITION.x, LOBBY_POSITION.y));
@@ -110,10 +101,7 @@ export const startGameHandler = (
     const player = registry.entityFromIndex(id);
     registry.addComponent(player, new Direction(1, 0));
     registry.addComponent(player, new Login(client.username));
-    registry.addComponent(
-      player,
-      new Position2D(spawner.x, spawner.y),
-    );
+    registry.addComponent(player, new Position2D(spawner.x, spawner.y));
     registry.addComponent(player, new Velocity2D(0, 0));
     registry.addComponent(player, new MoveInput());
     registry.addComponent(player, new CollisionBox(PLAYER_COLLISION_BOX.x, PLAYER_COLLISION_BOX.y));
@@ -183,7 +171,7 @@ export const startGameHandler = (
   });
 
   // Zombie spawning from here on is entirely driven by zombie-wave.system.ts, ticking off this
-  // singleton state entity - see server/static/zombie-waves.txt for the wave config.
+  // singleton state entity - see zombie-waves.ts for the wave config.
   const waveState = registry.spawnEntity();
   registry.addComponent(waveState, new WaveState(lobby.getId()));
 };

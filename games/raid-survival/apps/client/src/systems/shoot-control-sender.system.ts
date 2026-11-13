@@ -27,9 +27,9 @@ export const sendShootControl = (registry: Registry, ctx: Context) => {
     // `direction` is now purely visual - the server recomputes the actual aim vector from
     // `mousePosition` at the exact moment a shot fires, so it's never stale by even one packet.
     ctx.network.packets.send(ClientPacket, {
-          type: "input",
-          direction: { x: Direction.x, y: Direction.y },
-          mousePosition: { x: ShootController.position.x, y: ShootController.position.y },
-        });
+      type: "input",
+      direction: { x: Direction.x, y: Direction.y },
+      mousePosition: { x: ShootController.position.x, y: ShootController.position.y },
+    });
   });
 };

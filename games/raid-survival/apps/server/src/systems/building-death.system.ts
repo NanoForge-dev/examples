@@ -6,7 +6,7 @@ import { Health } from "../components/health.component";
 import { broadcast } from "../broadcast";
 
 /**
- * Removes a building once its HP hits 0, freeing its tile for build-packet.handler.ts's
+ * Removes a building once its HP hits 0, freeing its tile for handlers/build.handler.ts's
  * occupancy check and for zombies to walk through.
  *
  * @system

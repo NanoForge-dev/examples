@@ -7,7 +7,10 @@ import { ChildrenComponent } from "../components/children.component";
 // Server-broadcast at the exact moment a shot fires, so every player's shots animate (not just
 // the local one). Purely a visual trigger - weapon-reload-animation.system.ts turns this into an
 // actual animation.
-export const weaponFiredHandler = (packet: ServerMessageOf<"weaponFired">, registry: Registry): void => {
+export const weaponFiredHandler = (
+  packet: ServerMessageOf<"weaponFired">,
+  registry: Registry,
+): void => {
   const players: { id: number; NetworkId: NetworkId }[] = registry.getIndexedZipper([NetworkId]);
   const player = players.find((p) => p.NetworkId.id === packet.id);
   if (!player) return;

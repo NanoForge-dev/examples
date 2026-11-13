@@ -29,7 +29,7 @@ interface PlayerEntity {
  * REVIVER's own ReviveInput, not the target's - releasing E, moving out of range, switching
  * targets, or the reviver's death all reset progress to 0.
  *
- * Registered before gameOverSystem (server/main.ts) so a revive completed this tick is already
+ * Registered before gameOverSystem (main.ts) so a revive completed this tick is already
  * reflected in Health before that system's allPlayersDead check runs.
  *
  * @system

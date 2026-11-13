@@ -40,7 +40,6 @@ export const buildHandler = (
   registry: Registry,
   ctx: Context,
 ): void => {
-
   if (!inGame(registry)) return;
 
   const buildingType = packet.buildingType;
@@ -63,9 +62,8 @@ export const buildHandler = (
 
   // The lobby, every building, and every player all carry a CollisionBox, so one generic query
   // blocks placement on all three - players are included so a wall/tower can't trap one in place.
-  const obstacleEntities: { Position2D: Position2D; CollisionBox: CollisionBox }[] = registry.getZipper(
-    [Position2D, CollisionBox],
-  );
+  const obstacleEntities: { Position2D: Position2D; CollisionBox: CollisionBox }[] =
+    registry.getZipper([Position2D, CollisionBox]);
 
   const obstacles: OccupiedBox[] = obstacleEntities.map(({ Position2D, CollisionBox }) => ({
     x: Position2D.x,

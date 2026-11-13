@@ -11,9 +11,11 @@ export class Weapon {
 
   constructor(
     // null while nothing is equipped - sprite is hidden in that state.
+    /** The weapon in hand, `null` when none. */
     public weaponType: WeaponType | null,
     // Base DirectionRotatorComponent aim offset - weapon-reload-animation.system.ts adds an
     // oscillating delta on top while reloading, then restores this exactly.
+    /** Aim offset of the weapon's art, in degrees. */
     public baseRotationOffset: number,
   ) {}
 

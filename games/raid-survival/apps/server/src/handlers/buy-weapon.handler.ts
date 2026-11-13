@@ -17,7 +17,6 @@ export const buyWeaponHandler = (
   registry: Registry,
   ctx: Context,
 ): void => {
-
   if (!inGame(registry)) return;
 
   const weaponType = packet.weaponType;

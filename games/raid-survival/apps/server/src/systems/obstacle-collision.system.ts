@@ -14,7 +14,9 @@ const overlapsBox = (
   y2: number,
   box2: CollisionBox,
 ): boolean => {
-  return x1 < x2 + box2.width && x1 + box1.width > x2 && y1 < y2 + box2.height && y1 + box1.height > y2;
+  return (
+    x1 < x2 + box2.width && x1 + box1.width > x2 && y1 < y2 + box2.height && y1 + box1.height > y2
+  );
 };
 
 /**
@@ -42,7 +44,14 @@ export const obstacleCollisionSystem = (registry: Registry, ctx: Context) => {
   } of movers) {
     for (const obstacle of obstacles) {
       if (
-        !overlapsBox(position.x, position.y, box, obstacle.Position2D.x, obstacle.Position2D.y, obstacle.CollisionBox)
+        !overlapsBox(
+          position.x,
+          position.y,
+          box,
+          obstacle.Position2D.x,
+          obstacle.Position2D.y,
+          obstacle.CollisionBox,
+        )
       )
         continue;
 

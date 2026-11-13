@@ -10,7 +10,12 @@ export class TextComponent {
   name = "TextComponent";
   text: Text;
 
-  constructor(parent: Container, options: TextConfig) {
+  constructor(
+    /** The node the text is added to. */
+    parent: Container,
+    /** Konva options of the text. */
+    options: TextConfig,
+  ) {
     this.text = new Text(options);
     parent.add(this.text);
   }

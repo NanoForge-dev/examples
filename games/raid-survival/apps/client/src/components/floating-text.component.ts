@@ -8,7 +8,10 @@
 export class FloatingTextComponent {
   name = "FloatingTextComponent";
 
-  constructor(public duration: number) {}
+  constructor(
+    /** Seconds before the text is removed. */
+    public duration: number,
+  ) {}
 
   elapsed: number = 0;
 }

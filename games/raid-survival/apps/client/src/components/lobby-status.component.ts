@@ -13,7 +13,7 @@ export enum LobbyState {
 export enum LobbyAction {
   EMPTY,
   JOIN_LOBBY,
-  START_GAME
+  START_GAME,
 }
 
 /**
@@ -31,6 +31,6 @@ export class LobbyStatusComponent {
   state: LobbyState = LobbyState.UNJOINED;
   action: LobbyAction = LobbyAction.EMPTY;
   players: LobbyPlayer[] = [];
-  // Set on a rejected join, rendered by MenuScene, cleared on the next successful join.
+  // Set on a rejected join, rendered by MenuView, cleared on the next successful join.
   error: string | null = null;
 }

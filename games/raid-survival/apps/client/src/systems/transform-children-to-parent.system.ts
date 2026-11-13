@@ -22,9 +22,7 @@ export const transformChildrenToParentSystem = (registry: Registry) => {
       entity.TransformComponent.y =
         parentTransform.y + (entity.ChildrenComponent.options.LocalTransform?.y || 0);
     }
-    const parentDirection: Direction | undefined = registry.getEntityComponent(
-      parent, Direction
-    );
+    const parentDirection: Direction | undefined = registry.getEntityComponent(parent, Direction);
     if (parentDirection) {
       entity.Direction.x = parentDirection.x;
       entity.Direction.y = parentDirection.y;

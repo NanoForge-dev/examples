@@ -3,13 +3,17 @@ import { ChildrenComponent } from "./components/children.component";
 import { SpriteComponent } from "./components/sprite.component";
 import { HealthBarFill } from "./components/health-bar-fill.component";
 
-// Must match the health bar geometry it was built with (start-game-packet.handler.ts).
+// Must match the health bar geometry it was built with (build-world.ts).
 const HEALTH_BAR_FILL_WIDTH = 12;
 const HEALTH_BAR_FILL_CAVITY_WIDTH = 19;
 const HEALTH_BAR_FILL_MAX_SCALE_X = HEALTH_BAR_FILL_CAVITY_WIDTH / HEALTH_BAR_FILL_WIDTH;
 
 // Shared by every packet that changes a target's Health, so they all redraw the bar the same way.
-export const updateHealthBarFill = (registry: Registry, targetId: number, fraction: number): void => {
+export const updateHealthBarFill = (
+  registry: Registry,
+  targetId: number,
+  fraction: number,
+): void => {
   const fills: {
     ChildrenComponent: ChildrenComponent;
     SpriteComponent: SpriteComponent;

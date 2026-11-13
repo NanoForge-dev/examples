@@ -5,7 +5,10 @@ import { TransformComponent } from "../components/transform.component";
 import { Velocity } from "../components/velocity.component";
 import { SpriteComponent } from "../components/sprite.component";
 
-export const zombieStateHandler = (packet: ServerMessageOf<"zombieState">, registry: Registry): void => {
+export const zombieStateHandler = (
+  packet: ServerMessageOf<"zombieState">,
+  registry: Registry,
+): void => {
   const entities: {
     NetworkId: NetworkId;
     TransformComponent: TransformComponent;
@@ -21,7 +24,8 @@ export const zombieStateHandler = (packet: ServerMessageOf<"zombieState">, regis
   entity.Velocity.x = packet.velocity.x;
   entity.Velocity.y = packet.velocity.y;
 
-  const nextAnimation = packet.state === "attack" ? "attack" : packet.state === "dying" ? "death" : "idle";
+  const nextAnimation =
+    packet.state === "attack" ? "attack" : packet.state === "dying" ? "death" : "idle";
   entity.SpriteComponent.setAnimation(nextAnimation);
 
   // Konva loops any animation indefinitely with no "play once" option - without this, "death"

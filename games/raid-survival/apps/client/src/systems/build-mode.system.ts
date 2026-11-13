@@ -13,7 +13,11 @@ import { Building } from "../components/building.component";
 import { Player } from "../components/player.component";
 import { Lobby } from "../components/lobby.component";
 import { TransformComponent } from "../components/transform.component";
-import { BUILDING_CATALOG, canPlaceBuilding, type OccupiedBox } from "@raid-survival/shared/building-catalog";
+import {
+  BUILDING_CATALOG,
+  canPlaceBuilding,
+  type OccupiedBox,
+} from "@raid-survival/shared/building-catalog";
 import { TOWER_RANGE } from "@raid-survival/shared/tower";
 import { TILE_SIZE, MAP_COLS, MAP_ROWS, isTreeCell } from "@raid-survival/shared/map";
 import { NetworkId } from "../components/network-id.component";
@@ -23,7 +27,7 @@ import { SpriteComponent } from "../components/sprite.component";
 import { WeaponShopComponent } from "../components/weapon-shop.component";
 import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 
-// Must match server/systems/packet-handlers/start-game-packet.handler.ts's LOBBY_COLLISION_BOX
+// Must match the server's handlers/start-game.handler.ts LOBBY_COLLISION_BOX
 // exactly - a real box, not a tile-index check, since the lobby's footprint isn't tile-aligned.
 const LOBBY_SPRITE_SIZE = { width: 187, height: 143 };
 const tilesFor = (size: number) => Math.ceil(size / TILE_SIZE) * TILE_SIZE;
@@ -35,7 +39,7 @@ const LOBBY_COLLISION_BOX = {
 // tile as placeable that the server then rejects.
 const PLAYER_COLLISION_BOX = { width: 24, height: 24 };
 
-// GameScene's default un-zoomed world scale. zoomLevel is a multiplier on top of this, applied
+// The game's default un-zoomed world scale (GameView.worldScale). zoomLevel is a multiplier on top of this, applied
 // below as BASE_WORLD_SCALE * zoomLevel.
 const BASE_WORLD_SCALE = 3;
 
@@ -69,7 +73,7 @@ export const buildModeSystem = (registry: Registry, ctx: Context) => {
     // while building, the custom crosshair (cursor.system.ts) otherwise. cursor.system.ts leaves
     // style.cursor alone entirely while build mode is active, so this doesn't get fought every
     // tick, and the build bar's own hover/mouseout handlers
-    // (start-game-packet.handler.ts) own it from here until the mode toggles off again.
+    // (build-world.ts) own it from here until the mode toggles off again.
     stage.container().style.cursor = buildMode.active ? "default" : "none";
   }
   buildMode.wasTogglePressed = togglePressed;
@@ -291,7 +295,10 @@ export const buildModeSystem = (registry: Registry, ctx: Context) => {
       buildMode.previewRect.fill("rgba(220, 60, 60, 0.55)");
 
       if (clickPressed && !buildMode.wasPlaceClickPressed) {
-        ctx.network.packets.send(ClientPacket, { type: "destroyBuilding", id: target.NetworkId.id });
+        ctx.network.packets.send(ClientPacket, {
+          type: "destroyBuilding",
+          id: target.NetworkId.id,
+        });
       }
     } else {
       buildMode.previewRect.visible(false);
@@ -380,11 +387,11 @@ export const buildModeSystem = (registry: Registry, ctx: Context) => {
 
   if (clickPressed && !buildMode.wasPlaceClickPressed && valid) {
     ctx.network.packets.send(ClientPacket, {
-          type: "build",
-          tileX,
-          tileY,
-          buildingType: buildMode.selectedBuildingType,
-        });
+      type: "build",
+      tileX,
+      tileY,
+      buildingType: buildMode.selectedBuildingType,
+    });
   }
   buildMode.wasPlaceClickPressed = clickPressed;
 };

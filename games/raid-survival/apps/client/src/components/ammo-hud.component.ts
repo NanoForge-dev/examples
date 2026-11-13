@@ -12,7 +12,9 @@ export class AmmoHudComponent {
   name = "AmmoHudComponent";
 
   constructor(
+    /** The "magazine / reserve" text. */
     public text: Text,
+    /** The sprite of the equipped weapon. */
     public icon: SpriteComponent,
   ) {}
 }

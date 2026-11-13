@@ -10,7 +10,12 @@ export class RectComponent {
   name = "RectComponent";
   rect: Rect;
 
-  constructor(parent: Container, options: RectConfig) {
+  constructor(
+    /** The node the rectangle is added to. */
+    parent: Container,
+    /** Konva options of the rectangle. */
+    options: RectConfig,
+  ) {
     this.rect = new Rect(options);
     parent.add(this.rect);
   }

@@ -38,7 +38,14 @@ export const lootBoxPickupSystem = (registry: Registry, ctx: Context) => {
     Health: Health;
     WeaponInventory: WeaponInventory;
     PlayerClass: PlayerClass;
-  }[] = registry.getIndexedZipper([Login, Position2D, Hitbox, Health, WeaponInventory, PlayerClass]);
+  }[] = registry.getIndexedZipper([
+    Login,
+    Position2D,
+    Hitbox,
+    Health,
+    WeaponInventory,
+    PlayerClass,
+  ]);
 
   const moneyEntities: { Money: Money }[] = registry.getZipper([Money]);
   const money = moneyEntities[0]?.Money;

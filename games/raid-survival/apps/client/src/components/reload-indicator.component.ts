@@ -10,5 +10,8 @@ import { Text } from "@nanoforge-dev/graphics-2d";
 export class ReloadIndicatorComponent {
   name = "ReloadIndicatorComponent";
 
-  constructor(public text: Text) {}
+  constructor(
+    /** The "Reloading" text above the player. */
+    public text: Text,
+  ) {}
 }

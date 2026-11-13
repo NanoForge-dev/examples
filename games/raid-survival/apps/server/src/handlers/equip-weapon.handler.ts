@@ -5,7 +5,11 @@ import type { Context } from "@nanoforge-dev/common";
 
 import { broadcast, sendTo } from "../broadcast";
 import { WeaponInventory, type WeaponFireState } from "../components/weapon-inventory.component";
-import { WEAPON_CATALOG, isWeaponType, type WeaponType } from "@raid-survival/shared/weapon-catalog";
+import {
+  WEAPON_CATALOG,
+  isWeaponType,
+  type WeaponType,
+} from "@raid-survival/shared/weapon-catalog";
 
 const reject = (ctx: Context, clientId: string, reason: string): void =>
   sendTo(ctx, clientId, { type: "equipWeapon", result: "rejected", reason });
@@ -52,7 +56,6 @@ export const equipWeaponHandler = (
   registry: Registry,
   ctx: Context,
 ): void => {
-
   if (!inGame(registry)) return;
 
   const weaponType = packet.weaponType;

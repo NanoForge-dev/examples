@@ -18,7 +18,10 @@ export const sendMoveControl = (registry: Registry, ctx: Context) => {
   const entities = registry.getZipper([MoveController, Velocity]);
 
   entities.forEach(({ MoveController }) => {
-    const keys: ClientMessageOf<"input"> & { moveKeys: MoveKey[] } = { type: "input", moveKeys: [] };
+    const keys: ClientMessageOf<"input"> & { moveKeys: MoveKey[] } = {
+      type: "input",
+      moveKeys: [],
+    };
     if (MoveController.movingUp) keys.moveKeys.push("up");
     if (MoveController.movingDown) keys.moveKeys.push("down");
     if (MoveController.movingLeft) keys.moveKeys.push("left");

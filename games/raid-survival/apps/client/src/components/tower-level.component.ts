@@ -1,6 +1,6 @@
 /**
  * Client-side mirror of Tower.level (server), for display only - kept in sync by
- * tower-update-packet.handler.ts.
+ * handlers/tower-update.handler.ts.
  *
  * @component
  * @side client
@@ -8,5 +8,8 @@
 export class TowerLevelComponent {
   name = "TowerLevelComponent";
 
-  constructor(public level: number = 1) {}
+  constructor(
+    /** Level of the tower, from 1. */
+    public level: number = 1,
+  ) {}
 }

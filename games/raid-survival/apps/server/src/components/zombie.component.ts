@@ -11,7 +11,7 @@ export class Zombie {
   name = "Zombie";
 
   // Coins awarded on death (zombie-death system); currently always ZOMBIE_COIN_VALUE
-  // (start-game-packet.handler.ts).
+  // (handlers/start-game.handler.ts).
   constructor(
     /** Coins given to the team when it dies. */
     public coinValue = 10,

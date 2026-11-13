@@ -10,5 +10,8 @@ import { Text } from "@nanoforge-dev/graphics-2d";
 export class ReviveHintIndicatorComponent {
   name = "ReviveHintIndicatorComponent";
 
-  constructor(public text: Text) {}
+  constructor(
+    /** The "Hold E to revive" text above a downed teammate. */
+    public text: Text,
+  ) {}
 }

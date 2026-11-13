@@ -23,6 +23,7 @@ export class ShootController {
   public reloadRequested: boolean = false;
 
   constructor(
+    /** How the player aims, and the button that shoots. */
     clientConfig: {
       keybinds: {
         aimingMode: "mouse" | "arrows" | "joystick";

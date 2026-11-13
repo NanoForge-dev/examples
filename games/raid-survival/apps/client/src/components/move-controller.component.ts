@@ -17,11 +17,21 @@ export class MoveController {
   public movingDown: boolean = false;
   public movingLeft: boolean = false;
   public movingRight: boolean = false;
-  public lastMoveKeys: string[] = []
+  public lastMoveKeys: string[] = [];
 
-  constructor(clientConfig: {
-    keybinds: { up: InputEnum; left: InputEnum; down: InputEnum; right: InputEnum };
-  } = { keybinds: { up: InputEnum.KeyW, left: InputEnum.KeyA, down: InputEnum.KeyS, right: InputEnum.KeyD } }) {
+  constructor(
+    /** The keys that move up, left, down and right. */
+    clientConfig: {
+      keybinds: { up: InputEnum; left: InputEnum; down: InputEnum; right: InputEnum };
+    } = {
+      keybinds: {
+        up: InputEnum.KeyW,
+        left: InputEnum.KeyA,
+        down: InputEnum.KeyS,
+        right: InputEnum.KeyD,
+      },
+    },
+  ) {
     this.keyUp = clientConfig.keybinds.up;
     this.keyDown = clientConfig.keybinds.down;
     this.keyLeft = clientConfig.keybinds.left;

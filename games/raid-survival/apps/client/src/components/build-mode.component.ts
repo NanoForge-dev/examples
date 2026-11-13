@@ -47,25 +47,36 @@ export class BuildModeComponent {
   wasPlaceClickPressed: boolean = false;
 
   constructor(
+    /** The tile grid drawn over the map. */
     public gridShape: Shape,
+    /** The placement preview under the cursor. */
     public previewRect: Rect,
+    /** The range of the tower being placed. */
     public rangeCircle: Circle,
+    /** The buttons of the build bar, one per building. */
     public barButtons: BuildBarButton[],
+    /** The button of the destroy mode. */
     public destroyButton: DestroyButton,
+    /** Screen box of the build bar, where a click is not a placement. */
     public barBounds: ScreenBox,
     // One Shape draws every built tower's range circle at once, reading `towerRangeCenters` in
     // its sceneFunc - avoids per-tower cleanup on destroy.
+    /** Draws the range of every built tower. */
     public towerRangeCircles: Shape,
     // Same array instance towerRangeCircles' sceneFunc closure reads; build-mode.system.ts
     // refills it each tick. Konva can invoke sceneFunc off-tick during its own render loop, so
     // this must stay a plain array read, not a live registry query.
+    /** Centers of the built towers, read by `towerRangeCircles`. */
     public towerRangeCenters: { x: number; y: number }[],
+    /** The zoom in button. */
     public zoomInButton: ZoomButton,
+    /** The zoom out button. */
     public zoomOutButton: ZoomButton,
+    /** Screen box of the zoom buttons. */
     public zoomBounds: ScreenBox,
-    // Live zoom multiplier - eases toward targetZoomLevel each tick rather than snapping, so
-    // camera-follow doesn't jump.
+    /** Zoom applied now: eases toward `targetZoomLevel` each tick, so the camera doesn't jump. */
     public zoomLevel: number = 1,
+    /** Zoom asked by the zoom buttons. */
     public targetZoomLevel: number = 1,
   ) {}
 }

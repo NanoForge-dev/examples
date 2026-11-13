@@ -22,7 +22,12 @@ export class TextAreaComponent {
   value: string = "";
   private readonly clipAncestor: Group | Layer | Stage | null;
 
-  constructor(parent: Container, options: TextConfig) {
+  constructor(
+    /** The node the field is added to. */
+    parent: Container,
+    /** Konva options of the text it lays the field over. */
+    options: TextConfig,
+  ) {
     this.text = new Text(options);
     parent.add(this.text);
     this.text.hide();
@@ -64,7 +69,9 @@ export class TextAreaComponent {
     // Konva Text's verticalAlign only affects the hidden `this.text` node, never the visible
     // <textarea> - replicate vertical centering here via line-height instead.
     this.textarea.style.lineHeight =
-      this.text.verticalAlign() === "middle" ? innerHeight + "px" : this.text.lineHeight().toString();
+      this.text.verticalAlign() === "middle"
+        ? innerHeight + "px"
+        : this.text.lineHeight().toString();
     this.textarea.style.fontFamily = this.text.fontFamily();
     this.textarea.style.textAlign = this.text.align();
     this.textarea.style.color = (this.text.fill() as string) ?? "#000";

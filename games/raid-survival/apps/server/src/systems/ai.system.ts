@@ -10,7 +10,9 @@ import { IAComponent } from "../components/ia.component";
  * @side server
  */
 export const aiSystem = (registry: Registry, ctx: Context) => {
-  const entities: { id: number; IAComponent: IAComponent }[] = registry.getIndexedZipper([IAComponent]);
+  const entities: { id: number; IAComponent: IAComponent }[] = registry.getIndexedZipper([
+    IAComponent,
+  ]);
 
   for (const entity of entities) {
     entity.IAComponent.behavior(registry, ctx, entity.id);

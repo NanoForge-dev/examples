@@ -19,10 +19,7 @@ const SCENE_CHANGES = new Set<ServerMessage["type"]>(["startGame", "gameOver"]);
  */
 export const packetDispatch = (registry: Registry, ctx: Context) => {
   const backlog = ctx.scenes.vars.get("backlog") ?? [];
-  const messages = [
-    ...backlog,
-    ...ctx.network.packets.read(ServerPacket).map(({ data }) => data),
-  ];
+  const messages = [...backlog, ...ctx.network.packets.read(ServerPacket).map(({ data }) => data)];
   if (ctx.scenes.vars.has("start")) {
     ctx.scenes.vars.set("backlog", messages, { persistent: true });
     return;

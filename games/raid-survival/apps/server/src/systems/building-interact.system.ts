@@ -23,7 +23,6 @@ import { broadcast } from "../broadcast";
 
 const INTERACT_RANGE = 20;
 
-
 interface Candidate {
   id: number;
   position: Position2D;
