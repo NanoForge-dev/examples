@@ -47,9 +47,10 @@ Node 26 and pnpm 12. The examples depend on the latest NanoForge packages.
 
 ## Rules
 
-- **One item per file**: each file of `components/` holds one component, each file of `systems/`
-  one system, each file of `scenes/` one scene. Items carry the editor's TSDoc tags
-  (`@component`, `@system`, `@scene`, `@side`).
+- **One item per file**: each file under `components/` holds one component, each file under
+  `systems/` one system, each file under `scenes/` one scene (nested folders included). Types,
+  interfaces and enums that describe the item may sit next to it; any other export is a second
+  item. Items carry the editor's TSDoc tags (`@component`, `@system`, `@scene`, `@side`).
 - **Shared code is copied, never imported**: an example must work on its own once copied out of
   this repository. A file at `src/<path>` whose `<path>` exists in `shared/<group>/` must be an
   exact copy of it. `pnpm check` fails on a copy that drifted; `pnpm fix` copies the shared version
@@ -62,6 +63,7 @@ Node 26 and pnpm 12. The examples depend on the latest NanoForge packages.
 ```sh
 pnpm install
 pnpm lint       # prettier + one item per file + shared copies
+node --test scripts/check.test.ts   # self-test of the check
 ```
 
 CI also type-checks and builds every example (`.github/workflows/tests.yml`).
