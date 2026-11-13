@@ -54,5 +54,8 @@ their source and their terms are not recorded.
 - `libs/shared/src`: the protocol (one packet each way, `ClientPacket` and `ServerPacket`), the
   weapon, building and player class catalogs, the map and the tower numbers.
 
-`Position2D`, `Velocity2D`, `Acceleration2D` and `move2D` of the server, and `NetworkId` of the
-client, are copies of `shared/2d` and `shared/network` (see the repository's README).
+`Position2D`, `Velocity2D`, `Acceleration2D` and `move2D` of the server, and `Velocity2D`,
+`DrawOrder2D` and `NetworkId` of the client, are copies of `shared/2d`, `shared/arcade` and
+`shared/network` (see the repository's README). The client moves `Velocity2D` with its own
+`moveSystem` (on `TransformComponent`) and stacks sprites by `DrawOrder2D` with its own
+`zOrderSystem`, not with `move2D` and `drawOrder2D`.
