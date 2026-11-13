@@ -1,7 +1,8 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Context } from "@nanoforge-dev/common";
-import "@nanoforge-dev/scene";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/scene";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
+
 import { AmmoHudComponent } from "../components/ammo-hud.component";
 import { WeaponShopComponent } from "../components/weapon-shop.component";
 

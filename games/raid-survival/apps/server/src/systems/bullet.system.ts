@@ -1,13 +1,13 @@
-import type { Registry } from "@nanoforge-dev/ecs/server";
 import type { Context } from "@nanoforge-dev/common";
+import type { Registry } from "@nanoforge-dev/ecs/server";
 
-import { Bullet } from "../components/bullet.component";
-import { Position2D } from "../components/position-2d.component";
-import { Hitbox } from "../components/hitbox.component";
-import { Health } from "../components/health.component";
-import { Zombie } from "../components/zombie.component";
-import { MapCollisions } from "../components/map-collisions.component";
 import { broadcast } from "../broadcast";
+import { Bullet } from "../components/bullet.component";
+import { Health } from "../components/health.component";
+import { Hitbox } from "../components/hitbox.component";
+import { MapCollisions } from "../components/map-collisions.component";
+import { Position2D } from "../components/position-2d.component";
+import { Zombie } from "../components/zombie.component";
 
 const overlapsHitbox = (x: number, y: number, position: Position2D, hitbox: Hitbox): boolean => {
   const left = position.x + hitbox.offsetX;

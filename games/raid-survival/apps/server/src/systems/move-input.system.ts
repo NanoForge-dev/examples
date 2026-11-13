@@ -1,10 +1,10 @@
 import type { Registry } from "@nanoforge-dev/ecs/server";
-
-import { MoveInput } from "../components/move-input.component";
-import { Velocity2D } from "../components/velocity-2d.component";
-import { Health } from "../components/health.component";
-import { PlayerClass } from "../components/player-class.component";
 import { PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
+
+import { Health } from "../components/health.component";
+import { MoveInput } from "../components/move-input.component";
+import { PlayerClass } from "../components/player-class.component";
+import { Velocity2D } from "../components/velocity-2d.component";
 
 const PLAYER_SPEED = 100;
 

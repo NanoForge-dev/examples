@@ -1,14 +1,14 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 
+import { broadcast } from "../broadcast";
 import { GameState } from "../components/game-state.component";
-import { gameState } from "../queries";
 import { Health } from "../components/health.component";
-import { Login } from "../components/login.component";
 import { Lobby } from "../components/lobby.component";
+import { Login } from "../components/login.component";
 import { WaveState } from "../components/wave-state.component";
 import { Zombie } from "../components/zombie.component";
-import { broadcast } from "../broadcast";
+import { gameState } from "../queries";
 
 /**
  * Ends the game when the lobby or every player is dead (defeat), or the last wave has finished

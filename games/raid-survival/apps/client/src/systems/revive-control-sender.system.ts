@@ -1,10 +1,16 @@
-import "@nanoforge-dev/network/client";
-import { ClientPacket } from "@raid-survival/shared/protocol";
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/network/client";
+import { ClientPacket } from "@raid-survival/shared/protocol";
 
 import { ReviveController } from "../components/revive-controller.component";
 
+/**
+ * Sends the revive key's state to the server when it changes, and a fresh E press once.
+ *
+ * @system
+ * @side client
+ */
 export const sendReviveControl = (registry: Registry, ctx: Context) => {
   const entities: { ReviveController: ReviveController }[] = registry.getZipper([ReviveController]);
 

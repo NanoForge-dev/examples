@@ -1,14 +1,15 @@
-import type { ClientMessageOf } from "@raid-survival/shared/protocol";
-import { clientOf } from "../queries";
-import type { Registry } from "@nanoforge-dev/ecs/server";
-import { Velocity2D } from "../components/velocity-2d.component";
-import { Position2D } from "../components/position-2d.component";
-import { MoveInput } from "../components/move-input.component";
-import { ShootInput } from "../components/shoot-input.component";
-import { ReviveInput } from "../components/revive-input.component";
 import type { Context } from "@nanoforge-dev/common";
+import type { Registry } from "@nanoforge-dev/ecs/server";
+import type { ClientMessageOf } from "@raid-survival/shared/protocol";
+
 import { broadcast } from "../broadcast";
 import { Direction } from "../components/direction.component";
+import { MoveInput } from "../components/move-input.component";
+import { Position2D } from "../components/position-2d.component";
+import { ReviveInput } from "../components/revive-input.component";
+import { ShootInput } from "../components/shoot-input.component";
+import { Velocity2D } from "../components/velocity-2d.component";
+import { clientOf } from "../queries";
 
 export const inputHandler = (
   clientId: string,
@@ -31,13 +32,15 @@ export const inputHandler = (
   // A client still in the lobby (not yet spawned into a game) has none of these components.
   if (!velocity || !position || !direction || !moveInput || !shootInput || !reviveInput) return;
 
-  if (
-    packet.direction &&
-    Number.isFinite(packet.direction.x) &&
-    Number.isFinite(packet.direction.y)
-  ) {
-    direction.x = packet.direction.x;
-    direction.y = packet.direction.y;
+  // Shots fall back to this direction, so it must be a unit vector: a zero one would fire bullets
+  // that never move, a long one faster bullets. An unusable one is ignored.
+  const length =
+    packet.direction && Number.isFinite(packet.direction.x) && Number.isFinite(packet.direction.y)
+      ? Math.hypot(packet.direction.x, packet.direction.y)
+      : 0;
+  if (packet.direction && Number.isFinite(length) && length > 0) {
+    direction.x = packet.direction.x / length;
+    direction.y = packet.direction.y / length;
     broadcast(ctx, {
       type: "direction",
       id: client.id,

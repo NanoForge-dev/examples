@@ -1,35 +1,46 @@
 import type { Context } from "@nanoforge-dev/common";
-import "@nanoforge-dev/graphics-2d";
-import "@nanoforge-dev/scene";
-import type { ServerMessageOf, StartingPlayer } from "@raid-survival/shared/protocol";
-
-import { GameView } from "./components/game-view.component";
 import type { Registry } from "@nanoforge-dev/ecs/client";
-import { SpriteComponent } from "./components/sprite.component";
-import { TransformComponent } from "./components/transform.component";
-import { Velocity } from "./components/velocity.component";
-import { MoveController } from "./components/move-controller.component";
+import "@nanoforge-dev/graphics-2d";
 import { Arc, Circle, Layer, Rect, Ring, Shape } from "@nanoforge-dev/graphics-2d";
+import "@nanoforge-dev/scene";
+import { BUILDING_CATALOG, type BuildingType } from "@raid-survival/shared/building-catalog";
+import { TILE_SIZE } from "@raid-survival/shared/map";
+import type { ServerMessageOf, StartingPlayer } from "@raid-survival/shared/protocol";
 import type { Vector } from "@raid-survival/shared/protocol";
-import { NetworkId } from "./components/network-id.component";
-import { Direction } from "./components/direction.component";
-import { ShootController } from "./components/shoot-controller.component";
-import { ReviveController } from "./components/revive-controller.component";
-import { ReviveIndicatorComponent } from "./components/revive-indicator.component";
-import { ReviveHintIndicatorComponent } from "./components/revive-hint-indicator.component";
+import { TOWER_RANGE } from "@raid-survival/shared/tower";
+import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
+
+import { AmmoHudComponent } from "./components/ammo-hud.component";
+import { BuildModeComponent, type BuildBarButton } from "./components/build-mode.component";
 import { BuildingInteractIndicatorComponent } from "./components/building-interact-indicator.component";
 import { ChildrenComponent } from "./components/children.component";
+import { CursorComponent } from "./components/cursor.component";
 import { DirectionRotatorComponent } from "./components/direction-rotator.component";
-import { Lobby } from "./components/lobby.component";
-import { Health } from "./components/health.component";
-import { ZIndexComponent } from "./components/z-index.component";
+import { Direction } from "./components/direction.component";
+import { DrawOrder2D } from "./components/draw-order-2d.component";
+import { GameView } from "./components/game-view.component";
 import { HealthBarFill } from "./components/health-bar-fill.component";
-import { RectComponent } from "./components/rect.component";
-import { TextComponent } from "./components/text.component";
-import { WaveHudComponent } from "./components/wave-hud.component";
+import { Health } from "./components/health.component";
+import { Lobby } from "./components/lobby.component";
 import { MoneyHudComponent } from "./components/money-hud.component";
+import { MoveController } from "./components/move-controller.component";
+import { NetworkId } from "./components/network-id.component";
 import { Player } from "./components/player.component";
-import { BuildModeComponent, type BuildBarButton } from "./components/build-mode.component";
+import { RectComponent } from "./components/rect.component";
+import { ReloadIndicatorComponent } from "./components/reload-indicator.component";
+import { ReviveController } from "./components/revive-controller.component";
+import { ReviveHintIndicatorComponent } from "./components/revive-hint-indicator.component";
+import { ReviveIndicatorComponent } from "./components/revive-indicator.component";
+import { ShootController } from "./components/shoot-controller.component";
+import { SpriteComponent } from "./components/sprite.component";
+import { TextComponent } from "./components/text.component";
+import { TransformComponent } from "./components/transform.component";
+import { Velocity2D } from "./components/velocity-2d.component";
+import { WaveHudComponent } from "./components/wave-hud.component";
+import { WeaponReloadOverlayComponent } from "./components/weapon-reload-overlay.component";
+import { WeaponShopComponent } from "./components/weapon-shop.component";
+import { Weapon } from "./components/weapon.component";
+import { addCoinIcon } from "./hud-helpers";
 import {
   AMMO_ICON_SIZE,
   CURSOR_SCALE,
@@ -38,17 +49,6 @@ import {
   WEAPON_LOCAL_OFFSET,
   ZOOM_STEP,
 } from "./hud-layout";
-import { WeaponShopComponent } from "./components/weapon-shop.component";
-import { BUILDING_CATALOG, type BuildingType } from "@raid-survival/shared/building-catalog";
-import { TOWER_RANGE } from "@raid-survival/shared/tower";
-import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
-import { TILE_SIZE } from "@raid-survival/shared/map";
-import { Weapon } from "./components/weapon.component";
-import { AmmoHudComponent } from "./components/ammo-hud.component";
-import { ReloadIndicatorComponent } from "./components/reload-indicator.component";
-import { WeaponReloadOverlayComponent } from "./components/weapon-reload-overlay.component";
-import { CursorComponent } from "./components/cursor.component";
-import { addCoinIcon } from "./hud-helpers";
 
 const HEALTH_BAR_Z_INDEX = 30; // above hands (20) - health bars must render above nearby sprites
 // Strictly higher than the frame, not equal - zOrderSystem sorts ties by enumeration order, not
@@ -173,7 +173,7 @@ export const buildHealthBar = (
     }),
   );
   registry.addComponent(frame, new Direction(0, 0));
-  registry.addComponent(frame, new ZIndexComponent(HEALTH_BAR_Z_INDEX));
+  registry.addComponent(frame, new DrawOrder2D(HEALTH_BAR_Z_INDEX));
 
   const fraction = health.max > 0 ? health.current / health.max : 0;
   const fillScaleX = HEALTH_BAR_FILL_MAX_SCALE_X * fraction;
@@ -200,7 +200,7 @@ export const buildHealthBar = (
     }),
   );
   registry.addComponent(fill, new Direction(0, 0));
-  registry.addComponent(fill, new ZIndexComponent(HEALTH_BAR_FILL_Z_INDEX));
+  registry.addComponent(fill, new DrawOrder2D(HEALTH_BAR_FILL_Z_INDEX));
   registry.addComponent(fill, new HealthBarFill(cavityLocalX));
 };
 
@@ -381,7 +381,7 @@ const buildHandAndWeapon = (
   // mirrorWhenFacingLeft: true - must match the weapon's own DirectionRotatorComponent below, or
   // the hand and gun rotate by different formulas while aiming left and visibly diverge.
   registry.addComponent(handEntity, new DirectionRotatorComponent(-98, true, true));
-  registry.addComponent(handEntity, new ZIndexComponent(20));
+  registry.addComponent(handEntity, new DrawOrder2D(20));
 
   // An unequipped player has no weaponType to key off yet, so this defaults to smallGun's art
   // (hidden regardless - see weapon-visibility.system.ts/build-mode.system.ts). Once a real
@@ -415,7 +415,7 @@ const buildHandAndWeapon = (
   // mirrorWhenFacingLeft: true - the gun rotates through the full circle, so without this it
   // reads upside-down for the whole left half of the arc.
   registry.addComponent(weaponEntity, new DirectionRotatorComponent(rotationOffset, true, true));
-  registry.addComponent(weaponEntity, new ZIndexComponent(WEAPON_Z_INDEX));
+  registry.addComponent(weaponEntity, new DrawOrder2D(WEAPON_Z_INDEX));
   registry.addComponent(weaponEntity, new Weapon(weaponType, rotationOffset));
 
   // Reload-animation overlay - built once, hidden by default. weapon-reload-animation.system.ts
@@ -458,7 +458,7 @@ const buildHandAndWeapon = (
     reloadOverlayEntity,
     new DirectionRotatorComponent(reloadOverlayCatalog.rotationOffset, true, true),
   );
-  registry.addComponent(reloadOverlayEntity, new ZIndexComponent(WEAPON_Z_INDEX));
+  registry.addComponent(reloadOverlayEntity, new DrawOrder2D(WEAPON_Z_INDEX));
   registry.addComponent(reloadOverlayEntity, new WeaponReloadOverlayComponent());
 };
 
@@ -472,12 +472,12 @@ const buildPlayer = (
   registry.addComponent(playerEntity, new NetworkId(playerPacket.id));
   registry.addComponent(playerEntity, new Player());
   registry.addComponent(playerEntity, new Direction(0, 0));
-  registry.addComponent(playerEntity, new ZIndexComponent(PLAYER_Z_INDEX));
+  registry.addComponent(playerEntity, new DrawOrder2D(PLAYER_Z_INDEX));
   registry.addComponent(
     playerEntity,
     new TransformComponent(playerPacket.position.x, playerPacket.position.y),
   );
-  registry.addComponent(playerEntity, new Velocity(0, 0));
+  registry.addComponent(playerEntity, new Velocity2D(0, 0));
   // player1.png..player3.png share the same 24x24 idle/walk/death layout (see
   // player-animations.txt) - picked in MenuView's skin swatches and carried through the
   // joinLobby/startGame packets, clamped again here in case a stale/malformed value slipped in.
@@ -578,8 +578,8 @@ const buildCursor = (hudLayer: Layer, registry: Registry) => {
   registry.addComponent(cursorEntity, new TransformComponent(0, 0));
   registry.addComponent(cursorEntity, new CursorComponent());
   // Must never end up buried under other z-indexed sprites once anything else on the HUD changes
-  // - zOrderSystem only reorders entities that have both ZIndexComponent and SpriteComponent.
-  registry.addComponent(cursorEntity, new ZIndexComponent(CURSOR_Z_INDEX));
+  // - zOrderSystem only reorders entities that have both DrawOrder2D and SpriteComponent.
+  registry.addComponent(cursorEntity, new DrawOrder2D(CURSOR_Z_INDEX));
 };
 
 const buildLobby = (
@@ -601,7 +601,7 @@ const buildLobby = (
     }),
   );
   registry.addComponent(lobbyEntity, new Lobby());
-  registry.addComponent(lobbyEntity, new ZIndexComponent(10));
+  registry.addComponent(lobbyEntity, new DrawOrder2D(10));
   registry.addComponent(
     lobbyEntity,
     new Health(lobbyPacket.health.current, lobbyPacket.health.max),
@@ -872,7 +872,7 @@ const buildBuildMode = (worldLayer: Layer, hudLayer: Layer, registry: Registry) 
   const zoomOutX = zoomInX - ZOOM_BUTTON_GAP - ZOOM_BUTTON_SIZE.width;
   const zoomY = ZOOM_BUTTON_MARGIN;
 
-  function buildZoomButton(x: number, label: string) {
+  const buildZoomButton = (x: number, label: string) => {
     const rectComponent = new RectComponent(hudLayer, {
       x,
       y: zoomY,
@@ -911,7 +911,7 @@ const buildBuildMode = (worldLayer: Layer, hudLayer: Layer, registry: Registry) 
     registry.addComponent(registry.spawnEntity(), textComponent);
 
     return { rect: rectComponent.rect, text: textComponent.text };
-  }
+  };
 
   const zoomInButton = buildZoomButton(zoomInX, "+");
   const zoomOutButton = buildZoomButton(zoomOutX, "-");

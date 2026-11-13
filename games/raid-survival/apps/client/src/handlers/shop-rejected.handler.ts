@@ -1,12 +1,13 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Context } from "@nanoforge-dev/common";
-import "@nanoforge-dev/scene";
-import { gameView } from "../game-view";
 import type { Registry } from "@nanoforge-dev/ecs/client";
-import { TransformComponent } from "../components/transform.component";
+import "@nanoforge-dev/scene";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
+
+import { FloatingTextComponent } from "../components/floating-text.component";
 import { NetworkId } from "../components/network-id.component";
 import { TextComponent } from "../components/text.component";
-import { FloatingTextComponent } from "../components/floating-text.component";
+import { TransformComponent } from "../components/transform.component";
+import { gameView } from "../game-view";
 
 const REJECTED_TEXT_DURATION = 1.5; // seconds
 const REJECTED_TEXT_SIZE = { width: 140, height: 16 }; // world-layer-local units

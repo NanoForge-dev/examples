@@ -1,7 +1,8 @@
-import "@nanoforge-dev/scene";
 import type { Context } from "@nanoforge-dev/common";
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/scene";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
+
 import { LobbyState, LobbyStatusComponent } from "../components/lobby-status.component";
 
 export const joinLobbyHandler = (
@@ -37,7 +38,5 @@ export const joinLobbyHandler = (
   } else if (packet.result === "username taken") {
     firstLobbyStatus.LobbyStatusComponent.error =
       "That username is already taken - pick another one.";
-  } else {
-    console.log(packet);
   }
 };

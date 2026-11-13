@@ -1,15 +1,15 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 
-import { Position2D } from "./components/position-2d.component";
-import { Velocity2D } from "./components/velocity-2d.component";
+import { broadcast } from "./broadcast";
+import { Building } from "./components/building.component";
 import { Health } from "./components/health.component";
 import { Hitbox } from "./components/hitbox.component";
-import { Login } from "./components/login.component";
-import { Zombie } from "./components/zombie.component";
-import { Building } from "./components/building.component";
 import { type AIBehavior } from "./components/ia.component";
-import { broadcast } from "./broadcast";
+import { Login } from "./components/login.component";
+import { Position2D } from "./components/position-2d.component";
+import { Velocity2D } from "./components/velocity-2d.component";
+import { Zombie } from "./components/zombie.component";
 
 export const ZOMBIE_SPEED = 40;
 export const ZOMBIE_MAX_HEALTH = 20;

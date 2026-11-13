@@ -1,8 +1,9 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
-import { NetworkId } from "../components/network-id.component";
-import { Health } from "../components/health.component";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
+
 import { ChildrenComponent } from "../components/children.component";
+import { Health } from "../components/health.component";
+import { NetworkId } from "../components/network-id.component";
 import { ReviveIndicatorComponent } from "../components/revive-indicator.component";
 
 // Server (revive.system.ts) is authoritative - this just applies its events: show/hide the

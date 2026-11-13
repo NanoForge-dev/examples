@@ -1,7 +1,8 @@
-import { gameView } from "../game-view";
 import type { Registry } from "@nanoforge-dev/ecs/client";
-import { TransformComponent } from "../components/transform.component";
+
 import { MoveController } from "../components/move-controller.component";
+import { TransformComponent } from "../components/transform.component";
+import { gameView } from "../game-view";
 
 const CAMERA_SMOOTHING = 0.1;
 
@@ -27,6 +28,13 @@ const clampCameraAxis = (
   return Math.min(max, Math.max(min, target));
 };
 
+/**
+ * Moves the world layer so the camera glides toward the local player, without scrolling past the
+ * map's edges.
+ *
+ * @system
+ * @side client
+ */
 export const cameraFollowSystem = (registry: Registry) => {
   const entities: { MoveController: MoveController; TransformComponent: TransformComponent }[] =
     registry.getZipper([MoveController, TransformComponent]);

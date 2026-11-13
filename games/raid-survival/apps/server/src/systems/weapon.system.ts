@@ -1,14 +1,14 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
+import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
 
-import { WeaponInventory, type WeaponFireState } from "../components/weapon-inventory.component";
-import { ShootInput } from "../components/shoot-input.component";
-import { Position2D } from "../components/position-2d.component";
-import { Hitbox } from "../components/hitbox.component";
+import { broadcast } from "../broadcast";
 import { Direction } from "../components/direction.component";
 import { Health } from "../components/health.component";
-import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
-import { broadcast } from "../broadcast";
+import { Hitbox } from "../components/hitbox.component";
+import { Position2D } from "../components/position-2d.component";
+import { ShootInput } from "../components/shoot-input.component";
+import { WeaponInventory, type WeaponFireState } from "../components/weapon-inventory.component";
 import { firePellets } from "../fire-pellets";
 
 const broadcastWeaponState = (
@@ -56,14 +56,19 @@ const computeAimDirection = (
     const dx = mousePosition.x - centerX;
     const dy = mousePosition.y - centerY;
     const length = Math.hypot(dx, dy);
-    if (length > 0) return { x: dx / length, y: dy / length };
+    if (Number.isFinite(length) && length > 0) return { x: dx / length, y: dy / length };
   }
   return { x: direction.x, y: direction.y };
 };
 
-// Owns the weapon state machine (idle/reloading, cooldown, magazine) for the single equipped
-// weapon of every player - ShootInput just records what's held/requested, this decides what
-// happens and when, every tick, independent of packet frequency.
+/**
+ * Owns the weapon state machine (idle/reloading, cooldown, magazine) for the single equipped weapon
+ * of every player - ShootInput just records what's held/requested, this decides what happens and
+ * when, every tick, independent of packet frequency.
+ *
+ * @system
+ * @side server
+ */
 export const weaponSystem = (registry: Registry, ctx: Context) => {
   const entities: {
     id: number;

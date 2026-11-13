@@ -1,11 +1,11 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
 
-import { Position2D } from "../components/position-2d.component";
-import { Velocity2D } from "../components/velocity-2d.component";
+import { resolveCollision } from "../collision-resolve";
 import { CollisionBox } from "../components/collision-box.component";
 import { MapCollisions } from "../components/map-collisions.component";
-import { resolveCollision } from "../collision-resolve";
+import { Position2D } from "../components/position-2d.component";
+import { Velocity2D } from "../components/velocity-2d.component";
 
 const overlapsTree = (map: MapCollisions, x: number, y: number, box: CollisionBox): boolean => {
   const corners: [number, number][] = [

@@ -1,16 +1,23 @@
-import { gameView } from "../game-view";
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import { InputEnum } from "@nanoforge-dev/input";
-
-import { ShootController } from "../components/shoot-controller.component";
-import { Direction } from "../components/direction.component";
 import type { Vector } from "@raid-survival/shared/protocol";
-import { TransformComponent } from "../components/transform.component";
+
 import { BuildModeComponent } from "../components/build-mode.component";
+import { Direction } from "../components/direction.component";
+import { ShootController } from "../components/shoot-controller.component";
+import { TransformComponent } from "../components/transform.component";
+import { gameView } from "../game-view";
 
 const PLAYER_SPRITE_SIZE: Vector = { x: 24, y: 24 };
 
+/**
+ * Reads the local player's shooting and reload keys and aims them at the mouse; nothing fires in
+ * build mode.
+ *
+ * @system
+ * @side client
+ */
 export const shootControl = (registry: Registry, ctx: Context) => {
   const entities: {
     ShootController: ShootController;

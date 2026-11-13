@@ -1,20 +1,25 @@
 import type { Context } from "@nanoforge-dev/common";
-import "@nanoforge-dev/scene";
 import type { Registry } from "@nanoforge-dev/ecs/client";
+import "@nanoforge-dev/scene";
+import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 
-import { NetworkId } from "../components/network-id.component";
+import { AmmoHudComponent } from "../components/ammo-hud.component";
 import { ChildrenComponent } from "../components/children.component";
+import { NetworkId } from "../components/network-id.component";
+import { ReloadIndicatorComponent } from "../components/reload-indicator.component";
 import { TransformComponent } from "../components/transform.component";
 import { Weapon } from "../components/weapon.component";
-import { ReloadIndicatorComponent } from "../components/reload-indicator.component";
-import { AmmoHudComponent } from "../components/ammo-hud.component";
-import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 import { AMMO_ICON_SIZE } from "../hud-layout";
 
-// Two concerns off the same weapon-by-parent lookup: the world-space "Reloading..." label above
-// every player's health bar (Text isn't a Sprite, so spriteSystem never repositions it - done
-// here instead), and the local ammo-HUD row's visibility. Driven every tick, not just on state
-// change, since spriteSystem creates the underlying Konva node lazily.
+/**
+ * Two concerns off the same weapon-by-parent lookup: the world-space "Reloading..." label above
+ * every player's health bar (Text isn't a Sprite, so spriteSystem never repositions it - done here
+ * instead), and the local ammo-HUD row's visibility. Driven every tick, not just on state change,
+ * since spriteSystem creates the underlying Konva node lazily.
+ *
+ * @system
+ * @side client
+ */
 export const reloadIndicatorSystem = (registry: Registry, ctx: Context) => {
   const weapons: { Weapon: Weapon; ChildrenComponent: ChildrenComponent }[] = registry.getZipper([
     Weapon,

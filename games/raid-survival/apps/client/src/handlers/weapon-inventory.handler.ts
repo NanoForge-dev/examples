@@ -1,14 +1,15 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Context } from "@nanoforge-dev/common";
-import "@nanoforge-dev/scene";
 import type { Registry } from "@nanoforge-dev/ecs/client";
-import { NetworkId } from "../components/network-id.component";
+import "@nanoforge-dev/scene";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
+import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
+
+import { AmmoHudComponent } from "../components/ammo-hud.component";
 import { ChildrenComponent } from "../components/children.component";
-import { Weapon } from "../components/weapon.component";
+import { NetworkId } from "../components/network-id.component";
 import { SpriteComponent } from "../components/sprite.component";
 import { WeaponShopComponent } from "../components/weapon-shop.component";
-import { AmmoHudComponent } from "../components/ammo-hud.component";
-import { WEAPON_CATALOG, type WeaponType } from "@raid-survival/shared/weapon-catalog";
+import { Weapon } from "../components/weapon.component";
 import { AMMO_ICON_SIZE } from "../hud-layout";
 
 // Handles a buy/ammo-refill/equip result for any player - every client renders every player's

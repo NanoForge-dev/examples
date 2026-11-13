@@ -1,7 +1,8 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
-import { NetworkId } from "../components/network-id.component";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
+
 import { Direction } from "../components/direction.component";
+import { NetworkId } from "../components/network-id.component";
 
 export const directionHandler = (
   packet: ServerMessageOf<"direction">,

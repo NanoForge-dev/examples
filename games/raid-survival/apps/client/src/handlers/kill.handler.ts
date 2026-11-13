@@ -1,12 +1,13 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
-import { NetworkId } from "../components/network-id.component";
-import { ChildrenComponent } from "../components/children.component";
-import { SpriteComponent } from "../components/sprite.component";
-import { ReviveIndicatorComponent } from "../components/revive-indicator.component";
-import { ReviveHintIndicatorComponent } from "../components/revive-hint-indicator.component";
-import { ReloadIndicatorComponent } from "../components/reload-indicator.component";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
+
 import { BuildingInteractIndicatorComponent } from "../components/building-interact-indicator.component";
+import { ChildrenComponent } from "../components/children.component";
+import { NetworkId } from "../components/network-id.component";
+import { ReloadIndicatorComponent } from "../components/reload-indicator.component";
+import { ReviveHintIndicatorComponent } from "../components/revive-hint-indicator.component";
+import { ReviveIndicatorComponent } from "../components/revive-indicator.component";
+import { SpriteComponent } from "../components/sprite.component";
 
 // registry.killEntity() only removes ECS-level components - the WASM ECS core has no knowledge of
 // Konva, so it can't touch the actual rendered node. Destroys every component type that owns one

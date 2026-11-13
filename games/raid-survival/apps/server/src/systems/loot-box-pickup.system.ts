@@ -1,18 +1,18 @@
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/server";
+import { PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
+import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
 
-import { Login } from "../components/login.component";
-import { Position2D } from "../components/position-2d.component";
-import { Hitbox } from "../components/hitbox.component";
+import { broadcast } from "../broadcast";
 import { Health } from "../components/health.component";
-import { WeaponInventory } from "../components/weapon-inventory.component";
+import { Hitbox } from "../components/hitbox.component";
+import { Login } from "../components/login.component";
 import { LootBox } from "../components/loot-box.component";
 import { Money } from "../components/money.component";
 import { PlayerClass } from "../components/player-class.component";
-import { PLAYER_CLASS_CATALOG } from "@raid-survival/shared/player-class-catalog";
-import { WEAPON_CATALOG } from "@raid-survival/shared/weapon-catalog";
+import { Position2D } from "../components/position-2d.component";
+import { WeaponInventory } from "../components/weapon-inventory.component";
 import { distanceBetweenHitboxes } from "../zombie-ai";
-import { broadcast } from "../broadcast";
 
 const PICKUP_RANGE = 10;
 const HEAL_BOX_AMOUNT = 50;

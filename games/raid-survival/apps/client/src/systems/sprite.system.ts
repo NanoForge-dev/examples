@@ -1,9 +1,9 @@
 import { type Context, NfFile } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
-
 import { Sprite } from "@nanoforge-dev/graphics-2d";
-import { TransformComponent } from "../components/transform.component";
+
 import { SpriteComponent } from "../components/sprite.component";
+import { TransformComponent } from "../components/transform.component";
 
 type Animations = Record<string, number[]>;
 
@@ -16,7 +16,7 @@ const sleep = (ms: number): Promise<void> => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
-async function withRetry<T>(load: () => Promise<T>): Promise<T> {
+const withRetry = async <T>(load: () => Promise<T>): Promise<T> => {
   let lastError: unknown;
   for (let attempt = 1; attempt <= ASSET_LOAD_MAX_ATTEMPTS; attempt++) {
     try {
@@ -27,7 +27,7 @@ async function withRetry<T>(load: () => Promise<T>): Promise<T> {
     }
   }
   throw lastError;
-}
+};
 
 const imageCache = new Map<string, HTMLImageElement>();
 const imageLoading = new Map<string, Promise<HTMLImageElement>>();
@@ -100,6 +100,13 @@ const loadAnimations = (file: NfFile): Promise<Animations | undefined> => {
   return promise;
 };
 
+/**
+ * Loads each sprite's image and animations, creates its Konva sprite, and keeps it at its
+ * `TransformComponent`.
+ *
+ * @system
+ * @side client
+ */
 export const spriteSystem = async (registry: Registry, ctx: Context) => {
   const entities: {
     id: number;

@@ -32,7 +32,7 @@ export const packetDispatch = (registry: Registry, ctx: Context) => {
       ctx: Context,
     ) => void;
     try {
-      handler(message, registry, ctx);
+      if (Object.hasOwn(SERVER_HANDLERS, message.type)) handler(message, registry, ctx);
     } catch (error) {
       console.error(`[packet:${message.type}]`, error);
     }

@@ -1,7 +1,8 @@
-import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
-import { NetworkId } from "../components/network-id.component";
+import type { ServerMessageOf } from "@raid-survival/shared/protocol";
+
 import { Health } from "../components/health.component";
+import { NetworkId } from "../components/network-id.component";
 import { updateHealthBarFill } from "../health-bar-update";
 
 export const healHandler = (packet: ServerMessageOf<"heal">, registry: Registry): void => {

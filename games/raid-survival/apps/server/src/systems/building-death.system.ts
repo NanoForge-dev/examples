@@ -1,9 +1,9 @@
-import type { Registry } from "@nanoforge-dev/ecs/server";
 import type { Context } from "@nanoforge-dev/common";
+import type { Registry } from "@nanoforge-dev/ecs/server";
 
+import { broadcast } from "../broadcast";
 import { Building } from "../components/building.component";
 import { Health } from "../components/health.component";
-import { broadcast } from "../broadcast";
 
 /**
  * Removes a building once its HP hits 0, freeing its tile for handlers/build.handler.ts's
