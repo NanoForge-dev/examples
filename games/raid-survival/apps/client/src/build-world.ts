@@ -7,7 +7,7 @@ import { GameView } from "./components/game-view.component";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import { SpriteComponent } from "./components/sprite.component";
 import { TransformComponent } from "./components/transform.component";
-import { Velocity } from "./components/velocity.component";
+import { Velocity2D } from "./components/velocity-2d.component";
 import { MoveController } from "./components/move-controller.component";
 import { Arc, Circle, Layer, Rect, Ring, Shape } from "@nanoforge-dev/graphics-2d";
 import type { Vector } from "@raid-survival/shared/protocol";
@@ -477,7 +477,7 @@ const buildPlayer = (
     playerEntity,
     new TransformComponent(playerPacket.position.x, playerPacket.position.y),
   );
-  registry.addComponent(playerEntity, new Velocity(0, 0));
+  registry.addComponent(playerEntity, new Velocity2D(0, 0));
   // player1.png..player3.png share the same 24x24 idle/walk/death layout (see
   // player-animations.txt) - picked in MenuView's skin swatches and carried through the
   // joinLobby/startGame packets, clamped again here in case a stale/malformed value slipped in.

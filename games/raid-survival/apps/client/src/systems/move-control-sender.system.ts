@@ -6,7 +6,7 @@ import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 
 import { MoveController } from "../components/move-controller.component";
-import { Velocity } from "../components/velocity.component";
+import { Velocity2D } from "../components/velocity-2d.component";
 
 const compareStringArrays = (array1: string[], array2: string[]) => {
   if (array1.length !== array2.length) return false;
@@ -15,7 +15,7 @@ const compareStringArrays = (array1: string[], array2: string[]) => {
 };
 
 export const sendMoveControl = (registry: Registry, ctx: Context) => {
-  const entities = registry.getZipper([MoveController, Velocity]);
+  const entities = registry.getZipper([MoveController, Velocity2D]);
 
   entities.forEach(({ MoveController }) => {
     const keys: ClientMessageOf<"input"> & { moveKeys: MoveKey[] } = {

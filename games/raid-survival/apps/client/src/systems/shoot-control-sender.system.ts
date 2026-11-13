@@ -3,14 +3,14 @@ import { ClientPacket } from "@raid-survival/shared/protocol";
 import type { Context } from "@nanoforge-dev/common";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 
-import { Velocity } from "../components/velocity.component";
+import { Velocity2D } from "../components/velocity-2d.component";
 import { ShootController } from "../components/shoot-controller.component";
 import { Direction } from "../components/direction.component";
 import type { Vector } from "@raid-survival/shared/protocol";
 
 export const sendShootControl = (registry: Registry, ctx: Context) => {
-  const entities: { ShootController: ShootController; Velocity: Vector; Direction: Direction }[] =
-    registry.getZipper([ShootController, Velocity, Direction]);
+  const entities: { ShootController: ShootController; Velocity2D: Vector; Direction: Direction }[] =
+    registry.getZipper([ShootController, Velocity2D, Direction]);
 
   entities.forEach(({ ShootController, Direction }) => {
     // Only send "shooting" on change - the server recomputes firing/cooldown every tick regardless.

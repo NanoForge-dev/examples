@@ -2,7 +2,7 @@ import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import { NetworkId } from "../components/network-id.component";
 import { TransformComponent } from "../components/transform.component";
-import { Velocity } from "../components/velocity.component";
+import { Velocity2D } from "../components/velocity-2d.component";
 import { SpriteComponent } from "../components/sprite.component";
 
 export const zombieStateHandler = (
@@ -12,17 +12,17 @@ export const zombieStateHandler = (
   const entities: {
     NetworkId: NetworkId;
     TransformComponent: TransformComponent;
-    Velocity: Velocity;
+    Velocity2D: Velocity2D;
     SpriteComponent: SpriteComponent;
-  }[] = registry.getZipper([NetworkId, TransformComponent, Velocity, SpriteComponent]);
+  }[] = registry.getZipper([NetworkId, TransformComponent, Velocity2D, SpriteComponent]);
 
   const entity = entities.find(({ NetworkId }) => NetworkId.id === packet.id);
   if (!entity) return;
 
   entity.TransformComponent.x = packet.position.x;
   entity.TransformComponent.y = packet.position.y;
-  entity.Velocity.x = packet.velocity.x;
-  entity.Velocity.y = packet.velocity.y;
+  entity.Velocity2D.x = packet.velocity.x;
+  entity.Velocity2D.y = packet.velocity.y;
 
   const nextAnimation =
     packet.state === "attack" ? "attack" : packet.state === "dying" ? "death" : "idle";

@@ -3,7 +3,7 @@ import type { ServerMessageOf } from "@raid-survival/shared/protocol";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 import { NetworkId } from "../components/network-id.component";
 import { TransformComponent } from "../components/transform.component";
-import { Velocity } from "../components/velocity.component";
+import { Velocity2D } from "../components/velocity-2d.component";
 import { SpriteComponent } from "../components/sprite.component";
 import { Direction } from "../components/direction.component";
 import { ChildrenComponent } from "../components/children.component";
@@ -80,7 +80,7 @@ export const spawnHandler = (packet: ServerMessageOf<"spawn">, registry: Registr
   }
   switch (packet.entityType) {
     case "zombie":
-      registry.addComponent(newEnt, new Velocity(packet.velocity.x, packet.velocity.y));
+      registry.addComponent(newEnt, new Velocity2D(packet.velocity.x, packet.velocity.y));
       // No Direction component: sprite-animator.system.ts would try to play a "walk" animation
       // zombie-animations.txt doesn't have. zombieState packets own this sprite's animation.
       registry.addComponent(newEnt, new Health(packet.health.current, packet.health.max));
@@ -115,7 +115,7 @@ export const spawnHandler = (packet: ServerMessageOf<"spawn">, registry: Registr
           npc,
           new ChildrenComponent(newEnt.getId(), { LocalTransform: TOWER_NPC_LOCAL_OFFSET }),
         );
-        // Direction only, no Velocity - spriteAnimator would otherwise try to play a "walk"
+        // Direction only, no Velocity2D - spriteAnimator would otherwise try to play a "walk"
         // animation npc-animations.txt doesn't have.
         registry.addComponent(npc, new Direction(0, 0));
         registry.addComponent(npc, new ZIndexComponent(TOWER_NPC_Z_INDEX));
@@ -180,7 +180,7 @@ export const spawnHandler = (packet: ServerMessageOf<"spawn">, registry: Registr
       // - offset here or the bullet renders half its sprite size down-right of where it should be.
       transform.x -= BULLET_SPRITE_SIZE.width / 2;
       transform.y -= BULLET_SPRITE_SIZE.height / 2;
-      registry.addComponent(newEnt, new Velocity(packet.velocity.x, packet.velocity.y));
+      registry.addComponent(newEnt, new Velocity2D(packet.velocity.x, packet.velocity.y));
       transform.rotation = (Math.atan2(packet.velocity.y, packet.velocity.x) * 180) / Math.PI;
       registry.addComponent(newEnt, new ZIndexComponent(BULLET_Z_INDEX));
       registry.addComponent(
