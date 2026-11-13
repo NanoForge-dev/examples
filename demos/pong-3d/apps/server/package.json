@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "pong-3d-server",
+  "description": "The server of pong-3d: runs the game and sends it to the clients",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@nanoforge-dev/asset": "^3.0.0",
+    "@nanoforge-dev/common": "^3.0.0",
+    "@nanoforge-dev/core": "^3.0.0",
+    "@nanoforge-dev/ecs": "^3.0.0",
+    "@nanoforge-dev/editor-lib": "^3.0.0",
+    "@nanoforge-dev/env": "^3.0.0",
+    "@nanoforge-dev/network": "^3.0.0",
+    "typescript": "^6.0.0"
+  }
+}
