@@ -4,6 +4,12 @@ import type { Registry } from "@nanoforge-dev/ecs/client";
 import { TransformComponent } from "../components/transform.component";
 import { Velocity2D } from "../components/velocity-2d.component";
 
+/**
+ * Moves each entity by its `Velocity2D` between two messages of the server.
+ *
+ * @system
+ * @side client
+ */
 export const moveSystem = (registry: Registry, ctx: Context) => {
   const entities = registry.getZipper([TransformComponent, Velocity2D]);
 

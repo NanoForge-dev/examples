@@ -5,6 +5,12 @@ import type { Registry } from "@nanoforge-dev/ecs/client";
 
 import { ReviveController } from "../components/revive-controller.component";
 
+/**
+ * Sends the revive key's state to the server when it changes, and a fresh E press once.
+ *
+ * @system
+ * @side client
+ */
 export const sendReviveControl = (registry: Registry, ctx: Context) => {
   const entities: { ReviveController: ReviveController }[] = registry.getZipper([ReviveController]);
 

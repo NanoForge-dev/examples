@@ -25,9 +25,14 @@ interface TowerEntity {
   Health: Health;
 }
 
-// Autonomous turret: every alive tower fires at the nearest alive zombie within TOWER_RANGE on
-// its own level-derived cooldown, reusing weapon.system.ts's firePellets pipeline so a tower's
-// shots behave identically to a player's smallGun shots.
+/**
+ * Autonomous turret: every alive tower fires at the nearest alive zombie within TOWER_RANGE on its
+ * own level-derived cooldown, reusing weapon.system.ts's firePellets pipeline so a tower's shots
+ * behave identically to a player's smallGun shots.
+ *
+ * @system
+ * @side server
+ */
 export const towerSystem = (registry: Registry, ctx: Context) => {
   const towers: TowerEntity[] = registry.getIndexedZipper([
     Building,

@@ -8,6 +8,13 @@ import { Velocity2D } from "../components/velocity-2d.component";
 import { ShootController } from "../components/shoot-controller.component";
 import { Direction } from "../components/direction.component";
 
+/**
+ * Sends the local player's shooting state, reload requests and aim (direction and mouse position)
+ * to the server.
+ *
+ * @system
+ * @side client
+ */
 export const sendShootControl = (registry: Registry, ctx: Context) => {
   const entities: { ShootController: ShootController; Velocity2D: Vector; Direction: Direction }[] =
     registry.getZipper([ShootController, Velocity2D, Direction]);

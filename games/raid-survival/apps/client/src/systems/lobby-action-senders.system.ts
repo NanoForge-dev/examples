@@ -5,6 +5,12 @@ import type { Context } from "@nanoforge-dev/common";
 
 import { LobbyAction, LobbyStatusComponent } from "../components/lobby-status.component";
 
+/**
+ * Sends the lobby action the menu asked for (join or start the game) to the server, once.
+ *
+ * @system
+ * @side client
+ */
 export const lobbyActionSenders = (registry: Registry, ctx: Context) => {
   const entities: { LobbyStatusComponent: LobbyStatusComponent }[] = registry.getZipper([
     LobbyStatusComponent,

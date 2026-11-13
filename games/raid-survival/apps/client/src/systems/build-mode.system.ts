@@ -47,6 +47,13 @@ const BASE_WORLD_SCALE = 3;
 // CAMERA_SMOOTHING's ease shape so the zoom and the camera glide into place together.
 const ZOOM_SMOOTHING = 0.1;
 
+/**
+ * Runs build mode (B): the grid, the placement preview, the build bar, the weapon shop and the zoom
+ * buttons, and eases the world's zoom toward the target level.
+ *
+ * @system
+ * @side client
+ */
 export const buildModeSystem = (registry: Registry, ctx: Context) => {
   const entities: { BuildModeComponent: BuildModeComponent }[] = registry.getZipper([
     BuildModeComponent,

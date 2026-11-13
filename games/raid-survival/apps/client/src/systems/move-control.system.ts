@@ -4,6 +4,12 @@ import "@nanoforge-dev/input";
 
 import { MoveController } from "../components/move-controller.component";
 
+/**
+ * Reads the movement keys of the local player into its `MoveController`.
+ *
+ * @system
+ * @side client
+ */
 export const moveControl = (registry: Registry, ctx: Context) => {
   const entities = registry.getZipper([MoveController]);
   const input = ctx.input;

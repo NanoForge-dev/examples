@@ -11,6 +11,13 @@ import { BuildModeComponent } from "../components/build-mode.component";
 
 const PLAYER_SPRITE_SIZE: Vector = { x: 24, y: 24 };
 
+/**
+ * Reads the local player's shooting and reload keys and aims them at the mouse; nothing fires in
+ * build mode.
+ *
+ * @system
+ * @side client
+ */
 export const shootControl = (registry: Registry, ctx: Context) => {
   const entities: {
     ShootController: ShootController;

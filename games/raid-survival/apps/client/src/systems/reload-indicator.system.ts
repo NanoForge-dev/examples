@@ -11,10 +11,15 @@ import { ReloadIndicatorComponent } from "../components/reload-indicator.compone
 import { AmmoHudComponent } from "../components/ammo-hud.component";
 import { AMMO_ICON_SIZE } from "../hud-layout";
 
-// Two concerns off the same weapon-by-parent lookup: the world-space "Reloading..." label above
-// every player's health bar (Text isn't a Sprite, so spriteSystem never repositions it - done
-// here instead), and the local ammo-HUD row's visibility. Driven every tick, not just on state
-// change, since spriteSystem creates the underlying Konva node lazily.
+/**
+ * Two concerns off the same weapon-by-parent lookup: the world-space "Reloading..." label above
+ * every player's health bar (Text isn't a Sprite, so spriteSystem never repositions it - done here
+ * instead), and the local ammo-HUD row's visibility. Driven every tick, not just on state change,
+ * since spriteSystem creates the underlying Konva node lazily.
+ *
+ * @system
+ * @side client
+ */
 export const reloadIndicatorSystem = (registry: Registry, ctx: Context) => {
   const weapons: { Weapon: Weapon; ChildrenComponent: ChildrenComponent }[] = registry.getZipper([
     Weapon,

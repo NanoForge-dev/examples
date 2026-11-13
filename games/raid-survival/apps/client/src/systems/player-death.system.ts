@@ -4,8 +4,13 @@ import { Player } from "../components/player.component";
 import { Health } from "../components/health.component";
 import { SpriteComponent } from "../components/sprite.component";
 
-// The only thing that sets a player's animation to "death", and the only thing that clears it
-// again on revive. sprite-animator.system.ts is guarded to never override "death" on its own.
+/**
+ * The only thing that sets a player's animation to "death", and the only thing that clears it again
+ * on revive. sprite-animator.system.ts is guarded to never override "death" on its own.
+ *
+ * @system
+ * @side client
+ */
 export const playerDeathSystem = (registry: Registry) => {
   const entities: { Player: Player; Health: Health; SpriteComponent: SpriteComponent }[] =
     registry.getZipper([Player, Health, SpriteComponent]);

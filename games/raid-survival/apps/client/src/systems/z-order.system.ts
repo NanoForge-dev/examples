@@ -5,6 +5,12 @@ import { SpriteComponent } from "../components/sprite.component";
 
 let lastOrder: number[] = [];
 
+/**
+ * Stacks the sprites by their `DrawOrder2D` `z`, higher on top, when their order changed.
+ *
+ * @system
+ * @side client
+ */
 export const zOrderSystem = (registry: Registry) => {
   const entities: { DrawOrder2D: DrawOrder2D; SpriteComponent: SpriteComponent }[] =
     registry.getZipper([DrawOrder2D, SpriteComponent]);

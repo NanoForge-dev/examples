@@ -100,6 +100,13 @@ const loadAnimations = (file: NfFile): Promise<Animations | undefined> => {
   return promise;
 };
 
+/**
+ * Loads each sprite's image and animations, creates its Konva sprite, and keeps it at its
+ * `TransformComponent`.
+ *
+ * @system
+ * @side client
+ */
 export const spriteSystem = async (registry: Registry, ctx: Context) => {
   const entities: {
     id: number;

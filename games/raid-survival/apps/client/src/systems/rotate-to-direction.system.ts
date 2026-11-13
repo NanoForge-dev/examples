@@ -5,6 +5,13 @@ import { DirectionRotatorComponent } from "../components/direction-rotator.compo
 import { TransformComponent } from "../components/transform.component";
 import { SpriteComponent } from "../components/sprite.component";
 
+/**
+ * Turns each sprite with a `DirectionRotatorComponent` toward its `Direction`, mirroring it when it
+ * faces left if asked.
+ *
+ * @system
+ * @side client
+ */
 export const rotateToDirectionSystem = (registry: Registry) => {
   const entities: {
     id: number;

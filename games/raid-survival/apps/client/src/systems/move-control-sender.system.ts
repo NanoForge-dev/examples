@@ -14,6 +14,12 @@ const compareStringArrays = (array1: string[], array2: string[]) => {
   return true;
 };
 
+/**
+ * Sends the local player's held movement keys to the server when they change.
+ *
+ * @system
+ * @side client
+ */
 export const sendMoveControl = (registry: Registry, ctx: Context) => {
   const entities = registry.getZipper([MoveController, Velocity2D]);
 

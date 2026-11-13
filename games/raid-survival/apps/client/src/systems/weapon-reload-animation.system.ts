@@ -14,13 +14,19 @@ import { WEAPON_LOCAL_OFFSET } from "../hud-layout";
 const RELOAD_TILT_SPEED = 10; // radians/sec of the oscillation clock
 const RELOAD_TILT_AMPLITUDE = 25; // degrees
 
-// Owns the held weapon's animation state: idle pose, the reload overlay, and a one-shot "shoot"
-// recoil pulse triggered by handlers/weapon-fired.handler.ts setting weapon.firing.
-//
-// Must run after build-mode.system.ts/weapon-visibility.system.ts (main.ts's registration order):
-// this system only ever forces the main sprite *hidden* while a reload overlay plays instead, so
-// that write needs to be the last word for the tick, not clobbered by those systems re-asserting
-// visibility the same tick.
+/**
+ * Owns the held weapon's animation state: idle pose, the reload overlay, and a one-shot "shoot"
+ * recoil pulse triggered by handlers/weapon-fired.handler.ts setting weapon.firing.
+ *
+ * @remarks
+ * Must run after build-mode.system.ts/weapon-visibility.system.ts (main.ts's registration order):
+ * this system only ever forces the main sprite *hidden* while a reload overlay plays instead, so
+ * that write needs to be the last word for the tick, not clobbered by those systems re-asserting
+ * visibility the same tick.
+ *
+ * @system
+ * @side client
+ */
 export const weaponReloadAnimationSystem = (registry: Registry, ctx: Context) => {
   const weapons: {
     Weapon: Weapon;

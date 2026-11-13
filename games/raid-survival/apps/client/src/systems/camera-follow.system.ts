@@ -28,6 +28,13 @@ const clampCameraAxis = (
   return Math.min(max, Math.max(min, target));
 };
 
+/**
+ * Moves the world layer so the camera glides toward the local player, without scrolling past the
+ * map's edges.
+ *
+ * @system
+ * @side client
+ */
 export const cameraFollowSystem = (registry: Registry) => {
   const entities: { MoveController: MoveController; TransformComponent: TransformComponent }[] =
     registry.getZipper([MoveController, TransformComponent]);

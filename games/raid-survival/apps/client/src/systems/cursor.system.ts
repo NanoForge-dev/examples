@@ -8,8 +8,13 @@ import { TransformComponent } from "../components/transform.component";
 import { SpriteComponent } from "../components/sprite.component";
 import { BuildModeComponent } from "../components/build-mode.component";
 
-// Follows the mouse every tick with a custom crosshair, replacing the OS cursor. Build mode wants
-// the normal OS cursor instead - this system steps back entirely rather than fighting it.
+/**
+ * Follows the mouse every tick with a custom crosshair, replacing the OS cursor. Build mode wants
+ * the normal OS cursor instead - this system steps back entirely rather than fighting it.
+ *
+ * @system
+ * @side client
+ */
 export const cursorSystem = (registry: Registry, ctx: Context) => {
   const cursors: { SpriteComponent: SpriteComponent; TransformComponent: TransformComponent }[] =
     registry.getZipper([CursorComponent, SpriteComponent, TransformComponent]);

@@ -15,8 +15,13 @@ const LOCAL_PLAYER_SIZE = { width: 24, height: 24 };
 // server-only, so this is a generous stand-in purely for deciding when to show the hint.
 const DISPLAY_REVIVE_RANGE = 46;
 
-// Shows "Hold E to revive" above a downed teammate, to the local player only, while they're alive
-// and not in build mode.
+/**
+ * Shows "Hold E to revive" above a downed teammate, to the local player only, while they're alive
+ * and not in build mode.
+ *
+ * @system
+ * @side client
+ */
 export const reviveHintIndicatorSystem = (registry: Registry, ctx: Context) => {
   const indicators: {
     ReviveHintIndicatorComponent: ReviveHintIndicatorComponent;

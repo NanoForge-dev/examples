@@ -6,6 +6,12 @@ import { TextComponent } from "../components/text.component";
 
 const RISE_SPEED = 8; // world-layer-local px/sec
 
+/**
+ * Raises and fades each floating text (damage, coins), then removes it when its time is up.
+ *
+ * @system
+ * @side client
+ */
 export const floatingTextSystem = (registry: Registry, ctx: Context) => {
   const entities: {
     id: number;

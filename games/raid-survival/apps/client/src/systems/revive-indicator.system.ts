@@ -4,10 +4,15 @@ import type { Registry } from "@nanoforge-dev/ecs/client";
 import { TransformComponent } from "../components/transform.component";
 import { ReviveIndicatorComponent } from "../components/revive-indicator.component";
 
-// Positions each revive ring pair and fills the green Arc in from the grey Ring underneath as
-// `elapsed` counts toward `durationSeconds`. Arc/Ring aren't Sprites, so spriteSystem never
-// positions them - this does that job for these two shapes. Must run after
-// transform-children-to-parent.system.ts.
+/**
+ * Positions each revive ring pair and fills the green Arc in from the grey Ring underneath as
+ * `elapsed` counts toward `durationSeconds`. Arc/Ring aren't Sprites, so spriteSystem never
+ * positions them - this does that job for these two shapes. Must run after transform-children-to-
+ * parent.system.ts.
+ *
+ * @system
+ * @side client
+ */
 export const reviveIndicatorSystem = (registry: Registry, ctx: Context) => {
   const entities: {
     TransformComponent: TransformComponent;

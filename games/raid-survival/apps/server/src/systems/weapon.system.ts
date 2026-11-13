@@ -61,9 +61,14 @@ const computeAimDirection = (
   return { x: direction.x, y: direction.y };
 };
 
-// Owns the weapon state machine (idle/reloading, cooldown, magazine) for the single equipped
-// weapon of every player - ShootInput just records what's held/requested, this decides what
-// happens and when, every tick, independent of packet frequency.
+/**
+ * Owns the weapon state machine (idle/reloading, cooldown, magazine) for the single equipped weapon
+ * of every player - ShootInput just records what's held/requested, this decides what happens and
+ * when, every tick, independent of packet frequency.
+ *
+ * @system
+ * @side server
+ */
 export const weaponSystem = (registry: Registry, ctx: Context) => {
   const entities: {
     id: number;

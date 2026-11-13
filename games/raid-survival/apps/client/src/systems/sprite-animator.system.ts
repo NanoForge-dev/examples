@@ -4,6 +4,12 @@ import { Velocity2D } from "../components/velocity-2d.component";
 import { SpriteComponent } from "../components/sprite.component";
 import { Direction } from "../components/direction.component";
 
+/**
+ * Plays the walk or idle animation from each sprite's speed, and flips it to face its `Direction`.
+ *
+ * @system
+ * @side client
+ */
 export const spriteAnimator = (registry: Registry) => {
   const entities: {
     Direction: Direction;

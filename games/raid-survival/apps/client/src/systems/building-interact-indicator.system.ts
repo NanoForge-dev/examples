@@ -23,8 +23,13 @@ const LOCAL_PLAYER_SIZE = { width: 24, height: 24 };
 // generous stand-in purely for deciding when to show the hint text.
 const DISPLAY_INTERACT_RANGE = 46;
 
-// Shows a tower/wall/lobby's "Press E to..." hint near the local player: heal cost while
-// damaged, or a full-HP tower's next upgrade cost and level.
+/**
+ * Shows a tower/wall/lobby's "Press E to..." hint near the local player: heal cost while damaged,
+ * or a full-HP tower's next upgrade cost and level.
+ *
+ * @system
+ * @side client
+ */
 export const buildingInteractIndicatorSystem = (registry: Registry, ctx: Context) => {
   const indicators: {
     BuildingInteractIndicatorComponent: BuildingInteractIndicatorComponent;
