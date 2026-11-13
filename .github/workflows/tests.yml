@@ -43,5 +43,11 @@ jobs:
         with:
           node-version: 26
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec tsc --noEmit -p .
+      # A client+server workspace is typechecked per app: their `Context` augmentations clash.
+      - run: |
+          if [ -d apps ]; then
+            for app in apps/*/; do pnpm exec tsc --noEmit -p "$app"; done
+          else
+            pnpm exec tsc --noEmit -p .
+          fi
       - run: pnpm build
