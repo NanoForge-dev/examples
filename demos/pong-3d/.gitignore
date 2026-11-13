@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.nanoforge/
+nf_modules/
+.env
