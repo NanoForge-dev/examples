@@ -1,13 +1,13 @@
-import { ZIndexComponent } from "../components/z-index.component";
+import { DrawOrder2D } from "../components/draw-order-2d.component";
 import { SpriteComponent } from "../components/sprite.component";
 import type { Registry } from "@nanoforge-dev/ecs/client";
 
 let lastOrder: number[] = [];
 
 export const zOrderSystem = (registry: Registry) => {
-  const entities: { ZIndexComponent: ZIndexComponent; SpriteComponent: SpriteComponent }[] =
-    registry.getZipper([ZIndexComponent, SpriteComponent]);
-  const sorted = [...entities].sort((a, b) => a.ZIndexComponent.value - b.ZIndexComponent.value);
+  const entities: { DrawOrder2D: DrawOrder2D; SpriteComponent: SpriteComponent }[] =
+    registry.getZipper([DrawOrder2D, SpriteComponent]);
+  const sorted = [...entities].sort((a, b) => a.DrawOrder2D.z - b.DrawOrder2D.z);
 
   const currentOrder = sorted.map((e) => e.SpriteComponent.sprite?._id ?? -1);
   const changed =

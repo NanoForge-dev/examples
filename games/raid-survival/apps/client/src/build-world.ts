@@ -22,7 +22,7 @@ import { ChildrenComponent } from "./components/children.component";
 import { DirectionRotatorComponent } from "./components/direction-rotator.component";
 import { Lobby } from "./components/lobby.component";
 import { Health } from "./components/health.component";
-import { ZIndexComponent } from "./components/z-index.component";
+import { DrawOrder2D } from "./components/draw-order-2d.component";
 import { HealthBarFill } from "./components/health-bar-fill.component";
 import { RectComponent } from "./components/rect.component";
 import { TextComponent } from "./components/text.component";
@@ -173,7 +173,7 @@ export const buildHealthBar = (
     }),
   );
   registry.addComponent(frame, new Direction(0, 0));
-  registry.addComponent(frame, new ZIndexComponent(HEALTH_BAR_Z_INDEX));
+  registry.addComponent(frame, new DrawOrder2D(HEALTH_BAR_Z_INDEX));
 
   const fraction = health.max > 0 ? health.current / health.max : 0;
   const fillScaleX = HEALTH_BAR_FILL_MAX_SCALE_X * fraction;
@@ -200,7 +200,7 @@ export const buildHealthBar = (
     }),
   );
   registry.addComponent(fill, new Direction(0, 0));
-  registry.addComponent(fill, new ZIndexComponent(HEALTH_BAR_FILL_Z_INDEX));
+  registry.addComponent(fill, new DrawOrder2D(HEALTH_BAR_FILL_Z_INDEX));
   registry.addComponent(fill, new HealthBarFill(cavityLocalX));
 };
 
@@ -381,7 +381,7 @@ const buildHandAndWeapon = (
   // mirrorWhenFacingLeft: true - must match the weapon's own DirectionRotatorComponent below, or
   // the hand and gun rotate by different formulas while aiming left and visibly diverge.
   registry.addComponent(handEntity, new DirectionRotatorComponent(-98, true, true));
-  registry.addComponent(handEntity, new ZIndexComponent(20));
+  registry.addComponent(handEntity, new DrawOrder2D(20));
 
   // An unequipped player has no weaponType to key off yet, so this defaults to smallGun's art
   // (hidden regardless - see weapon-visibility.system.ts/build-mode.system.ts). Once a real
@@ -415,7 +415,7 @@ const buildHandAndWeapon = (
   // mirrorWhenFacingLeft: true - the gun rotates through the full circle, so without this it
   // reads upside-down for the whole left half of the arc.
   registry.addComponent(weaponEntity, new DirectionRotatorComponent(rotationOffset, true, true));
-  registry.addComponent(weaponEntity, new ZIndexComponent(WEAPON_Z_INDEX));
+  registry.addComponent(weaponEntity, new DrawOrder2D(WEAPON_Z_INDEX));
   registry.addComponent(weaponEntity, new Weapon(weaponType, rotationOffset));
 
   // Reload-animation overlay - built once, hidden by default. weapon-reload-animation.system.ts
@@ -458,7 +458,7 @@ const buildHandAndWeapon = (
     reloadOverlayEntity,
     new DirectionRotatorComponent(reloadOverlayCatalog.rotationOffset, true, true),
   );
-  registry.addComponent(reloadOverlayEntity, new ZIndexComponent(WEAPON_Z_INDEX));
+  registry.addComponent(reloadOverlayEntity, new DrawOrder2D(WEAPON_Z_INDEX));
   registry.addComponent(reloadOverlayEntity, new WeaponReloadOverlayComponent());
 };
 
@@ -472,7 +472,7 @@ const buildPlayer = (
   registry.addComponent(playerEntity, new NetworkId(playerPacket.id));
   registry.addComponent(playerEntity, new Player());
   registry.addComponent(playerEntity, new Direction(0, 0));
-  registry.addComponent(playerEntity, new ZIndexComponent(PLAYER_Z_INDEX));
+  registry.addComponent(playerEntity, new DrawOrder2D(PLAYER_Z_INDEX));
   registry.addComponent(
     playerEntity,
     new TransformComponent(playerPacket.position.x, playerPacket.position.y),
@@ -578,8 +578,8 @@ const buildCursor = (hudLayer: Layer, registry: Registry) => {
   registry.addComponent(cursorEntity, new TransformComponent(0, 0));
   registry.addComponent(cursorEntity, new CursorComponent());
   // Must never end up buried under other z-indexed sprites once anything else on the HUD changes
-  // - zOrderSystem only reorders entities that have both ZIndexComponent and SpriteComponent.
-  registry.addComponent(cursorEntity, new ZIndexComponent(CURSOR_Z_INDEX));
+  // - zOrderSystem only reorders entities that have both DrawOrder2D and SpriteComponent.
+  registry.addComponent(cursorEntity, new DrawOrder2D(CURSOR_Z_INDEX));
 };
 
 const buildLobby = (
@@ -601,7 +601,7 @@ const buildLobby = (
     }),
   );
   registry.addComponent(lobbyEntity, new Lobby());
-  registry.addComponent(lobbyEntity, new ZIndexComponent(10));
+  registry.addComponent(lobbyEntity, new DrawOrder2D(10));
   registry.addComponent(
     lobbyEntity,
     new Health(lobbyPacket.health.current, lobbyPacket.health.max),

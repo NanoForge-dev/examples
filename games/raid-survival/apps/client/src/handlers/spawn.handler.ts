@@ -8,7 +8,7 @@ import { SpriteComponent } from "../components/sprite.component";
 import { Direction } from "../components/direction.component";
 import { ChildrenComponent } from "../components/children.component";
 import { Health } from "../components/health.component";
-import { ZIndexComponent } from "../components/z-index.component";
+import { DrawOrder2D } from "../components/draw-order-2d.component";
 import { buildHealthBar, buildInteractIndicator } from "../build-world";
 import { Building } from "../components/building.component";
 import { TowerLevelComponent } from "../components/tower-level.component";
@@ -45,7 +45,7 @@ const TOWER_NPC_GUN_LOCAL_OFFSET = {
 const TOWER_NPC_GUN_SCALE = 0.6;
 // Above the tower's own sprite (Z-index 10, same as a wall) so the garrison actually reads as
 // standing ON it, not behind it - zOrderSystem only reorders entities that carry BOTH
-// ZIndexComponent and SpriteComponent, so these are required, not optional polish.
+// DrawOrder2D and SpriteComponent, so these are required, not optional polish.
 const TOWER_NPC_Z_INDEX = 16;
 const TOWER_NPC_GUN_Z_INDEX = 21;
 
@@ -84,7 +84,7 @@ export const spawnHandler = (packet: ServerMessageOf<"spawn">, registry: Registr
       // No Direction component: sprite-animator.system.ts would try to play a "walk" animation
       // zombie-animations.txt doesn't have. zombieState packets own this sprite's animation.
       registry.addComponent(newEnt, new Health(packet.health.current, packet.health.max));
-      registry.addComponent(newEnt, new ZIndexComponent(10));
+      registry.addComponent(newEnt, new DrawOrder2D(10));
       registry.addComponent(
         newEnt,
         new SpriteComponent("GZ2-Zombie-Puncher.png", {
@@ -95,8 +95,8 @@ export const spawnHandler = (packet: ServerMessageOf<"spawn">, registry: Registr
       buildHealthBar(world, registry, newEnt, ZOMBIE_SPRITE_SIZE.width, packet.health);
       break;
     case "building": {
-      // zOrderSystem only reorders entities with both ZIndexComponent and SpriteComponent.
-      registry.addComponent(newEnt, new ZIndexComponent(10));
+      // zOrderSystem only reorders entities with both DrawOrder2D and SpriteComponent.
+      registry.addComponent(newEnt, new DrawOrder2D(10));
       const layer = world;
       if (packet.buildingType === "tower") {
         // "idle" IS level 1's crop, so this renders correctly without an extra setAnimation call.
@@ -118,7 +118,7 @@ export const spawnHandler = (packet: ServerMessageOf<"spawn">, registry: Registr
         // Direction only, no Velocity2D - spriteAnimator would otherwise try to play a "walk"
         // animation npc-animations.txt doesn't have.
         registry.addComponent(npc, new Direction(0, 0));
-        registry.addComponent(npc, new ZIndexComponent(TOWER_NPC_Z_INDEX));
+        registry.addComponent(npc, new DrawOrder2D(TOWER_NPC_Z_INDEX));
 
         // A small held gun, decorative - a sibling of the NPC (not its child) to avoid the extra
         // tick of position lag a child-of-a-child would add.
@@ -137,7 +137,7 @@ export const spawnHandler = (packet: ServerMessageOf<"spawn">, registry: Registr
           new ChildrenComponent(newEnt.getId(), { LocalTransform: TOWER_NPC_GUN_LOCAL_OFFSET }),
         );
         registry.addComponent(gun, new Direction(0, 0));
-        registry.addComponent(gun, new ZIndexComponent(TOWER_NPC_GUN_Z_INDEX));
+        registry.addComponent(gun, new DrawOrder2D(TOWER_NPC_GUN_Z_INDEX));
       } else {
         // Only "wall" is left here now - add a branch above for any future non-tower type.
         registry.addComponent(
@@ -163,7 +163,7 @@ export const spawnHandler = (packet: ServerMessageOf<"spawn">, registry: Registr
       break;
     }
     case "lootBox":
-      registry.addComponent(newEnt, new ZIndexComponent(10));
+      registry.addComponent(newEnt, new DrawOrder2D(10));
       registry.addComponent(
         newEnt,
         new SpriteComponent("objects.png", {
@@ -182,7 +182,7 @@ export const spawnHandler = (packet: ServerMessageOf<"spawn">, registry: Registr
       transform.y -= BULLET_SPRITE_SIZE.height / 2;
       registry.addComponent(newEnt, new Velocity2D(packet.velocity.x, packet.velocity.y));
       transform.rotation = (Math.atan2(packet.velocity.y, packet.velocity.x) * 180) / Math.PI;
-      registry.addComponent(newEnt, new ZIndexComponent(BULLET_Z_INDEX));
+      registry.addComponent(newEnt, new DrawOrder2D(BULLET_Z_INDEX));
       registry.addComponent(
         newEnt,
         new SpriteComponent("weapons.png", {
