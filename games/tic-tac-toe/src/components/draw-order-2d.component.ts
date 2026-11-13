@@ -1,10 +1,10 @@
 /**
- * Where an entity's drawable is in the stack: a higher `z` is drawn over a lower one. Needs the
- * `drawOrder2D` system.
+ * Where an entity's drawable is in the stack: a higher `z` is drawn over a lower one. A system
+ * applies it: `drawOrder2D` for the `Drawable*2D` shapes, or the game's own.
  *
  * @remarks
- * Without it, a shape is drawn over the shapes that appeared before it, and a scene loaded again
- * can stack its shapes in another order.
+ * Without such a system, a shape is drawn over the shapes that appeared before it, and a scene
+ * loaded again can stack its shapes in another order.
  *
  * @component
  * @side client

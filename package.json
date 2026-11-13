@@ -7,7 +7,8 @@
     "check": "node scripts/check.ts",
     "fix": "node scripts/check.ts --fix",
     "format": "prettier --write .",
-    "lint": "prettier --check . && node scripts/check.ts"
+    "lint": "prettier --check . && node scripts/check.ts",
+    "test": "node --test scripts/check.test.ts"
   },
   "devDependencies": {
     "prettier": "^3.6.2"

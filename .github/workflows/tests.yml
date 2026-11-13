@@ -22,6 +22,7 @@ jobs:
           node-version: 26
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      - run: pnpm test
       - id: list
         run: echo "examples=$(node scripts/check.ts --list)" >> "$GITHUB_OUTPUT"
 
