@@ -5,7 +5,6 @@
     // Type Checking
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
-    "exactOptionalPropertyTypes": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
@@ -26,7 +25,6 @@
 
     // Interop Constraints
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": false,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
 
@@ -34,8 +32,8 @@
     "experimentalDecorators": true,
     "lib": ["ESNext", "esnext.disposable", "DOM"],
     "target": "ESNext",
-    "useDefineForClassFields": true,
+    "useDefineForClassFields": true
   },
-  "include": ["client/**/*.ts", "server/**/*.ts"],
-  "exclude": ["node_modules", ".nanoforge"]
+  "include": ["src"],
+  "exclude": ["node_modules", ".nanoforge", "dist"]
 }
