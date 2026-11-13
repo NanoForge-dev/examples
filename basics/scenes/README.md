@@ -19,4 +19,5 @@ pnpm editor   # open it in the editor
 ```
 
 `image-fill.ts`, the `Position2D`, `DrawableRect2D`, `DrawableCircle2D` and `DrawableText2D`
-components and the `draw2D` system are copies of `shared/2d` (see the repository's README).
+components and the `draw2D` system are copies of `shared/2d`, and `SceneVarText` with its
+`showSceneVar` system of `shared/scenes` (see the repository's README).

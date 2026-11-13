@@ -9,7 +9,7 @@ import { DrawableRect2D } from "../components/drawable-rect-2d.component";
 import { DrawableText2D } from "../components/drawable-text-2d.component";
 import { Position2D } from "../components/position-2d.component";
 import { RestartButton } from "../components/restart-button.component";
-import { VarText } from "../components/var-text.component";
+import { SceneVarText } from "../components/scene-var-text.component";
 import { restartMatch } from "../systems/restart-match.system";
 
 /**
@@ -37,7 +37,7 @@ export class EndPopup extends EcsScene {
     const title = registry.spawnEntity();
     registry.addComponent(title, new Position2D(350, 290));
     registry.addComponent(title, new DrawableText2D("", 28, "#ffffff"));
-    registry.addComponent(title, new VarText("result", "{}"));
+    registry.addComponent(title, new SceneVarText("result", "{}"));
     registry.addComponent(title, new CenterText2D());
     registry.addComponent(title, new DrawOrder2D(12));
 

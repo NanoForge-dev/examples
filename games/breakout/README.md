@@ -67,5 +67,5 @@ Three things to know when writing scenes like these:
   ids of the scene before: two shapes of one scene that overlap may stack either way. The
   background is spawned by `main.ts` for that reason.
 
-The files of `src/` that are also in `shared/2d` or `shared/paddle` are copies (see the
+The files of `src/` that are also in `shared/2d`, `shared/paddle` or `shared/scenes` are copies (see the
 repository's README).

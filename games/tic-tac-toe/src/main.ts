@@ -16,7 +16,7 @@ import { click2D } from "./systems/click-2d.system";
 import { draw2D } from "./systems/draw-2d.system";
 import { drawOrder2D } from "./systems/draw-order-2d.system";
 import { loadSounds } from "./systems/load-sounds.system";
-import { varText } from "./systems/var-text.system";
+import { showSceneVar } from "./systems/show-scene-var.system";
 
 export const main = async (options: ClientRunOptions): Promise<void> => {
   const app = NanoforgeFactory.createClient({
@@ -41,7 +41,7 @@ export const main = async (options: ClientRunOptions): Promise<void> => {
 
   registry.addSystem(loadSounds);
   registry.addSystem(click2D);
-  registry.addSystem(varText);
+  registry.addSystem(showSceneVar);
   registry.addSystem(draw2D);
   registry.addSystem(centerText2D);
   registry.addSystem(drawOrder2D);

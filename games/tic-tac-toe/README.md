@@ -27,11 +27,11 @@ Two scenes (`src/scenes`), each with its entities written out in its `setup`:
 - The mouse goes through the input library: `click2D` lights up the `Clickable2D` rectangle under
   the cursor and tells which one was clicked.
 - `playCell` spawns the marks (`Marker` entities); `Match` removes them when it ends.
-- `VarText` shows a scene var in a text, `CenterText2D` centers a text on its position, and
+- `SceneVarText` shows a scene var in a text, `CenterText2D` centers a text on its position, and
   `DrawOrder2D` stacks the shapes (the popup over the board).
 - The marker sound is a `SoundEffect` entity of `main.ts`, played with `ctx.sound.play("marker")`.
 
-The files of `src` that are also in `shared/2d` or `shared/arcade` are copies (see the
+The files of `src` that are also in `shared/2d`, `shared/arcade` or `shared/scenes` are copies (see the
 repository's README).
 
 ## Credits

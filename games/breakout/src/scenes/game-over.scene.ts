@@ -4,11 +4,11 @@ import { EcsScene } from "@nanoforge-dev/ecs/scene";
 import type { SceneLoadContext } from "@nanoforge-dev/scene";
 
 import { DrawableText2D } from "../components/drawable-text-2d.component";
-import { HudText } from "../components/hud-text.component";
+import { SceneVarText } from "../components/scene-var-text.component";
 import { Position2D } from "../components/position-2d.component";
 import { recordBest } from "../record-best";
 import { backToMenu } from "../systems/back-to-menu.system";
-import { updateHud } from "../systems/update-hud.system";
+import { showSceneVar } from "../systems/show-scene-var.system";
 
 /**
  * Shown when the last life is lost, with the score and the best score.
@@ -39,19 +39,19 @@ export class GameOver extends EcsScene<{
 
     const scoreText = registry.spawnEntity();
     registry.addComponent(scoreText, new Position2D(532, 340));
-    registry.addComponent(scoreText, new HudText("score"));
+    registry.addComponent(scoreText, new SceneVarText("score", "Score {}"));
     registry.addComponent(scoreText, new DrawableText2D("", 40, "#e8ecf8", 1, "monospace"));
 
     const bestScore = registry.spawnEntity();
     registry.addComponent(bestScore, new Position2D(515, 400));
-    registry.addComponent(bestScore, new HudText("best"));
+    registry.addComponent(bestScore, new SceneVarText("best", "Best score {}"));
     registry.addComponent(bestScore, new DrawableText2D("", 28, "#f9ca24", 1, "monospace"));
 
     const prompt = registry.spawnEntity();
     registry.addComponent(prompt, new Position2D(541, 520));
     registry.addComponent(prompt, new DrawableText2D("Press Enter", 30, "#8a93ad", 1, "monospace"));
 
-    registry.addSystem(updateHud);
+    registry.addSystem(showSceneVar);
     registry.addSystem(backToMenu);
   }
 }

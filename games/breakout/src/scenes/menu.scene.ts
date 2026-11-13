@@ -3,10 +3,10 @@ import type { Registry } from "@nanoforge-dev/ecs";
 import { EcsScene } from "@nanoforge-dev/ecs/scene";
 
 import { DrawableText2D } from "../components/drawable-text-2d.component";
-import { HudText } from "../components/hud-text.component";
+import { SceneVarText } from "../components/scene-var-text.component";
 import { Position2D } from "../components/position-2d.component";
 import { startOnEnter } from "../systems/start-on-enter.system";
-import { updateHud } from "../systems/update-hud.system";
+import { showSceneVar } from "../systems/show-scene-var.system";
 
 /**
  * The title screen. Enter starts a game at level 1, which loads `Run` first.
@@ -33,7 +33,7 @@ export class Menu extends EcsScene {
 
     const bestScore = registry.spawnEntity();
     registry.addComponent(bestScore, new Position2D(515, 430));
-    registry.addComponent(bestScore, new HudText("best"));
+    registry.addComponent(bestScore, new SceneVarText("best", "Best score {}"));
     registry.addComponent(bestScore, new DrawableText2D("", 28, "#f9ca24", 1, "monospace"));
 
     const keys = registry.spawnEntity();
@@ -44,6 +44,6 @@ export class Menu extends EcsScene {
     );
 
     registry.addSystem(startOnEnter);
-    registry.addSystem(updateHud);
+    registry.addSystem(showSceneVar);
   }
 }

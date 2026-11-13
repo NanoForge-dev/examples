@@ -48,12 +48,12 @@ export const main = async (options: ClientRunOptions): Promise<void> => {
   const room = registry.spawnEntity();
   registry.addComponent(room, new Position2D(20, 520));
   registry.addComponent(room, new DrawableText2D("", 20, "#a6adc8"));
-  registry.addComponent(room, new SceneVarText("room", "room (owned by the scene): "));
+  registry.addComponent(room, new SceneVarText("room", "room (owned by the scene): {}"));
 
   const switches = registry.spawnEntity();
   registry.addComponent(switches, new Position2D(20, 555));
   registry.addComponent(switches, new DrawableText2D("", 20, "#a6adc8"));
-  registry.addComponent(switches, new SceneVarText("switches", "switches (persistent): "));
+  registry.addComponent(switches, new SceneVarText("switches", "switches (persistent): {}"));
 
   registry.addSystem(switchSceneOnKey);
   registry.addSystem(showSceneVar);

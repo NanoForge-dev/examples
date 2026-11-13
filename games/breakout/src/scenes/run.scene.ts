@@ -6,7 +6,7 @@ import { Ball } from "../components/ball.component";
 import { DrawableRect2D } from "../components/drawable-rect-2d.component";
 import { DrawableText2D } from "../components/drawable-text-2d.component";
 import { HitboxRect2D } from "../components/hitbox-rect-2d.component";
-import { HudText } from "../components/hud-text.component";
+import { SceneVarText } from "../components/scene-var-text.component";
 import { MoveController2D } from "../components/move-controller-2d.component";
 import { Paddle } from "../components/paddle.component";
 import { Position2D } from "../components/position-2d.component";
@@ -18,7 +18,7 @@ import { controlPaddle } from "../systems/control-paddle.system";
 import { holdBall } from "../systems/hold-ball.system";
 import { loseBall } from "../systems/lose-ball.system";
 import { moveAll } from "../systems/move-all.system";
-import { updateHud } from "../systems/update-hud.system";
+import { showSceneVar } from "../systems/show-scene-var.system";
 
 /**
  * A game, from the first level to the last or to the last life: the walls, the paddle, the ball
@@ -57,17 +57,17 @@ export class Run extends EcsScene {
 
     const score = registry.spawnEntity();
     registry.addComponent(score, new Position2D(60, 28));
-    registry.addComponent(score, new HudText("score"));
+    registry.addComponent(score, new SceneVarText("score", "Score {}"));
     registry.addComponent(score, new DrawableText2D("", 30, "#e8ecf8", 1, "monospace"));
 
     const level = registry.spawnEntity();
     registry.addComponent(level, new Position2D(577, 28));
-    registry.addComponent(level, new HudText("level"));
+    registry.addComponent(level, new SceneVarText("level", "Level {}"));
     registry.addComponent(level, new DrawableText2D("", 30, "#e8ecf8", 1, "monospace"));
 
     const lives = registry.spawnEntity();
     registry.addComponent(lives, new Position2D(1094, 28));
-    registry.addComponent(lives, new HudText("lives"));
+    registry.addComponent(lives, new SceneVarText("lives", "Lives {}"));
     registry.addComponent(lives, new DrawableText2D("", 30, "#e8ecf8", 1, "monospace"));
 
     const paddle = registry.spawnEntity();
@@ -91,6 +91,6 @@ export class Run extends EcsScene {
     registry.addSystem(holdBall);
     registry.addSystem(breakBricks);
     registry.addSystem(loseBall);
-    registry.addSystem(updateHud);
+    registry.addSystem(showSceneVar);
   }
 }

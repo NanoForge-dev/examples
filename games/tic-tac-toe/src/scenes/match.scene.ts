@@ -10,7 +10,7 @@ import { DrawableRect2D } from "../components/drawable-rect-2d.component";
 import { DrawableText2D } from "../components/drawable-text-2d.component";
 import { Marker } from "../components/marker.component";
 import { Position2D } from "../components/position-2d.component";
-import { VarText } from "../components/var-text.component";
+import { SceneVarText } from "../components/scene-var-text.component";
 import { checkEnd } from "../systems/check-end.system";
 import { playCell } from "../systems/play-cell.system";
 
@@ -34,7 +34,7 @@ export class Match extends EcsScene {
     const turn = registry.spawnEntity();
     registry.addComponent(turn, new Position2D(350, 80));
     registry.addComponent(turn, new DrawableText2D("Player 1's turn", 24, "#c5b6d6"));
-    registry.addComponent(turn, new VarText("player", "Player {}'s turn"));
+    registry.addComponent(turn, new SceneVarText("player", "Player {}'s turn"));
     registry.addComponent(turn, new CenterText2D());
     registry.addComponent(turn, new DrawOrder2D(3));
 
