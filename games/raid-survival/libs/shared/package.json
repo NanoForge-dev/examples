@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@raid-survival/shared",
+  "description": "What both raid-survival apps share: the packets and the game catalogs",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "devDependencies": {
+    "@nanoforge-dev/network": "^3.0.0"
+  }
+}

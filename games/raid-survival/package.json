@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "raid-survival",
+  "description": "Co-op zombie waves for up to 4 players: a NanoForge client and server sharing one library",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nf dev -r",
+    "build": "nf build -r",
+    "start": "nf start -r",
+    "editor": "nf editor ."
+  },
+  "devDependencies": {
+    "@nanoforge-dev/cli": "^3.0.1",
+    "@nanoforge-dev/config": "^3.0.1",
+    "typescript": "^6.0.0"
+  }
+}
