@@ -32,7 +32,11 @@ export const inputHandler = (
   // A client still in the lobby (not yet spawned into a game) has none of these components.
   if (!velocity || !position || !direction || !moveInput || !shootInput || !reviveInput) return;
 
-  if (packet.direction) {
+  if (
+    packet.direction &&
+    Number.isFinite(packet.direction.x) &&
+    Number.isFinite(packet.direction.y)
+  ) {
     direction.x = packet.direction.x;
     direction.y = packet.direction.y;
     broadcast(ctx, {
@@ -43,7 +47,7 @@ export const inputHandler = (
   }
 
   // Just records held-key intent - move-input.system.ts recomputes Velocity2D from this every tick.
-  if (packet.moveKeys) {
+  if (Array.isArray(packet.moveKeys)) {
     moveInput.up = packet.moveKeys.includes("up");
     moveInput.down = packet.moveKeys.includes("down");
     moveInput.left = packet.moveKeys.includes("left");
@@ -55,8 +59,8 @@ export const inputHandler = (
   }
   if (
     packet.mousePosition &&
-    typeof packet.mousePosition.x === "number" &&
-    typeof packet.mousePosition.y === "number"
+    Number.isFinite(packet.mousePosition.x) &&
+    Number.isFinite(packet.mousePosition.y)
   ) {
     shootInput.mousePosition = { x: packet.mousePosition.x, y: packet.mousePosition.y };
   }
