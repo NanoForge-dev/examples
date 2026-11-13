@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@network/protocol",
+  "description": "What the client and the server of the network example say to each other",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@nanoforge-dev/config": "^3.0.1",
+    "@nanoforge-dev/network": "^3.0.0"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "network",
+  "description": "Move squares on a shared server: the smallest NanoForge game played online",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nf dev",
+    "build": "nf build",
+    "start": "nf start",
+    "editor": "nf editor ."
+  },
+  "devDependencies": {
+    "@nanoforge-dev/cli": "^3.0.1",
+    "@nanoforge-dev/config": "^3.0.1",
+    "typescript": "^6.0.0"
+  }
+}
