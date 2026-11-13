@@ -872,7 +872,7 @@ const buildBuildMode = (worldLayer: Layer, hudLayer: Layer, registry: Registry) 
   const zoomOutX = zoomInX - ZOOM_BUTTON_GAP - ZOOM_BUTTON_SIZE.width;
   const zoomY = ZOOM_BUTTON_MARGIN;
 
-  function buildZoomButton(x: number, label: string) {
+  const buildZoomButton = (x: number, label: string) => {
     const rectComponent = new RectComponent(hudLayer, {
       x,
       y: zoomY,
@@ -911,7 +911,7 @@ const buildBuildMode = (worldLayer: Layer, hudLayer: Layer, registry: Registry) 
     registry.addComponent(registry.spawnEntity(), textComponent);
 
     return { rect: rectComponent.rect, text: textComponent.text };
-  }
+  };
 
   const zoomInButton = buildZoomButton(zoomInX, "+");
   const zoomOutButton = buildZoomButton(zoomOutX, "-");

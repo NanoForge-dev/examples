@@ -37,7 +37,5 @@ export const joinLobbyHandler = (
   } else if (packet.result === "username taken") {
     firstLobbyStatus.LobbyStatusComponent.error =
       "That username is already taken - pick another one.";
-  } else {
-    console.log(packet);
   }
 };
