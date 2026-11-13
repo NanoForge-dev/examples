@@ -34,10 +34,12 @@ the clients find it (the shell's variables win over it):
 ## How it works
 
 `apps/server` is the same as `pong-network`'s, file for file: the game runs on a 1920 × 1080
-field in 2D, in the host's tab. `apps/client` draws that field in 3D: `DrawableBox3D` and
-`DrawableSphere3D` place a box or a ball on the field (in field units), `draw3D` keeps them
-where their `Position2D` says, and `followCamera` moves the camera. `PaddleInput` is `mirrored`:
-for the right paddle, whose camera faces the other way, the keys swap.
+field in 2D, in the host's tab. `apps/client` draws that field in 3D, 100 field units to a world
+unit: `DrawableBox3D` and `DrawableSphere3D` draw a box or a ball (in world units) at their
+entity's `Transform3D`, `placeOnField` keeps each `Transform3D` where its `Position2D` says,
+resting on the table, `draw3D` puts the meshes in the scene, and `followCamera` moves the camera.
+`PaddleInput` is `mirrored`: for the right paddle, whose camera faces the other way, the keys
+swap.
 
-The files of `src/` that are also in `shared/2d` or `shared/paddle` are copies (see the
-repository's README).
+The files of `src/` that are also in `shared/2d`, `shared/3d`, `shared/network` or
+`shared/paddle` are copies (see the repository's README).

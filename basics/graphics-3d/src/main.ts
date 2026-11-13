@@ -5,7 +5,7 @@ import { EditorLibrary } from "@nanoforge-dev/editor-lib";
 import { Graphics3DLibrary } from "@nanoforge-dev/graphics-3d";
 import { Color, DirectionalLight, HemisphereLight } from "@nanoforge-dev/graphics-3d/three";
 
-import { Box3D } from "./components/box-3d.component";
+import { DrawableBox3D } from "./components/drawable-box-3d.component";
 import { Spin3D } from "./components/spin-3d.component";
 import { Transform3D } from "./components/transform-3d.component";
 import { draw3D } from "./systems/draw-3d.system";
@@ -38,7 +38,7 @@ export const main = async (options: ClientRunOptions): Promise<void> => {
 
   const cube = registry.spawnEntity();
   registry.addComponent(cube, new Transform3D(0, 0, 0));
-  registry.addComponent(cube, new Box3D(1, 1, 1, "#44aa88"));
+  registry.addComponent(cube, new DrawableBox3D(1, 1, 1, "#44aa88"));
   registry.addComponent(cube, new Spin3D(20, 90, 0));
 
   registry.addSystem(spin3D);

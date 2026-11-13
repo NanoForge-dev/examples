@@ -1,24 +1,24 @@
 import {
   BoxGeometry,
+  MathUtils,
   Mesh,
   MeshStandardMaterial,
   type Scene,
 } from "@nanoforge-dev/graphics-3d/three";
 
-import { SCALE, fieldToWorld } from "../field";
-import type { Position2D } from "./position-2d.component";
+import type { Transform3D } from "./transform-3d.component";
 
 /**
- * Draws a box standing on the field, its top-left corner at the entity's `Position2D` (in field
- * units). Needs the `draw3D` system.
+ * Draws a box at the entity's `Transform3D` (its center), turned like it. Needs the `draw3D`
+ * system.
  *
  * @remarks
- * `mesh` is the three.js `Mesh` in the scene: change it from code for anything the parameters
- * don't offer.
+ * `mesh` is the Three.js `Mesh` in the scene: change it from code for anything the parameters
+ * don't offer. It casts and receives shadows when the renderer's shadow map is on.
  *
  * @component
  * @side client
- * @group Shape color=#e86fb0 - Size of the box, in field units.
+ * @group Shape color=#e86fb0 - Size of the box, in world units.
  * @group Look color=#b18cff - What the box looks like.
  */
 export class DrawableBox3D {
@@ -28,37 +28,40 @@ export class DrawableBox3D {
   mesh?: Mesh<BoxGeometry, MeshStandardMaterial>;
 
   constructor(
-    /** Along the field's x. @group Shape @preset size.width */
-    public width = 50,
-    /** Along the field's y. @group Shape @preset size.height */
-    public depth = 50,
-    /** Up from the ground. @group Shape */
-    public height = 50,
+    /** Along x. @group Shape @preset size.width */
+    public width = 1,
+    /** Along y, up. @group Shape @preset size.height */
+    public height = 1,
+    /** Along z. @group Shape */
+    public depth = 1,
     /** A CSS color: `red`, `#ff0000`... @group Look @preset color */
-    public color = "#4aa3ff",
+    public color = "#44aa88",
+    /** From 0 (a mirror) to 1 (matte). @group Look */
+    public roughness = 1,
     /** Whether it is drawn. @group Look */
     public visible = true,
   ) {}
 
-  /** Puts the box in `scene` at `position`, up to date with the parameters. */
-  draw(scene: Scene, position: Position2D): void {
+  /** Puts the box in `scene` at `transform`, up to date with the parameters. */
+  draw(scene: Scene, transform: Transform3D): void {
     if (!this.mesh) {
-      this.mesh = new Mesh(new BoxGeometry(), new MeshStandardMaterial({ roughness: 0.6 }));
+      this.mesh = new Mesh(new BoxGeometry(), new MeshStandardMaterial());
       this.mesh.castShadow = this.mesh.receiveShadow = true;
     }
     if (this.mesh.parent !== scene) scene.add(this.mesh);
-    this.mesh.scale.set(this.width * SCALE, this.height * SCALE, this.depth * SCALE);
+    this.mesh.scale.set(this.width, this.height, this.depth);
     this.mesh.material.color.set(this.color);
+    this.mesh.material.roughness = this.roughness;
     this.mesh.visible = this.visible;
-    fieldToWorld(
-      position.x + this.width / 2,
-      position.y + this.depth / 2,
-      this.height / 2,
-      this.mesh.position,
+    this.mesh.position.set(transform.x, transform.y, transform.z);
+    this.mesh.rotation.set(
+      MathUtils.degToRad(transform.rotationX),
+      MathUtils.degToRad(transform.rotationY),
+      MathUtils.degToRad(transform.rotationZ),
     );
   }
 
-  /** Removes the box from the scene. */
+  /** Removes the box from the scene and frees its GPU memory. */
   destroy(): void {
     this.mesh?.removeFromParent();
     this.mesh?.geometry.dispose();
