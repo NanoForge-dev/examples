@@ -3,3 +3,4 @@ dist/
 .nanoforge/
 nf_modules/
 .env
+.idea/
